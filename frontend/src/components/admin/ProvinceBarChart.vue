@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import type { ProvinceCount } from '@/types'
 
@@ -8,6 +8,21 @@ const props = defineProps<{ data: ProvinceCount[] }>()
 const W = 700, H = 300, PAD = 50
 const maxVal = computed(() => Math.max(1, ...props.data.map(d => d.count)))
 const barW = computed(() => props.data.length ? (W - PAD * 2) / props.data.length - 4 : 30)
+
+const containerEl = ref<HTMLElement | null>(null)
+const containerWidth = ref(0)
+let resizeObs: ResizeObserver | null = null
+
+onMounted(() => {
+  if (containerEl.value) {
+    containerWidth.value = containerEl.value.offsetWidth
+    resizeObs = new ResizeObserver(([entry]) => {
+      containerWidth.value = entry.contentRect.width
+    })
+    resizeObs.observe(containerEl.value)
+  }
+})
+onBeforeUnmount(() => { resizeObs?.disconnect() })
 
 const tooltip = ref({ visible: false, x: 0, y: 0, content: '' })
 const hoverIdx = ref(-1)
@@ -52,7 +67,7 @@ function showTooltip(e: MouseEvent, d: ProvinceCount) {
 </script>
 
 <template>
-  <div>
+  <div ref="containerEl">
     <h3 class="text-base font-semibold text-neutral-800 mb-4">省份分布</h3>
     <svg :viewBox="`0 0 ${W} ${H}`" class="w-full">
       <defs>
@@ -116,7 +131,7 @@ function showTooltip(e: MouseEvent, d: ProvinceCount) {
         >{{ d.province.slice(0, 2) }}</text>
       </g>
     </svg>
-    <SvgTooltip v-bind="tooltip" />
+    <SvgTooltip v-bind="tooltip" :container-width="containerWidth" />
   </div>
 </template>
 

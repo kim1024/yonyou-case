@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import type { IndustryCount } from '@/types'
 
@@ -59,6 +59,21 @@ const slices = computed(() => {
   })
 })
 
+const containerEl = ref<HTMLElement | null>(null)
+const containerWidth = ref(0)
+let resizeObs: ResizeObserver | null = null
+
+onMounted(() => {
+  if (containerEl.value) {
+    containerWidth.value = containerEl.value.offsetWidth
+    resizeObs = new ResizeObserver(([entry]) => {
+      containerWidth.value = entry.contentRect.width
+    })
+    resizeObs.observe(containerEl.value)
+  }
+})
+onBeforeUnmount(() => { resizeObs?.disconnect() })
+
 const tooltip = ref({ visible: false, x: 0, y: 0, content: '' })
 const hoverIdx = ref(-1)
 
@@ -69,7 +84,7 @@ function showTooltip(e: MouseEvent, s: { industry: string; count: number; pct: s
 </script>
 
 <template>
-  <div>
+  <div ref="containerEl">
     <h3 class="text-base font-semibold text-neutral-800 mb-4">行业分布</h3>
     <svg viewBox="0 0 400 400" class="w-full max-w-sm mx-auto">
       <defs>
@@ -115,6 +130,6 @@ function showTooltip(e: MouseEvent, s: { industry: string; count: number; pct: s
         <span class="text-neutral-400 tabular-nums">{{ s.pct }}%</span>
       </div>
     </div>
-    <SvgTooltip v-bind="tooltip" />
+    <SvgTooltip v-bind="tooltip" :container-width="containerWidth" />
   </div>
 </template>

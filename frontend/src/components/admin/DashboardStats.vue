@@ -39,7 +39,7 @@ function formatNumber(val: number | null | undefined): string {
         :style="{ background: card.gradient }"
       />
 
-      <div class="flex items-center gap-2 mb-3">
+      <div class="flex items-center justify-center gap-2 mb-4">
         <div
           class="flex items-center justify-center w-7 h-7 rounded-lg"
           :style="{ background: card.gradient.replace('linear-gradient(90deg', 'linear-gradient(135deg') + ', rgba(255,255,255,0.18))' }"
@@ -53,8 +53,10 @@ function formatNumber(val: number | null | undefined): string {
         <span class="text-xs font-medium text-neutral-500 tracking-wide uppercase">{{ card.label }}</span>
       </div>
 
-      <div class="text-[36px] font-bold text-neutral-900 leading-none tracking-tight">
-        {{ formatNumber(summary ? (summary as Record<string, number>)[card.key] : null) }}
+      <div class="text-center">
+        <div class="text-[40px] font-bold text-neutral-900 leading-none tracking-tight tabular-nums">
+          {{ formatNumber(summary ? (summary as Record<string, number>)[card.key] : null) }}
+        </div>
       </div>
     </div>
   </div>

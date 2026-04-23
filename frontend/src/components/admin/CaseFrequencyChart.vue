@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import type { CaseFrequency } from '@/types'
 
@@ -42,6 +42,45 @@ const gridLines = computed(() =>
     })),
 )
 
+// 20 组渐变色 [stop-0, stop-1, hover-0, hover-1]
+const barGradients: [string, string, string, string][] = [
+  ['#F59E0B', '#FBBF24', '#D97706', '#F59E0B'], // #1  金黄
+  ['#F97316', '#FB923C', '#EA580C', '#F97316'], // #2  橙色
+  ['#EF4444', '#F87171', '#DC2626', '#EF4444'], // #3  红色
+  ['#EC4899', '#F472B6', '#DB2777', '#EC4899'], // #4  粉红
+  ['#D946EF', '#E879F9', '#C026D3', '#D946EF'], // #5  品红
+  ['#A855F7', '#C084FC', '#9333EA', '#A855F7'], // #6  紫色
+  ['#8B5CF6', '#A78BFA', '#7C3AED', '#8B5CF6'], // #7  靛紫
+  ['#7C3AED', '#A78BFA', '#6D28D9', '#7C3AED'], // #8  深紫
+  ['#6366F1', '#818CF8', '#4F46E5', '#6366F1'], // #9  靛蓝
+  ['#4F46E5', '#6366F1', '#4338CA', '#4F46E5'], // #10 深靛蓝
+  ['#4338CA', '#6366F1', '#3730A3', '#4338CA'], // #11 靛蓝-700
+  ['#3B82F6', '#60A5FA', '#2563EB', '#3B82F6'], // #12 蓝色
+  ['#0EA5E9', '#38BDF8', '#0284C7', '#0EA5E9'], // #13 天蓝
+  ['#06B6D4', '#22D3EE', '#0891B2', '#06B6D4'], // #14 青色
+  ['#14B8A6', '#2DD4BF', '#0D9488', '#14B8A6'], // #15 蓝绿
+  ['#10B981', '#34D399', '#059669', '#10B981'], // #16 翡翠
+  ['#6B7280', '#9CA3AF', '#4B5563', '#6B7280'], // #17 中灰
+  ['#78716C', '#A8A29E', '#57534E', '#78716C'], // #18 暖灰
+  ['#A8A29E', '#D6D3D1', '#78716C', '#A8A29E'], // #19 浅暖灰
+  ['#D6D3D1', '#E7E5E4', '#A8A29E', '#D6D3D1'], // #20 最淡灰
+]
+
+const containerEl = ref<HTMLElement | null>(null)
+const containerWidth = ref(0)
+let resizeObs: ResizeObserver | null = null
+
+onMounted(() => {
+  if (containerEl.value) {
+    containerWidth.value = containerEl.value.offsetWidth
+    resizeObs = new ResizeObserver(([entry]) => {
+      containerWidth.value = entry.contentRect.width
+    })
+    resizeObs.observe(containerEl.value)
+  }
+})
+onBeforeUnmount(() => { resizeObs?.disconnect() })
+
 const tooltip = ref({ visible: false, x: 0, y: 0, content: '' })
 const hoverIdx = ref(-1)
 
@@ -67,17 +106,27 @@ function barH(d: CaseFrequency): number {
 </script>
 
 <template>
-  <div>
+  <div ref="containerEl">
     <h3 class="text-base font-semibold text-neutral-800 mb-4">案例使用频次 Top 20</h3>
     <svg :viewBox="`0 0 ${W} ${H}`" class="w-full">
       <defs>
-        <linearGradient id="freqBarGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#8B5CF6" />
-          <stop offset="100%" stop-color="#C4B5FD" />
+        <linearGradient
+          v-for="(g, i) in barGradients"
+          :key="'grad-' + i"
+          :id="'freqBarGrad' + i"
+          x1="0" y1="0" x2="0" y2="1"
+        >
+          <stop offset="0%" :stop-color="g[0]" />
+          <stop offset="100%" :stop-color="g[1]" />
         </linearGradient>
-        <linearGradient id="freqBarGradHover" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#7C3AED" />
-          <stop offset="100%" stop-color="#A78BFA" />
+        <linearGradient
+          v-for="(g, i) in barGradients"
+          :key="'gradH-' + i"
+          :id="'freqBarGradHover' + i"
+          x1="0" y1="0" x2="0" y2="1"
+        >
+          <stop offset="0%" :stop-color="g[2]" />
+          <stop offset="100%" :stop-color="g[3]" />
         </linearGradient>
       </defs>
 
@@ -125,14 +174,14 @@ function barH(d: CaseFrequency): number {
           :y="barY(d)"
           :width="barW"
           :height="barH(d)"
-          :fill="hoverIdx === i ? 'url(#freqBarGradHover)' : 'url(#freqBarGrad)'"
+          :fill="hoverIdx === i ? `url(#freqBarGradHover${i})` : `url(#freqBarGrad${i})`"
           :rx="hoverIdx === i ? 4 : 2"
           class="cursor-pointer transition-all duration-150"
           :style="{
             transformOrigin: `${barX(i) + barW / 2}px ${PAD_TOP + CHART_H}px`,
             transform: hoverIdx === i ? 'scaleY(1.03)' : 'scaleY(1)',
             filter: hoverIdx === i
-              ? 'drop-shadow(0 2px 6px rgba(139,92,246,0.35))'
+              ? `drop-shadow(0 2px 6px ${barGradients[i][2]}59)`
               : 'none',
           }"
           @mouseenter="hoverIdx = i; showTooltip($event, d)"
@@ -153,7 +202,7 @@ function barH(d: CaseFrequency): number {
           :y="PAD_TOP + CHART_H + 14"
           text-anchor="end"
           :transform="`rotate(-45, ${barX(i) + barW / 2}, ${PAD_TOP + CHART_H + 14})`"
-          class="text-[11px]"
+          class="text-[13px]"
           :class="hoverIdx === i ? 'fill-neutral-900 font-medium' : 'fill-neutral-600'"
         >{{ d.enterprise }}</text>
 
@@ -164,10 +213,10 @@ function barH(d: CaseFrequency): number {
           :y="PAD_TOP + CHART_H + 14 + 22"
           text-anchor="end"
           :transform="`rotate(-45, ${barX(i) + barW / 2}, ${PAD_TOP + CHART_H + 14 + 22})`"
-          class="text-[9px] fill-primary-500 font-semibold"
+          class="text-[10px] fill-primary-500 font-semibold"
         >Top {{ i + 1 }}</text>
       </g>
     </svg>
-    <SvgTooltip v-bind="tooltip" />
+    <SvgTooltip v-bind="tooltip" :container-width="containerWidth" />
   </div>
 </template>
