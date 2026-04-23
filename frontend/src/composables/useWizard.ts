@@ -35,6 +35,7 @@ export function useWizard() {
     industry: false,
     region: false,
     enterprise: false,
+    hour: false,
   })
 
   // 所有必选项是否已选完
@@ -71,6 +72,7 @@ export function useWizard() {
     state.industry = null
     state.region = null
     state.enterprise = null
+    state.hour = null
     cascade.industries = []
     cascade.regions = []
     cascade.enterprises = []
@@ -78,6 +80,7 @@ export function useWizard() {
     unlocked.industry = false
     unlocked.region = false
     unlocked.enterprise = false
+    unlocked.hour = false
 
     // 加载该专业关联的行业
     loading.industries = true
@@ -98,11 +101,13 @@ export function useWizard() {
     // 级联重置下游
     state.region = null
     state.enterprise = null
+    state.hour = null
     cascade.regions = []
     cascade.enterprises = []
     cascade.enterpriseInfo = null
     unlocked.region = false
     unlocked.enterprise = false
+    unlocked.hour = false
 
     loading.regions = true
     try {
@@ -120,9 +125,11 @@ export function useWizard() {
   async function selectRegion(region: string) {
     state.region = region
     state.enterprise = null
+    state.hour = null
     cascade.enterprises = []
     cascade.enterpriseInfo = null
     unlocked.enterprise = false
+    unlocked.hour = false
 
     loading.enterprises = true
     try {
@@ -149,6 +156,7 @@ export function useWizard() {
         name
       )
       cascade.enterpriseInfo = res.data
+      unlocked.hour = true
     } catch (e) {
       console.error('加载企业详情失败:', e)
     } finally {
@@ -197,6 +205,7 @@ export function useWizard() {
     unlocked.industry = false
     unlocked.region = false
     unlocked.enterprise = false
+    unlocked.hour = false
   }
 
   return {

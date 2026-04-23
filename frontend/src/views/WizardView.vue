@@ -138,12 +138,12 @@ async function handleSubmit() {
         />
       </WizardSection>
 
-      <!-- Section 05: 课时安排（始终激活） -->
+      <!-- Section 05: 课时安排（选企业后解锁） -->
       <WizardSection
         number="05"
         title="课时安排"
         description="选择课程总课时数，不同课时数对应不同的教学深度"
-        :unlocked="true"
+        :unlocked="unlocked.hour"
       >
         <StepHour
           :hours="cascade.hours"
