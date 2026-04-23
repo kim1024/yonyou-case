@@ -7,6 +7,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.models.major import Region
+from app.models.enterprise import Enterprise
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/admin/regions", tags=["admin-regions"])
@@ -55,6 +56,7 @@ def list_regions(
                 "name": r.name,
                 "is_active": r.is_active,
                 "sort_order": r.sort_order,
+                "enterprise_count": db.query(Enterprise).filter(Enterprise.province == r.name).count(),
             }
             for r in items
         ],

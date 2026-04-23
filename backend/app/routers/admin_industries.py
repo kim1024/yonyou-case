@@ -7,6 +7,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.models.major import Industry
+from app.models.enterprise import Enterprise
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/admin/industries", tags=["admin-industries"])
@@ -70,6 +71,7 @@ def list_industries(
                 "name": ind.name,
                 "is_active": ind.is_active,
                 "sort_order": ind.sort_order,
+                "enterprise_count": db.query(Enterprise).filter(Enterprise.industry == ind.name).count(),
             }
             for ind in items
         ],
