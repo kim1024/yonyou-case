@@ -15,7 +15,7 @@ setup_logging()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.database import engine, Base
+from app.database import engine, Base, migrate_db
 from app.routers import admin_auth, wizard, admin_analytics, admin_enterprises
 from app.routers import admin_majors, admin_industries, admin_regions, admin_hours
 from app.middleware.analytics_middleware import AnalyticsMiddleware
@@ -56,6 +56,7 @@ app.add_middleware(AnalyticsMiddleware)
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    migrate_db()  # 自动迁移：为已有表添加新列
     seed_database()  # 自动初始化种子数据
 
     # Route uvicorn loggers through our logging system

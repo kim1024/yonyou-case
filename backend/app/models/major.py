@@ -63,6 +63,7 @@ class Hour(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     value = Column(Integer, unique=True, nullable=False)  # 课时数
     label = Column(String(50))  # 显示标签
+    unit_price = Column(Integer, default=2000)  # 课时单价（元）
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())

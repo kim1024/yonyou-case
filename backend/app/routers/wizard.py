@@ -59,10 +59,12 @@ def get_industries(
 
 
 @router.get("/api/config")
-def get_config():
+def get_config(db: Session = Depends(get_db)):
+    first_hour = db.query(Hour).filter(Hour.is_active == True).order_by(Hour.value).first()
+    rate = first_hour.unit_price if first_hour and first_hour.unit_price else 2000
     return {
         "title": settings.get("frontend", {}).get("title", "用友产业案例教学项目课程定制系统"),
-        "rate_per_hour": settings.get("pricing", {}).get("rate_per_hour", 2000),
+        "rate_per_hour": rate,
     }
 
 
@@ -138,9 +140,9 @@ def get_hours(db: Session = Depends(get_db)):
         .all()
     )
     if hours:
-        return [h.value for h in hours]
+        return [{"value": h.value, "label": h.label or f"{h.value}课时", "unit_price": h.unit_price or 2000} for h in hours]
     # 如果 Hour 表为空，返回默认值
-    return [8, 16, 24, 32]
+    return [{"value": v, "label": f"{v}课时", "unit_price": 2000} for v in [8, 16, 24, 32]]
 
 
 @router.post("/api/generate")
@@ -171,7 +173,8 @@ def generate(request: dict, db: Session = Depends(get_db)):
         return str(text)[:max_len].replace("{", "{{").replace("}", "}}")
 
     # 预计算报价，用于模板
-    rate = settings.get("pricing", {}).get("rate_per_hour", 2000)
+    hour_record = db.query(Hour).filter(Hour.value == hour, Hour.is_active == True).first()
+    rate = hour_record.unit_price if hour_record and hour_record.unit_price else 2000
     total_cost = rate * hour
 
     prompt = f"""请根据以下信息，生成一份产业案例教学课程设计方案。

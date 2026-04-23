@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/admin/hours", tags=["admin-hours"])
 class HourCreate(BaseModel):
     value: int
     label: str = ""
+    unit_price: int = 2000
     is_active: bool = True
     sort_order: int = 0
 
@@ -22,6 +23,7 @@ class HourCreate(BaseModel):
 class HourUpdate(BaseModel):
     value: Optional[int] = None
     label: Optional[str] = None
+    unit_price: Optional[int] = None
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
 
@@ -53,6 +55,7 @@ def list_hours(
                 "id": h.id,
                 "value": h.value,
                 "label": h.label or f"{h.value}课时",
+                "unit_price": h.unit_price or 2000,
                 "is_active": h.is_active,
                 "sort_order": h.sort_order,
             }
