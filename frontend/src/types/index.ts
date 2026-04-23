@@ -139,6 +139,12 @@ export interface Industry {
   updated_at: string
 }
 
+/** 行业精简项（industries/all 端点返回） */
+export interface IndustryOption {
+  id: number
+  name: string
+}
+
 // 地区
 export interface Region {
   id: number
@@ -148,6 +154,26 @@ export interface Region {
   enterprise_count?: number
   created_at: string
   updated_at: string
+}
+
+// 省份
+export interface Province {
+  id: number
+  name: string
+  is_active: boolean
+  sort_order: number
+  city_count?: number
+  created_at: string
+}
+
+// 城市
+export interface City {
+  id: number
+  name: string
+  province_id: number
+  is_active: boolean
+  sort_order: number
+  created_at: string
 }
 
 // 课时
@@ -181,6 +207,17 @@ export interface RegionListParams {
   page: number
   page_size: number
   keyword?: string
+}
+
+// 省份管理 - 列表查询
+export interface ProvinceListParams {
+  is_active?: boolean
+}
+
+// 城市管理 - 列表查询
+export interface CityListParams {
+  province_id: number
+  is_active?: boolean
 }
 
 // 课时管理 - 列表查询

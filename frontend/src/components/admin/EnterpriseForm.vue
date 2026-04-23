@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { adminApi } from '@/api/admin'
-import type { Enterprise } from '@/types'
+import type { Enterprise, Province, City, IndustryOption } from '@/types'
 
 const props = defineProps<{ item: Enterprise | null }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -19,12 +19,53 @@ const saving = ref(false)
 const errors = ref<Record<string, string>>({})
 const firstErrorRef = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
+// ── 下拉选择器数据 ──
+const provinces = ref<Province[]>([])
+const cities = ref<City[]>([])
+const industries = ref<IndustryOption[]>([])
+const selectedProvinceId = ref<number | null>(null)
+const selectedCityId = ref<number | null>(null)
+const selectedIndustryId = ref<number | null>(null)
+const loadingCities = ref(false)
+
+// ── 加载省份列表 ──
+async function loadProvinces() {
+  const res = await adminApi.getProvinces({ is_active: true })
+  provinces.value = res.data.items
+}
+
+// ── 加载城市列表 ──
+async function loadCities(provinceId: number) {
+  loadingCities.value = true
+  try {
+    const res = await adminApi.getCities(provinceId, { province_id: provinceId, is_active: true })
+    cities.value = res.data.items
+  } finally {
+    loadingCities.value = false
+  }
+}
+
+// ── 加载行业列表（接口直接返回数组，无 items 包装）──
+async function loadIndustries() {
+  const res = await adminApi.getAllIndustries()
+  industries.value = res.data as IndustryOption[]
+}
+
+// ── 省份变化：加载城市并清空已选城市 ──
+watch(selectedProvinceId, async (newId) => {
+  cities.value = []
+  selectedCityId.value = null
+  if (newId !== null) {
+    await loadCities(newId)
+  }
+})
+
 function validate(): boolean {
   errors.value = {}
   if (!form.value.customer_name.trim()) errors.value.customer_name = '请输入客户名称'
-  if (!form.value.province.trim()) errors.value.province = '请输入省份'
-  if (!form.value.city.trim()) errors.value.city = '请输入城市'
-  if (!form.value.industry.trim()) errors.value.industry = '请输入行业'
+  if (selectedProvinceId.value === null) errors.value.province = '请选择省份'
+  if (selectedCityId.value === null) errors.value.city = '请选择城市'
+  if (selectedIndustryId.value === null) errors.value.industry = '请选择行业'
   return Object.keys(errors.value).length === 0
 }
 
@@ -36,10 +77,18 @@ async function handleSave() {
   }
   saving.value = true
   try {
+    const payload = {
+      customer_name: form.value.customer_name,
+      province: provinces.value.find(p => p.id === selectedProvinceId.value)?.name ?? '',
+      city: cities.value.find(c => c.id === selectedCityId.value)?.name ?? '',
+      industry: industries.value.find(i => i.id === selectedIndustryId.value)?.name ?? '',
+      company_intro: form.value.company_intro,
+      yonyou_content: form.value.yonyou_content,
+    }
     if (props.item) {
-      await adminApi.updateEnterprise(props.item.id, form.value)
+      await adminApi.updateEnterprise(props.item.id, payload)
     } else {
-      await adminApi.createEnterprise(form.value)
+      await adminApi.createEnterprise(payload)
     }
     emit('saved')
   } catch (e) {
@@ -49,8 +98,22 @@ async function handleSave() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.body.style.overflow = 'hidden'
+  // 并行加载省份和行业
+  await Promise.all([loadProvinces(), loadIndustries()])
+  // 编辑模式：预选省份/行业并加载对应城市
+  if (props.item) {
+    const province = provinces.value.find(p => p.name === props.item!.province)
+    if (province) {
+      selectedProvinceId.value = province.id
+      await loadCities(province.id)
+      const city = cities.value.find(c => c.name === props.item!.city)
+      if (city) selectedCityId.value = city.id
+    }
+    const industry = industries.value.find(i => i.name === props.item!.industry)
+    if (industry) selectedIndustryId.value = industry.id
+  }
 })
 
 onUnmounted(() => {
@@ -96,26 +159,33 @@ onUnmounted(() => {
               <label class="ef-label">
                 省份<span class="ef-required">*</span>
               </label>
-              <input
-                v-model="form.province"
-                type="text"
-                class="input-macos"
+              <select
+                v-model="selectedProvinceId"
+                class="input-macos ef-select"
                 :class="{ 'ef-input-error': errors.province }"
-                @input="delete errors.province"
-              />
+                @change="delete errors.province"
+              >
+                <option :value="null" disabled>请选择省份</option>
+                <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
+              </select>
               <span v-if="errors.province" class="ef-error-text">{{ errors.province }}</span>
             </div>
             <div class="ef-field">
               <label class="ef-label">
                 城市<span class="ef-required">*</span>
               </label>
-              <input
-                v-model="form.city"
-                type="text"
-                class="input-macos"
+              <select
+                v-model="selectedCityId"
+                class="input-macos ef-select"
                 :class="{ 'ef-input-error': errors.city }"
-                @input="delete errors.city"
-              />
+                :disabled="selectedProvinceId === null"
+                @change="delete errors.city"
+              >
+                <option :value="null" disabled>
+                  {{ selectedProvinceId === null ? '请先选择省份' : loadingCities ? '加载中...' : '请选择城市' }}
+                </option>
+                <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
               <span v-if="errors.city" class="ef-error-text">{{ errors.city }}</span>
             </div>
           </div>
@@ -125,13 +195,15 @@ onUnmounted(() => {
             <label class="ef-label">
               行业<span class="ef-required">*</span>
             </label>
-            <input
-              v-model="form.industry"
-              type="text"
-              class="input-macos"
+            <select
+              v-model="selectedIndustryId"
+              class="input-macos ef-select"
               :class="{ 'ef-input-error': errors.industry }"
-              @input="delete errors.industry"
-            />
+              @change="delete errors.industry"
+            >
+              <option :value="null" disabled>请选择行业</option>
+              <option v-for="ind in industries" :key="ind.id" :value="ind.id">{{ ind.name }}</option>
+            </select>
             <span v-if="errors.industry" class="ef-error-text">{{ errors.industry }}</span>
           </div>
 
@@ -296,6 +368,24 @@ onUnmounted(() => {
 .ef-textarea {
   min-height: 80px;
   resize: vertical;
+}
+
+/* ── select ── */
+.ef-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2378716C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.ef-select:disabled {
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-400);
+  cursor: not-allowed;
+  border-color: var(--color-neutral-200);
 }
 
 /* ── 底部操作栏 ── */
