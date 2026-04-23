@@ -147,6 +147,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
     major = request.get("major", "")
     industry = request.get("industry", "")
     enterprise_name = request.get("enterprise", "")
+    region = request.get("region", "")
     hour = request.get("hour", 8)
 
     # 查找企业信息
@@ -173,6 +174,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 专业方向：{_safe(major)}
 行业：{_safe(industry)}
 企业：{_safe(enterprise_name)}
+地区：{_safe(region)}
 课时：{hour}课时
 
 <企业简介>
@@ -182,7 +184,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 {_safe(yonyou_content, 1000)}
 </用友建设内容>
 
-请严格按照以下格式生成 Markdown 方案，用 **红色加粗** 标注关键字（在 Markdown 中用两个星号加粗）：
+请严格按照以下格式生成 Markdown 方案，用 **粗体** 标注关键动态信息（如企业名、地区、专业、行业、课时、费用等）：
 
 # {_safe(enterprise_name)}案例教学课程方案
 
@@ -190,42 +192,76 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ---
 
-## 一、项目名称
-{_safe(enterprise_name)}{_safe(major)}专业产业教学案例
-
 ## 二、总体介绍
-本教学案例基于**{_safe(enterprise_name)}**的真实业务场景，结合**{_safe(major)}**专业技术，设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解**{_safe(industry)}**与**{_safe(major)}**技术的融合应用，掌握实际项目中的核心技能。
+本教学案例基于**{_safe(region)}**地区**{_safe(enterprise_name)}**公司的真实业务场景，结合**{_safe(major)}**专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解**{_safe(industry)}**行业与**{_safe(major)}**技术的融合应用，掌握实际项目中的核心技能。
 
 ## 三、案例课程主要结构
-模块一：行业背景与需求分析（{hour//4}课时）
-- （列出2-3个具体内容）
-- ...
 
-模块二：技术基础与工具介绍（{hour//4}课时）
-- （列出2-3个具体内容）
-- ...
+### 模块一：行业背景与需求分析（{max(1, hour // 8)}课时）
+- {_safe(industry)}行业现状与发展趋势
+- {_safe(enterprise_name)}业务模式与技术需求分析
+- 数字化转型痛点与机遇
 
-模块三：案例实战与项目实施（{hour//2}课时）
-- （列出2-3个具体内容）
-- ...
+### 模块二：技术基础与工具介绍（{max(1, hour // 8)}课时）
+- {_safe(major)}核心技术原理与架构
+- 用友产品体系与解决方案概览
+- 开发环境搭建与工具链配置
 
-模块四：总结与拓展（{hour - hour//4 - hour//4 - hour//2}课时）
-- （列出2-3个具体内容）
-- ...
+### 模块三：案例实战与项目实施（{hour // 2}课时）
+- {_safe(enterprise_name)}真实业务场景解析
+- 基于用友平台的功能开发与集成
+- 项目方案设计、实施与优化
+
+### 模块四：总结与拓展（{hour - max(1, hour // 8) - max(1, hour // 8) - hour // 2}课时）
+- 项目成果展示与答辩
+- {_safe(industry)}领域最佳实践总结
+- 职业发展路径与学习资源推荐
 
 ## 四、学习后可以胜任的岗位
-结合{_safe(industry)}行业与{_safe(major)}专业，学员毕业后可胜任以下岗位：
 
-1. 岗位名称
-- 岗位职责
-- 技能要求
+结合**{_safe(industry)}**行业与**{_safe(major)}**专业，学员毕业后可胜任以下岗位：
 
-（共列出5个岗位）
+1. **{_safe(major)}工程师**
+   - 负责{_safe(industry)}领域的数据/系统开发
+   - 参与企业数字化转型项目
+   - 熟练使用用友产品体系
+
+2. **{_safe(industry)}解决方案架构师**
+   - 设计行业数字化解决方案
+   - 对接客户需求与技术实现
+
+3. **项目实施顾问**
+   - 负责用友产品在企业的落地实施
+   - 提供客户培训与技术支持
+
+4. **业务分析师**
+   - 分析{_safe(industry)}业务流程与需求
+   - 设计数字化优化方案
+
+5. **技术项目经理**
+   - 管理{_safe(industry)}领域IT项目
+   - 协调团队与客户资源
 
 ---
 
-## 费用明细
-预估费用合计：{settings.get("pricing", {}).get("rate_per_hour", 2000) * hour}元
+## 最终提交成果物
+
+- 📊 PPT
+- 🎬 视频
+- 📝 指导书
+- 📂 数据集
+- 💻 代码包
+- 🖥️ 实操环境
+
+---
+
+## 课程最终报价
+
+**{settings.get("pricing", {}).get("rate_per_hour", 2000) * hour}元**
+
+---
+
+> 以上内容由 AI 生成，请结合实际教学需求进行调整。
 
 请使用 Markdown 格式输出。"""
 
@@ -258,43 +294,40 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ---
 
-## 一、项目名称
-
-{enterprise_name}{major}专业产业教学案例
-
 ## 二、总体介绍
 
-本教学案例基于{enterprise_name}的真实业务场景，结合{major}专业技术，设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解{industry}与{major}技术的融合应用，掌握实际项目中的核心技能。
+本教学案例基于**{region}**地区**{enterprise_name}**公司的真实业务场景，结合**{major}**专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解**{industry}**行业与**{major}**技术的融合应用，掌握实际项目中的核心技能。
 
 ## 三、案例课程主要结构
 
-### 模块一：行业背景与需求分析（{hour//4}课时）
+### 模块一：行业背景与需求分析（{max(1, hour // 8)}课时）
 - {industry}行业现状与发展趋势
 - {enterprise_name}业务模式与技术需求分析
 - 数字化转型痛点与机遇
 
-### 模块二：技术基础与工具介绍（{hour//4}课时）
+### 模块二：技术基础与工具介绍（{max(1, hour // 8)}课时）
 - {major}核心技术原理与架构
 - 用友产品体系与解决方案概览
 - 开发环境搭建与工具链配置
 
-### 模块三：案例实战与项目实施（{hour//2}课时）
+### 模块三：案例实战与项目实施（{hour // 2}课时）
 - {enterprise_name}真实业务场景解析
 - 基于用友平台的功能开发与集成
 - 项目方案设计、实施与优化
 
-### 模块四：总结与拓展（{hour - hour//4 - hour//4 - hour//2}课时）
+### 模块四：总结与拓展（{hour - max(1, hour // 8) - max(1, hour // 8) - hour // 2}课时）
 - 项目成果展示与答辩
 - {industry}领域最佳实践总结
 - 职业发展路径与学习资源推荐
 
 ## 四、学习后可以胜任的岗位
 
-结合{industry}行业与{major}专业，学员毕业后可胜任以下岗位：
+结合**{industry}**行业与**{major}**专业，学员毕业后可胜任以下岗位：
 
 1. **{major}工程师**
    - 负责{industry}领域的数据/系统开发
    - 参与企业数字化转型项目
+   - 熟练使用用友产品体系
 
 2. **{industry}解决方案架构师**
    - 设计行业数字化解决方案
@@ -314,11 +347,23 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ---
 
-## 费用明细
+## 最终提交成果物
 
-| 项目 | 金额 |
-|------|------|
-| 课时费（{hour}课时 × {rate}元） | {total_cost}元 |
-| **合计** | **{total_cost}元** |
+- 📊 PPT
+- 🎬 视频
+- 📝 指导书
+- 📂 数据集
+- 💻 代码包
+- 🖥️ 实操环境
+
+---
+
+## 课程最终报价
+
+**{total_cost}元**
+
+---
+
+> 以上内容由 AI 生成，请结合实际教学需求进行调整。
 """
     return {"content": template, "source": "template"}
