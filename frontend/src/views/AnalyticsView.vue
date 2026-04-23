@@ -15,25 +15,25 @@ const caseFreq = ref<CaseFrequency[]>([])
 const industries = ref<IndustryCount[]>([])
 const loading = ref(true)
 
+function extractValue<T>(result: PromiseSettledResult<{ data: T }>): T {
+  return result.status === 'fulfilled' ? result.value.data : ([] as unknown as T)
+}
+
 onMounted(async () => {
-  try {
-    const [s, v, p, c, ind] = await Promise.all([
-      adminApi.getAnalyticsSummary(),
-      adminApi.getVisitTrends(),
-      adminApi.getProvinceDistribution(),
-      adminApi.getCaseFrequency(),
-      adminApi.getIndustryDistribution(),
-    ])
-    summary.value = s.data
-    visitTrends.value = v.data
-    provinces.value = p.data
-    caseFreq.value = c.data
-    industries.value = ind.data
-  } catch (e) {
-    console.error('加载统计数据失败:', e)
-  } finally {
-    loading.value = false
-  }
+  const results = await Promise.allSettled([
+    adminApi.getAnalyticsSummary(),
+    adminApi.getVisitTrends(),
+    adminApi.getProvinceDistribution(),
+    adminApi.getCaseFrequency(),
+    adminApi.getIndustryDistribution(),
+  ])
+
+  summary.value = extractValue(results[0]) as AnalyticsSummary | null
+  visitTrends.value = extractValue(results[1]) as VisitTrend[]
+  provinces.value = extractValue(results[2]) as ProvinceCount[]
+  caseFreq.value = extractValue(results[3]) as CaseFrequency[]
+  industries.value = extractValue(results[4]) as IndustryCount[]
+  loading.value = false
 })
 </script>
 

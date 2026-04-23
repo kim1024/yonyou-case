@@ -1,16 +1,17 @@
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
 import { adminApi } from '@/api/admin'
 import type { LoginResponse } from '@/types'
 
 const TOKEN_KEY = 'token'
 const USERNAME_KEY = 'username'
 
-export function useAuth() {
-  const isAuthenticated = ref(!!localStorage.getItem(TOKEN_KEY))
-  const username = ref(localStorage.getItem(USERNAME_KEY) || '')
-  const loading = ref(false)
-  const error = ref('')
+// 模块级共享状态（单例）
+const isAuthenticated = ref(!!localStorage.getItem(TOKEN_KEY))
+const username = ref(localStorage.getItem(USERNAME_KEY) || '')
+const loading = ref(false)
+const error = ref('')
 
+export function useAuth() {
   async function login(inputUsername: string, inputPassword: string): Promise<boolean> {
     loading.value = true
     error.value = ''

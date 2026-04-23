@@ -6,16 +6,19 @@ const emit = defineEmits<{ close: []; imported: [] }>()
 const file = ref<File | null>(null)
 const uploading = ref(false)
 const result = ref('')
+const isError = ref(false)
 
 async function handleUpload() {
   if (!file.value) return
   uploading.value = true
+  isError.value = false
   try {
     const res = await adminApi.importExcel(file.value)
     result.value = res.data.message
     setTimeout(() => emit('imported'), 1500)
   } catch (e) {
     result.value = '导入失败'
+    isError.value = true
   } finally {
     uploading.value = false
   }
@@ -37,7 +40,7 @@ function onFileChange(e: Event) {
           <input type="file" accept=".xlsx,.xls" @change="onFileChange" class="w-full text-sm" />
         </div>
         <p class="text-xs text-gray-500">支持 .xlsx 格式，需包含中文列名：客户名称、客户所在省、客户所在市、标准行业、企业简介、用友建设内容</p>
-        <div v-if="result" class="text-sm text-green-600">{{ result }}</div>
+        <div v-if="result" class="text-sm" :class="isError ? 'text-red-600' : 'text-green-600'">{{ result }}</div>
         <div class="flex justify-end gap-3 pt-4">
           <button class="px-4 py-2 border rounded-lg text-sm" @click="emit('close')">取消</button>
           <button :disabled="!file || uploading" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm disabled:opacity-50" @click="handleUpload">

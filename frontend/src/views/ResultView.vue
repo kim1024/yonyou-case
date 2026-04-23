@@ -2,18 +2,18 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 const route = useRoute()
 const router = useRouter()
 
 const content = computed(() => {
-  const raw = route.query.content as string || ''
-  return decodeURIComponent(raw)
+  return sessionStorage.getItem('resultContent') || ''
 })
 
 const source = computed(() => route.query.source as string || 'template')
 
-const html = computed(() => marked.parse(content.value) as string)
+const html = computed(() => DOMPurify.sanitize(marked.parse(content.value) as string))
 </script>
 
 <template>

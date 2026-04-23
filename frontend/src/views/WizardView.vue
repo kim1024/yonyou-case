@@ -19,7 +19,8 @@ onMounted(() => {
 async function handleSubmit() {
   const result = await generate()
   if (result) {
-    router.push({ name: 'result', query: { content: encodeURIComponent(result.content), source: result.source } })
+    sessionStorage.setItem('resultContent', result.content)
+    router.push({ name: 'result', query: { source: result.source } })
   }
 }
 </script>

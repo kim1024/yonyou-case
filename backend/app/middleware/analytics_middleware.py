@@ -7,12 +7,20 @@ from app.models.analytics import VisitLog
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-
         # 只记录 /api/ 且不记录 /api/admin/
         path = request.url.path
         if not path.startswith("/api/") or path.startswith("/api/admin/"):
-            return response
+            return await call_next(request)
+
+        # 先读取 body（在 call_next 之前）
+        body_bytes = b""
+        if request.method == "POST":
+            try:
+                body_bytes = await request.body()
+            except Exception:
+                pass
+
+        response = await call_next(request)
 
         # 异步记录，不阻塞响应
         try:
@@ -23,27 +31,30 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                 "user_agent": request.headers.get("user-agent", ""),
             }
 
-            # 对 POST 请求尝试解析请求体
-            if request.method == "POST":
+            # 解析缓存的 body
+            if request.method == "POST" and body_bytes:
                 try:
-                    body = await request.body()
-                    if body:
-                        data = json.loads(body)
-                        log_data["industry"] = data.get("industry", "")
-                        log_data["region"] = data.get("province", "")  # 字段名映射
-                        log_data["enterprise"] = data.get("name", data.get("enterprise", ""))
-                        log_data["major"] = data.get("major", "")
-                        log_data["hour"] = str(data.get("hour", ""))
+                    data = json.loads(body_bytes)
+                    log_data["industry"] = data.get("industry", "")
+                    log_data["region"] = data.get("province", "")
+                    log_data["enterprise"] = data.get("name", data.get("enterprise", ""))
+                    log_data["major"] = data.get("major", "")
+                    log_data["hour"] = str(data.get("hour", ""))
                 except Exception:
                     pass
 
-            db = SessionLocal()
-            try:
-                log = VisitLog(**log_data)
-                db.add(log)
-                db.commit()
-            finally:
-                db.close()
+            import asyncio
+            def write_log():
+                db = SessionLocal()
+                try:
+                    log = VisitLog(**log_data)
+                    db.add(log)
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                finally:
+                    db.close()
+            asyncio.create_task(asyncio.to_thread(write_log))
         except Exception:
             pass
 

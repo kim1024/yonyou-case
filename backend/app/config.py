@@ -42,9 +42,22 @@ class Settings:
     def __init__(self):
         if CONFIG_PATH.exists():
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                self._config = yaml.safe_load(f) or {}
+                file_config = yaml.safe_load(f) or {}
+            # 深度合并默认值和文件配置
+            self._config = self._deep_merge(DEFAULT_CONFIG, file_config)
         else:
-            self._config = {}
+            print("警告: config.yaml 不存在，使用默认配置。生产环境请务必创建 config.yaml 并修改默认密码和密钥。")
+            self._config = DEFAULT_CONFIG.copy()
+
+    @staticmethod
+    def _deep_merge(base: dict, override: dict) -> dict:
+        result = base.copy()
+        for key, value in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = Settings._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
 
     def get(self, key, default=None):
         """按顶层 key 获取配置段。"""

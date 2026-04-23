@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from app.database import get_db
 from app.models.enterprise import Enterprise
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/admin/enterprises", tags=["enterprises"])
 
@@ -34,6 +35,7 @@ def list_enterprises(
     province: Optional[str] = None,
     keyword: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     query = db.query(Enterprise)
     if industry:
@@ -66,7 +68,7 @@ def list_enterprises(
 
 
 @router.post("")
-def create_enterprise(data: EnterpriseCreate, db: Session = Depends(get_db)):
+def create_enterprise(data: EnterpriseCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     enterprise = Enterprise(**data.model_dump())
     db.add(enterprise)
     db.commit()
@@ -75,7 +77,7 @@ def create_enterprise(data: EnterpriseCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{enterprise_id}")
-def update_enterprise(enterprise_id: int, data: EnterpriseUpdate, db: Session = Depends(get_db)):
+def update_enterprise(enterprise_id: int, data: EnterpriseUpdate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     enterprise = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
     if not enterprise:
         raise HTTPException(status_code=404, detail="企业不存在")
@@ -89,7 +91,7 @@ def update_enterprise(enterprise_id: int, data: EnterpriseUpdate, db: Session = 
 
 
 @router.delete("/{enterprise_id}")
-def delete_enterprise(enterprise_id: int, db: Session = Depends(get_db)):
+def delete_enterprise(enterprise_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     enterprise = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
     if not enterprise:
         raise HTTPException(status_code=404, detail="企业不存在")
@@ -100,7 +102,7 @@ def delete_enterprise(enterprise_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/import")
-def import_excel(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_excel(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     import tempfile
     import os
     from openpyxl import load_workbook
@@ -114,10 +116,18 @@ def import_excel(file: UploadFile = File(...), db: Session = Depends(get_db)):
         "用友建设内容": "yonyou_content",
     }
 
+    # 文件类型校验
+    if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="仅支持 .xlsx/.xls 文件")
+
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:  # 10MB
+        raise HTTPException(status_code=400, detail="文件大小不能超过 10MB")
+
     # 保存上传文件
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
     try:
-        tmp.write(file.file.read())
+        tmp.write(contents)
         tmp.close()
 
         wb = load_workbook(tmp.name, read_only=True)
