@@ -1,3 +1,4 @@
+import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -5,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models.enterprise import Enterprise
+
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["wizard"])
 
@@ -145,7 +148,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
                 content = result["choices"][0]["message"]["content"]
                 return {"content": content, "source": "ai"}
     except Exception as e:
-        print(f"AI API 调用失败: {e}")
+        _logger.error("AI API call failed: %s", e)
 
     # 回退到模板生成
     rate = settings.get("pricing", {}).get("rate_per_hour", 2000)

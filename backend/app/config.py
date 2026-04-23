@@ -1,5 +1,8 @@
+import logging
 import yaml
 from pathlib import Path
+
+_logger = logging.getLogger(__name__)
 
 # 项目根目录：backend/ 的上一级
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -47,14 +50,14 @@ class Settings:
             self._config = self._deep_merge(DEFAULT_CONFIG, file_config)
         else:
             self._config = DEFAULT_CONFIG.copy()
-            print("=" * 70)
-            print("⚠️  WARNING: config.yaml not found — using INSECURE defaults!  ⚠️")
-            print("  • admin.password is 'changeme' — anyone can log in.")
-            print("  • admin.jwt_secret is 'change-me-in-production' —")
-            print("    anyone can forge authentication tokens.")
-            print("  • llm.api_key is a placeholder — LLM calls will fail.")
-            print("Create config.yaml with real values before deploying.")
-            print("=" * 70)
+            _logger.warning("=" * 70)
+            _logger.warning("config.yaml not found — using INSECURE defaults!")
+            _logger.warning("  • admin.password is 'changeme' — anyone can log in.")
+            _logger.warning("  • admin.jwt_secret is 'change-me-in-production' —")
+            _logger.warning("    anyone can forge authentication tokens.")
+            _logger.warning("  • llm.api_key is a placeholder — LLM calls will fail.")
+            _logger.warning("Create config.yaml with real values before deploying.")
+            _logger.warning("=" * 70)
 
     @staticmethod
     def _deep_merge(base: dict, override: dict) -> dict:

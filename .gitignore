@@ -31,3 +31,6 @@ Thumbs.db
 
 # 旧代码
 old/
+
+# Logs
+backend/logs/

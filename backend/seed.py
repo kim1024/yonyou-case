@@ -1,11 +1,18 @@
 """seed.py - 从 Excel 导入企业数据，并自动创建管理员账号。"""
 
+import logging
 import sys
 from pathlib import Path
 
 # 将 backend/ 加入 sys.path，确保 `app.*` 可被导入
 BACKEND_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BACKEND_DIR))
+
+from app.logging_config import setup_logging
+
+setup_logging()
+
+_logger = logging.getLogger(__name__)
 
 import yaml
 from openpyxl import load_workbook
@@ -41,11 +48,11 @@ def _load_config() -> dict:
 def seed_enterprises(db):
     """从 Excel 导入企业数据（仅在表为空时执行）。"""
     if db.query(Enterprise).first() is not None:
-        print("enterprises 表已有数据，跳过导入。")
+        _logger.info("enterprises table already has data, skipping import.")
         return
 
     if not EXCEL_PATH.exists():
-        print(f"Excel 文件不存在: {EXCEL_PATH}")
+        _logger.error("Excel file not found: %s", EXCEL_PATH)
         return
 
     wb = load_workbook(EXCEL_PATH, read_only=True)
@@ -71,15 +78,15 @@ def seed_enterprises(db):
     if enterprises:
         db.add_all(enterprises)
         db.commit()
-        print(f"成功导入 {len(enterprises)} 条企业数据。")
+        _logger.info("Successfully imported %d enterprise records.", len(enterprises))
     else:
-        print("未从 Excel 中解析到有效数据。")
+        _logger.warning("No valid data parsed from Excel.")
 
 
 def seed_admin(db):
     """如果 admin_users 表为空，则从 config.yaml 创建管理员账号。"""
     if db.query(AdminUser).first() is not None:
-        print("admin_users 表已有数据，跳过创建。")
+        _logger.info("admin_users table already has data, skipping creation.")
         return
 
     config = _load_config()
@@ -93,7 +100,7 @@ def seed_admin(db):
     )
     db.add(user)
     db.commit()
-    print(f"已创建管理员账号: {username}")
+    _logger.info("Created admin user: %s", username)
 
 
 def seed_database():
@@ -105,7 +112,7 @@ def seed_database():
         seed_admin(db)
     finally:
         db.close()
-    print("seed 完成。")
+    _logger.info("Seed completed.")
 
 
 if __name__ == "__main__":
