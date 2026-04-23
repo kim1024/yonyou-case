@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { marked, type Tokens } from 'marked'
 import DOMPurify from 'dompurify'
-import { ArrowLeft, RotateCcw, Printer, Sparkles } from 'lucide-vue-next'
+import { ArrowLeft, RotateCcw, Printer } from 'lucide-vue-next'
 
-const route = useRoute()
 const router = useRouter()
 
 // ---------- Data ----------
 
 const content = computed(() => sessionStorage.getItem('resultContent') || '')
 
-const source = computed(() => (route.query.source as string) || 'template')
 
 // ---------- Custom marked renderer ----------
 
@@ -23,7 +21,7 @@ renderer.heading = function (token: unknown) {
   const inner = this.parser.parseInline(t.tokens)
 
   if (t.depth === 1) {
-    return `<h1 style="font-size:38px;font-weight:800;color:var(--color-neutral-900);margin-bottom:8px;text-align:center;line-height:1.3;padding-bottom:16px;border-bottom:2px solid var(--color-primary-300);letter-spacing:0.5px">${inner}</h1>`
+    return `<h1 style="font-size:38px;font-weight:800;color:#DC2626;margin-bottom:8px;text-align:center;line-height:1.3;padding-bottom:16px;border-bottom:2px solid var(--color-primary-300);letter-spacing:0.5px">${inner}</h1>`
   }
 
   if (t.depth === 2) {
@@ -34,7 +32,7 @@ renderer.heading = function (token: unknown) {
       !/案例|课程|教学|结构|介绍|岗位|模块|成果|报价|背景/.test(strippedText)
 
     if (isSubtitle) {
-      return `<h2 style="font-size:24px;font-weight:700;color:var(--color-neutral-600);margin-top:4px;margin-bottom:28px;text-align:center;line-height:1.4;letter-spacing:1px">${inner}</h2>`
+      return `<h2 style="font-size:24px;font-weight:700;color:#DC2626;margin-top:4px;margin-bottom:28px;text-align:center;line-height:1.4;letter-spacing:1px">${inner}</h2>`
     }
 
     return `<h2 style="font-size:22px;font-weight:700;color:var(--color-neutral-900);margin-top:36px;margin-bottom:14px;padding:10px 18px;border-left:3px solid var(--color-primary-500);background:rgba(99,102,241,0.05);border-radius:0 6px 6px 0;line-height:1.4">${inner}</h2>`
@@ -160,7 +158,7 @@ const html = computed(() => {
     /<span style="[^"]*font-size:15px[^"]*letter-spacing:2px">(.*?)<\/span>\s*<span style="[^"]*font-size:56px[^"]*letter-spacing:-1px">(.*?)<\/span>\s*(<div[^>]*>.*?<\/div>)/,
     `<div style="text-align:center;margin:40px 0;padding:36px 32px 28px;background:linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,193,37,0.03));border-radius:20px;border:1px solid rgba(212,175,55,0.2)">
       <span style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px;margin-bottom:16px">${titleIcon}$1</span>
-      <span style="display:block;font-size:56px;font-weight:800;color:#C8A84E;letter-spacing:-1px;text-shadow:0 2px 4px rgba(200,168,78,0.15)">$2</span>
+      <span style="display:block;font-size:56px;font-weight:800;color:#D4A017;letter-spacing:-1px;text-shadow:0 2px 4px rgba(212,160,23,0.15)">$2</span>
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(212,175,55,0.12)">$3</div>
     </div>`
   )
@@ -172,6 +170,15 @@ const html = computed(() => {
       `<span style="display:inline-flex;align-items:center;gap:5px">${svg} ${label}</span>`
     )
   }
+
+  // 优化 AI 声明提示
+  result = result.replace(
+    /<blockquote[^>]*>[\s\S]*?AI 生成[\s\S]*?<\/blockquote>/,
+    `<div style="display:flex;align-items:center;gap:6px;margin-top:24px;padding:0;font-size:12px;color:#999">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14h.01"/><path d="M8 14h.01"/><path d="M12 18v4"/><path d="M9 22h6"/></svg>
+      <span>以上内容由 AI 生成，请结合实际教学需求进行调整。</span>
+    </div>`
+  )
 
   return result
 })
@@ -196,18 +203,7 @@ function handlePrint() {
           <ArrowLeft style="width:16px;height:16px" />
           <span>返回重新定制</span>
         </button>
-        <span
-          class="source-badge flex items-center gap-1.5"
-          :style="
-            source === 'ai'
-              ? 'background:var(--color-success-light);color:#1B8C4E;border:1px solid rgba(48,209,88,0.25)'
-              : 'background:var(--color-warning-light);color:#B36B00;border:1px solid rgba(255,159,10,0.25)'
-          "
-          style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:0.02em"
-        >
-          <Sparkles style="width:12px;height:12px" />
-          {{ source === 'ai' ? 'AI 生成' : '模板生成' }}
-        </span>
+
       </div>
     </header>
 

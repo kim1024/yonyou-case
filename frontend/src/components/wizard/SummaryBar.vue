@@ -22,9 +22,6 @@ const props = defineProps<{
   hour: number | null
 }>()
 
-const emit = defineEmits<{
-  reset: []
-}>()
 
 const items: SummaryItem[] = [
   { icon: GraduationCap, label: '专业', get value() { return props.major } },
@@ -56,14 +53,6 @@ const items: SummaryItem[] = [
           <span v-else>未选</span>
         </div>
       </div>
-
-      <!-- 右侧：重新开始 -->
-      <button
-        class="shrink-0 text-xs text-neutral-400 hover:text-neutral-700 transition-colors duration-200 font-medium"
-        @click="emit('reset')"
-      >
-        重新开始
-      </button>
     </div>
   </div>
 </template>
