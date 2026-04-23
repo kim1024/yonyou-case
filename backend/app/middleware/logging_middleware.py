@@ -23,7 +23,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         # Capture request metadata BEFORE call_next (request object may not be safe after)
         method = request.method
-        query_string = request.url.query.decode("utf-8") if request.url.query else ""
+        query_string = request.url.query if request.url.query else ""
         client_ip = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "")
 
