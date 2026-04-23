@@ -33,7 +33,6 @@ export function useWizard() {
     return state.major && state.industry && state.region && state.enterprise && state.hour
   })
 
-  // 初始化：并行加载 majors, industries, hours
   async function init() {
     loading.init = true
     try {
@@ -52,13 +51,18 @@ export function useWizard() {
     }
   }
 
-  // 选择专业
   function selectMajor(major: string) {
     state.major = major
+    state.industry = null
+    state.region = null
+    state.enterprise = null
+    state.hour = null
+    cascade.regions = []
+    cascade.enterprises = []
+    cascade.enterpriseInfo = null
     state.currentStep = 2
   }
 
-  // 选择行业 → 加载省份
   async function selectIndustry(industry: string) {
     state.industry = industry
     state.region = null
@@ -79,7 +83,6 @@ export function useWizard() {
     }
   }
 
-  // 选择省份 → 加载企业
   async function selectRegion(region: string) {
     state.region = region
     state.enterprise = null
@@ -98,10 +101,9 @@ export function useWizard() {
     }
   }
 
-  // 选择企业 → 加载详情
   async function selectEnterprise(name: string) {
     state.enterprise = name
-    state.currentStep = 5
+    // 不自动跳转到 Step 5，停留在 Step 4 等待用户确认
 
     loading.enterpriseInfo = true
     try {
@@ -118,12 +120,51 @@ export function useWizard() {
     }
   }
 
-  // 选择课时
+  function confirmEnterprise() {
+    if (state.enterprise) {
+      state.currentStep = 5
+    }
+  }
+
+  function goToStep(targetStep: number) {
+    if (targetStep >= state.currentStep) return
+    if (targetStep < 1) return
+
+    // 按目标步骤清除级联数据
+    if (targetStep === 1) {
+      state.major = null
+      state.industry = null
+      state.region = null
+      state.enterprise = null
+      state.hour = null
+      cascade.regions = []
+      cascade.enterprises = []
+      cascade.enterpriseInfo = null
+    } else if (targetStep === 2) {
+      state.industry = null
+      state.region = null
+      state.enterprise = null
+      state.hour = null
+      cascade.regions = []
+      cascade.enterprises = []
+      cascade.enterpriseInfo = null
+    } else if (targetStep === 3) {
+      state.region = null
+      state.enterprise = null
+      state.hour = null
+      cascade.enterprises = []
+      cascade.enterpriseInfo = null
+    } else if (targetStep === 4) {
+      state.hour = null
+    }
+
+    state.currentStep = targetStep
+  }
+
   function selectHour(hour: number) {
     state.hour = hour
   }
 
-  // 提交生成
   async function generate() {
     if (!canSubmit.value) return null
 
@@ -144,7 +185,6 @@ export function useWizard() {
     }
   }
 
-  // 重置向导
   function reset() {
     state.currentStep = 1
     state.major = null
@@ -167,6 +207,8 @@ export function useWizard() {
     selectIndustry,
     selectRegion,
     selectEnterprise,
+    confirmEnterprise,
+    goToStep,
     selectHour,
     generate,
     reset,

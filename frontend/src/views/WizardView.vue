@@ -94,6 +94,12 @@ async function handleSubmit() {
   const result = await generate()
   if (result) {
     sessionStorage.setItem('resultContent', result.content)
+    sessionStorage.setItem('resultSelections', JSON.stringify({
+      major: state.major,
+      industry: state.industry,
+      enterprise: state.enterprise,
+      hour: state.hour,
+    }))
     router.push({ name: 'result', query: { source: result.source } })
   }
 }

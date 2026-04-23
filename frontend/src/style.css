@@ -1,1 +1,251 @@
 @import "tailwindcss";
+
+@theme {
+  /* Primary */
+  --color-primary-50: #EBF5FF;
+  --color-primary-100: #D0E8FF;
+  --color-primary-200: #A6D4FF;
+  --color-primary-400: #4DA3FF;
+  --color-primary-500: #007AFF;
+  --color-primary-600: #0066D6;
+  --color-primary-700: #004C99;
+
+  /* Neutral */
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-50: #FAFAFA;
+  --color-neutral-100: #F5F5F7;
+  --color-neutral-200: #E5E5EA;
+  --color-neutral-300: #D1D1D6;
+  --color-neutral-400: #AEAEB2;
+  --color-neutral-500: #8E8E93;
+  --color-neutral-600: #636366;
+  --color-neutral-700: #48484A;
+  --color-neutral-800: #3A3A3C;
+  --color-neutral-900: #1C1C1E;
+
+  /* Semantic */
+  --color-success: #30D158;
+  --color-success-light: #E8FBF0;
+  --color-warning: #FF9F0A;
+  --color-warning-light: #FFF8EB;
+  --color-danger: #FF453A;
+  --color-danger-light: #FFF0EF;
+  --color-info: #64D2FF;
+  --color-info-light: #EDFAFF;
+
+  /* Shadows */
+  --shadow-float: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-lifted: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 8px 28px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.16), 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-deep: 0 24px 64px rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.10);
+
+  /* Fonts */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "PingFang SC", "Noto Sans SC", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Noto Sans SC", sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "JetBrains Mono", monospace;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+
+  /* Durations */
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 250ms;
+}
+
+:root {
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --sidebar-bg: rgba(245, 245, 247, 0.72);
+  --sidebar-active-bg: rgba(0, 122, 255, 0.12);
+  --sidebar-hover-bg: rgba(0, 0, 0, 0.04);
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-neutral-700);
+  background-color: var(--color-neutral-100);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.card {
+  background-color: var(--color-neutral-0);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  transition: box-shadow var(--duration-normal) ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lifted);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--color-primary-500);
+  color: var(--color-neutral-0);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-600);
+  box-shadow: var(--shadow-float);
+}
+
+.btn-primary:active {
+  background-color: var(--color-primary-700);
+  box-shadow: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--color-neutral-0);
+  color: var(--color-neutral-700);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-neutral-300);
+}
+
+.btn-secondary:active {
+  background-color: var(--color-neutral-100);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--color-danger);
+  color: var(--color-neutral-0);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) ease;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-danger:active {
+  opacity: 0.8;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: transparent;
+  color: var(--color-neutral-600);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+
+.btn-ghost:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+}
+
+.btn-ghost:active {
+  background-color: var(--color-neutral-200);
+}
+
+.input-macos {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-neutral-700);
+  outline: none;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.input-macos::placeholder {
+  color: var(--color-neutral-400);
+}
+
+.input-macos:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* ── Wizard Step Animations ── */
+
+@keyframes selectPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.animate-select-pop {
+  animation: selectPop 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
