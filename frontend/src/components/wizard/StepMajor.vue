@@ -11,12 +11,14 @@ import {
   Cpu,
   Leaf,
   Building2,
+  BarChart3,
+  Brain,
   type Component,
 } from 'lucide-vue-next'
-import type { Major } from '@/types'
+import type { WizardMajor } from '@/types'
 
 const props = defineProps<{
-  majors: Major[]
+  majors: WizardMajor[]
   loading: boolean
   selectedMajor: string | null
 }>()
@@ -36,13 +38,15 @@ const iconMap: Record<string, Component> = {
   Cpu,
   Leaf,
   Building2,
+  BarChart3,
+  Brain,
 }
 
 function resolveIcon(iconName: string): Component {
   return iconMap[iconName] ?? Building2
 }
 
-function handleSelect(major: Major) {
+function handleSelect(major: WizardMajor) {
   poppedKey.value = major.name
   setTimeout(() => {
     emit('select', major.name, major.id)
@@ -54,25 +58,25 @@ function handleSelect(major: Major) {
 <template>
   <div>
     <!-- 骨架屏 -->
-    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <div
         v-for="i in 3"
         :key="i"
-        class="card p-6"
+        class="card p-3"
       >
-        <div class="skeleton w-14 h-14 rounded-full mx-auto mb-4" />
-        <div class="skeleton h-5 w-32 mx-auto mb-3" />
-        <div class="skeleton h-4 w-48 mx-auto" />
+        <div class="skeleton w-9 h-9 rounded-full mx-auto mb-2" />
+        <div class="skeleton h-4 w-32 mx-auto mb-2" />
+        <div class="skeleton h-3 w-48 mx-auto" />
       </div>
     </div>
 
     <!-- 专业卡片 -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <button
         v-for="major in majors"
         :key="major.id"
         :class="[
-          'card p-6 text-center cursor-pointer',
+          'card p-3 text-center cursor-pointer',
           'hover:shadow-lifted hover:-translate-y-0.5',
           'transition-all duration-200',
           selectedMajor === major.name
@@ -84,21 +88,21 @@ function handleSelect(major: Major) {
       >
         <div
           :class="[
-            'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-200',
+            'w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2 transition-colors duration-200',
             selectedMajor === major.name ? 'bg-primary-100' : 'bg-neutral-100',
           ]"
         >
           <component
             :is="resolveIcon(major.icon)"
             :class="[
-              'w-7 h-7 transition-colors duration-200',
+              'w-5 h-5 transition-colors duration-200',
               selectedMajor === major.name ? 'text-primary-600' : 'text-neutral-400',
             ]"
             :stroke-width="1.5"
           />
         </div>
-        <div class="text-base font-semibold text-neutral-900">{{ major.name }}</div>
-        <p class="text-sm text-neutral-500 mt-2 leading-relaxed">{{ major.description }}</p>
+        <div class="text-sm font-semibold text-neutral-900">{{ major.name }}</div>
+        <p class="text-xs mt-1 text-neutral-400">{{ major.description }}</p>
       </button>
     </div>
   </div>

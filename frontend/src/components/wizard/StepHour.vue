@@ -11,25 +11,25 @@ function weekText(hour: number): string {
 <template>
   <div>
     <!-- 骨架屏 -->
-    <div v-if="loading || hours.length === 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div v-if="loading || hours.length === 0" class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <div
         v-for="i in 4"
         :key="i"
-        class="p-6 rounded-2xl bg-neutral-100 animate-pulse flex flex-col items-center gap-2"
+        class="p-3 rounded-xl bg-neutral-100 animate-pulse flex flex-col items-center gap-1.5"
       >
-        <div class="w-10 h-10 bg-neutral-200 rounded-xl" />
-        <div class="w-14 h-10 bg-neutral-200 rounded" />
-        <div class="w-8 h-3 bg-neutral-200 rounded" />
-        <div class="w-12 h-3 bg-neutral-100 rounded mt-1" />
+        <div class="w-8 h-8 bg-neutral-200 rounded-lg" />
+        <div class="w-12 h-6 bg-neutral-200 rounded" />
+        <div class="w-6 h-2.5 bg-neutral-200 rounded" />
+        <div class="w-10 h-2.5 bg-neutral-100 rounded mt-0.5" />
       </div>
     </div>
 
     <!-- 课时卡片 -->
-    <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <button
         v-for="hour in hours"
         :key="hour"
-        class="relative p-6 rounded-2xl text-center transition-all duration-200 cursor-pointer border"
+        class="p-3 rounded-xl text-center transition-all duration-200 cursor-pointer border"
         :class="
           selectedHour == hour
             ? 'bg-primary-50 border-primary-400 shadow-md shadow-primary-500/10 -translate-y-0.5'
@@ -37,27 +37,21 @@ function weekText(hour: number): string {
         "
         @click="emit('select', hour)"
       >
-        <!-- 选中态顶部装饰条 -->
-        <div
-          v-if="selectedHour == hour"
-          class="absolute top-0 left-6 right-6 h-[3px] bg-primary-500 rounded-full"
-        />
-
         <!-- 超大数字 -->
         <div
-          class="text-5xl font-bold tracking-tight"
+          class="text-2xl font-bold tracking-tight"
           :class="selectedHour == hour ? 'text-primary-600' : 'text-neutral-300 transition-colors duration-200'"
         >
           {{ hour }}
         </div>
 
         <!-- 单位 -->
-        <div class="text-sm font-medium mt-1" :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-400'">
+        <div class="text-xs font-medium" :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-400'">
           课时
         </div>
 
         <!-- 约周数 -->
-        <div class="text-xs text-neutral-400 mt-3">{{ weekText(hour) }}</div>
+        <div class="text-xs text-neutral-400 mt-1">{{ weekText(hour) }}</div>
       </button>
     </div>
   </div>

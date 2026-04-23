@@ -1,4 +1,11 @@
 import logging
+import sys
+from pathlib import Path
+
+# 将 backend/ 加入 sys.path，确保 seed 模块可被导入
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from app.logging_config import setup_logging
 
@@ -13,6 +20,7 @@ from app.routers import admin_auth, wizard, admin_analytics, admin_enterprises
 from app.routers import admin_majors, admin_industries, admin_regions, admin_hours
 from app.middleware.analytics_middleware import AnalyticsMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
+from seed import seed_database
 
 # 导入所有模型以确保 create_all 能发现它们
 from app.models import Enterprise, AdminUser, VisitLog  # noqa: F401
@@ -48,6 +56,7 @@ app.add_middleware(AnalyticsMiddleware)
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    seed_database()  # 自动初始化种子数据
 
     # Route uvicorn loggers through our logging system
     for logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):

@@ -123,63 +123,101 @@ def seed_database():
 # ---------- 基础数据 ----------
 
 def seed_majors(db):
-    """初始化专业数据（仅在表为空时执行）。"""
-    if db.query(Major).first() is not None:
-        _logger.info("majors table already has data, skipping.")
-        return
-
-    majors_data = [
+    """初始化专业数据。数据不匹配时自动修正。"""
+    expected = [
         {"name": "大数据", "description": "聚焦数据采集、存储、分析与可视化等核心技术", "icon": "BarChart3", "sort_order": 1},
         {"name": "人工智能", "description": "聚焦机器学习、深度学习与智能应用开发", "icon": "Brain", "sort_order": 2},
         {"name": "工业互联网", "description": "聚焦工业物联网、智能制造与数字化转型", "icon": "Cpu", "sort_order": 3},
     ]
-    for data in majors_data:
+    expected_names = {m["name"] for m in expected}
+    existing_names = {m.name for m in db.query(Major).all()}
+
+    if existing_names == expected_names:
+        _logger.info("majors data already correct, skipping.")
+        return
+
+    # 数据不匹配，清除旧数据重建
+    if existing_names:
+        _logger.info("Majors data mismatch (got: %s), rebuilding.", existing_names)
+        db.query(MajorIndustry).delete()  # 先删关联表
+        db.query(Major).delete()
+        db.commit()
+
+    for data in expected:
         db.add(Major(**data))
     db.commit()
-    _logger.info("Created %d major records.", len(majors_data))
+    _logger.info("Created %d major records.", len(expected))
 
 
 def seed_industries(db):
     """从 enterprises 表提取行业去重，创建 Industry 记录及 MajorIndustry 关联。"""
-    if db.query(Industry).first() is not None:
-        _logger.info("industries table already has data, skipping.")
+    existing_industries = db.query(Industry).first() is not None
+    existing_associations = db.query(MajorIndustry).first() is not None
+
+    if not existing_industries:
+        # 行业表为空，创建行业和关联
+        rows = db.query(Enterprise.industry).distinct().all()
+        industry_names = sorted({r[0] for r in rows if r[0]})
+
+        if not industry_names:
+            _logger.warning("No industries found in enterprises table.")
+            return
+
+        majors = db.query(Major).order_by(Major.sort_order).all()
+        major_count = len(majors)
+
+        industry_id_map: dict[str, int] = {}
+        for idx, name in enumerate(industry_names):
+            industry = Industry(name=name, sort_order=idx + 1)
+            db.add(industry)
+            db.flush()
+            industry_id_map[name] = industry.id
+
+        associations = []
+        for idx, name in enumerate(industry_names):
+            if major_count > 0:
+                major_id = majors[idx % major_count].id
+                associations.append(
+                    MajorIndustry(major_id=major_id, industry_id=industry_id_map[name])
+                )
+        if associations:
+            db.add_all(associations)
+
+        db.commit()
+        _logger.info(
+            "Created %d industry records and %d MajorIndustry associations.",
+            len(industry_names), len(associations),
+        )
         return
 
-    # 从 enterprises 表中提取所有不同行业
-    rows = db.query(Enterprise.industry).distinct().all()
-    industry_names = sorted({r[0] for r in rows if r[0]})
+    # 行业表已有数据，检查 MajorIndustry 关联是否完整
+    industry_count = db.query(Industry).count()
+    association_count = db.query(MajorIndustry).count()
 
-    if not industry_names:
-        _logger.warning("No industries found in enterprises table.")
+    if existing_associations and association_count > 0:
+        _logger.info("industries and MajorIndustry associations already exist, skipping.")
         return
 
-    # 获取所有专业 ID（按 sort_order 排序）
+    # 行业有数据但关联缺失，重建关联
+    _logger.info("MajorIndustry associations missing (industries: %d), rebuilding.", industry_count)
     majors = db.query(Major).order_by(Major.sort_order).all()
     major_count = len(majors)
+    if major_count == 0:
+        _logger.warning("No majors found, cannot rebuild MajorIndustry associations.")
+        return
 
-    industry_id_map = {}
-    for idx, name in enumerate(industry_names):
-        industry = Industry(name=name, sort_order=idx + 1)
-        db.add(industry)
-        db.flush()  # 获取自增 id
-        industry_id_map[name] = industry.id
-
-    # 创建 MajorIndustry 关联：将行业轮流分配给各专业
+    industries = db.query(Industry).order_by(Industry.sort_order).all()
     associations = []
-    for idx, name in enumerate(industry_names):
-        if major_count > 0:
-            major_id = majors[idx % major_count].id
-            associations.append(
-                MajorIndustry(major_id=major_id, industry_id=industry_id_map[name])
-            )
+    for idx, industry in enumerate(industries):
+        major_id = majors[idx % major_count].id
+        associations.append(
+            MajorIndustry(major_id=major_id, industry_id=industry.id)
+        )
+
     if associations:
         db.add_all(associations)
-
-    db.commit()
-    _logger.info(
-        "Created %d industry records and %d MajorIndustry associations.",
-        len(industry_names), len(associations),
-    )
+        db.commit()
+        _logger.info("Rebuilt %d MajorIndustry associations.", len(associations))
 
 
 def seed_regions(db):

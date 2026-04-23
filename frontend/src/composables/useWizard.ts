@@ -71,6 +71,7 @@ export function useWizard() {
     state.industry = null
     state.region = null
     state.enterprise = null
+    cascade.industries = []
     cascade.regions = []
     cascade.enterprises = []
     cascade.enterpriseInfo = null

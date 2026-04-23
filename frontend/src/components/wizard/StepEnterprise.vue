@@ -26,11 +26,11 @@ const skeletonCount = 6
 
 <template>
   <div>
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-3">
       <!-- 左栏：企业列表 -->
       <div class="lg:col-span-2">
         <!-- 搜索框 -->
-        <div class="relative mb-4">
+        <div class="relative mb-2">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
           <input
             v-model="searchQuery"
@@ -41,25 +41,25 @@ const skeletonCount = 6
         </div>
 
         <!-- 总数 -->
-        <div class="text-xs text-neutral-400 mb-3">
+        <div class="text-xs text-neutral-400 mb-1">
           共 {{ enterprises.length }} 家企业
         </div>
 
         <!-- 加载骨架屏 -->
-        <div v-if="loading" class="space-y-1.5">
+        <div v-if="loading" class="space-y-1">
           <div
             v-for="i in skeletonCount"
             :key="i"
-            class="h-[44px] rounded-xl bg-neutral-100 animate-pulse"
+            class="h-[36px] rounded-lg bg-neutral-100 animate-pulse"
           />
         </div>
 
         <!-- 企业列表 -->
-        <div v-else class="max-h-[420px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+        <div v-else class="max-h-[200px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
           <button
             v-for="name in filteredEnterprises"
             :key="name"
-            class="w-full px-4 py-3 rounded-xl border text-left transition-all cursor-pointer"
+            class="w-full px-3 py-2 rounded-lg border text-left transition-all cursor-pointer"
             :class="
               selectedEnterprise === name
                 ? 'bg-primary-50 border-primary-400 text-primary-700 font-semibold shadow-sm'

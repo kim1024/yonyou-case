@@ -58,21 +58,21 @@ function handleSelect(industry: string) {
 <template>
   <div>
     <!-- 骨架屏 -->
-    <div v-if="loading" class="flex flex-wrap gap-3">
+    <div v-if="loading" class="flex flex-wrap gap-2">
       <div
         v-for="i in 10"
         :key="i"
-        class="h-10 w-24 rounded-full bg-neutral-100 animate-pulse"
+        class="h-8 w-20 rounded-full bg-neutral-100 animate-pulse"
       />
     </div>
 
     <!-- Pill 按钮组 -->
-    <div v-else class="flex flex-wrap gap-3">
+    <div v-else class="flex flex-wrap gap-2">
       <button
         v-for="industry in industries"
         :key="industry"
         :class="[
-          'inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium',
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium',
           'transition-all duration-200 cursor-pointer',
           'border',
           selectedIndustry === industry
@@ -84,7 +84,7 @@ function handleSelect(industry: string) {
       >
         <component
           :is="getIndustryIcon(industry)"
-          class="w-4 h-4"
+          class="w-3.5 h-3.5"
           :stroke-width="1.5"
         />
         <span>{{ industry }}</span>

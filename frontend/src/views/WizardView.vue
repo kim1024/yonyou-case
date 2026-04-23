@@ -75,7 +75,7 @@ async function handleSubmit() {
     />
 
     <!-- 主体内容 -->
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
       <!-- Section 01: 专业方向（始终激活） -->
       <WizardSection
         number="01"
@@ -154,7 +154,7 @@ async function handleSubmit() {
       </WizardSection>
 
       <!-- 底部 CTA -->
-      <div class="pt-4 pb-8">
+      <div class="pt-2 pb-4">
         <div class="text-center">
           <button
             :disabled="!canSubmit || loading.generating"

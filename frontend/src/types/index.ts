@@ -23,7 +23,7 @@ export interface WizardState {
 
 // 级联数据（单页模式）
 export interface CascadeData {
-  majors: Major[]
+  majors: WizardMajor[]
   industries: string[]
   regions: string[]
   enterprises: string[]
@@ -32,7 +32,7 @@ export interface CascadeData {
 }
 
 // 向导用专业（API 返回）
-export interface Major {
+export interface WizardMajor {
   id: number
   name: string
   description: string

@@ -30,7 +30,7 @@ function handleSelect(region: string) {
 <template>
   <div>
     <!-- 搜索框 -->
-    <div class="relative mb-5">
+    <div class="relative mb-2">
       <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
       <input
         v-model="searchQuery"
@@ -41,24 +41,24 @@ function handleSelect(region: string) {
     </div>
 
     <!-- 骨架屏 -->
-    <div v-if="loading" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+    <div v-if="loading" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
       <div
         v-for="i in 18"
         :key="i"
-        class="h-12 rounded-xl bg-neutral-100 animate-pulse"
+        class="h-8 rounded-lg bg-neutral-100 animate-pulse"
       />
     </div>
 
     <!-- 地区网格 -->
     <div
       v-else
-      class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar"
+      class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar"
     >
       <button
         v-for="region in filteredRegions"
         :key="region"
         :class="[
-          'h-12 rounded-xl flex items-center justify-center gap-2 border text-sm font-medium',
+          'h-8 rounded-lg flex items-center justify-center gap-1.5 border text-xs font-medium',
           'transition-all duration-200 cursor-pointer',
           selectedRegion === region
             ? 'bg-primary-50 border-primary-400 text-primary-700 shadow-sm -translate-y-0.5'
