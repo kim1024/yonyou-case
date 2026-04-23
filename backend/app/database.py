@@ -32,6 +32,85 @@ def migrate_db():
         cursor.execute("ALTER TABLE hours ADD COLUMN unit_price INTEGER DEFAULT 2000")
         conn.commit()
 
+    # --- llm_configs 表 ---
+    cursor.execute("PRAGMA table_info(llm_configs)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if not columns:
+        cursor.execute("""
+            CREATE TABLE llm_configs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(100) NOT NULL,
+                api_base_url TEXT NOT NULL,
+                api_key TEXT NOT NULL,
+                model VARCHAR(100) NOT NULL,
+                temperature FLOAT DEFAULT 0.7,
+                max_tokens INTEGER DEFAULT 2000,
+                timeout INTEGER DEFAULT 60,
+                is_active BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+    # --- token_usage_logs 表 ---
+    cursor.execute("PRAGMA table_info(token_usage_logs)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if not columns:
+        cursor.execute("""
+            CREATE TABLE token_usage_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                llm_config_id INTEGER NOT NULL REFERENCES llm_configs(id),
+                model VARCHAR(100) NOT NULL,
+                prompt_tokens INTEGER DEFAULT 0,
+                completion_tokens INTEGER DEFAULT 0,
+                total_tokens INTEGER DEFAULT 0,
+                request_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON token_usage_logs(request_timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_model ON token_usage_logs(model)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_llm_config_id ON token_usage_logs(llm_config_id)")
+        conn.commit()
+
+    # --- prompt_templates 表 ---
+    cursor.execute("PRAGMA table_info(prompt_templates)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if not columns:
+        cursor.execute("""
+            CREATE TABLE prompt_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(200) NOT NULL,
+                description TEXT,
+                scene VARCHAR(100),
+                current_version_id INTEGER,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+    # --- prompt_versions 表 ---
+    cursor.execute("PRAGMA table_info(prompt_versions)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if not columns:
+        cursor.execute("""
+            CREATE TABLE prompt_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_id INTEGER NOT NULL REFERENCES prompt_templates(id),
+                version_number INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                variables TEXT,
+                remark TEXT,
+                created_by VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_template_id ON prompt_versions(template_id)")
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_template_version ON prompt_versions(template_id, version_number)")
+        conn.commit()
+
     conn.close()
 
 

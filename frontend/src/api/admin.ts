@@ -2,6 +2,8 @@ import http from './http'
 import type {
   Major, Industry, Region, Hour,
   MajorListParams, IndustryListParams, RegionListParams, HourListParams,
+  LlmConfigCreate, LlmConfigUpdate, LlmListParams,
+  PromptTemplateCreate, PromptVersionCreate, PromptListParams,
 } from '@/types'
 
 export const adminApi = {
@@ -95,5 +97,54 @@ export const adminApi = {
   },
   deleteHour(id: number) {
     return http.delete(`/api/admin/hours/${id}`)
+  },
+
+  // ── 大模型配置 ──
+  getLlmConfigs(params: LlmListParams) {
+    return http.get('/api/admin/llm/configs', { params })
+  },
+  createLlmConfig(data: LlmConfigCreate) {
+    return http.post('/api/admin/llm/configs', data)
+  },
+  updateLlmConfig(id: number, data: LlmConfigUpdate) {
+    return http.put(`/api/admin/llm/configs/${id}`, data)
+  },
+  deleteLlmConfig(id: number) {
+    return http.delete(`/api/admin/llm/configs/${id}`)
+  },
+  activateLlmConfig(id: number) {
+    return http.post(`/api/admin/llm/configs/${id}/activate`)
+  },
+  getTokenStats(days: number = 30) {
+    return http.get('/api/admin/llm/token-stats', { params: { days } })
+  },
+
+  // ── 提示词模板 ──
+  getPromptTemplates(params: PromptListParams) {
+    return http.get('/api/admin/prompts', { params })
+  },
+  createPromptTemplate(data: PromptTemplateCreate) {
+    return http.post('/api/admin/prompts', data)
+  },
+  getPromptTemplate(id: number) {
+    return http.get(`/api/admin/prompts/${id}`)
+  },
+  updatePromptTemplate(id: number, data: { name?: string; description?: string; scene?: string }) {
+    return http.put(`/api/admin/prompts/${id}`, data)
+  },
+  deletePromptTemplate(id: number) {
+    return http.delete(`/api/admin/prompts/${id}`)
+  },
+  getPromptVersions(templateId: number) {
+    return http.get(`/api/admin/prompts/${templateId}/versions`)
+  },
+  createPromptVersion(templateId: number, data: PromptVersionCreate) {
+    return http.post(`/api/admin/prompts/${templateId}/versions`, data)
+  },
+  getPromptVersion(templateId: number, versionId: number) {
+    return http.get(`/api/admin/prompts/${templateId}/versions/${versionId}`)
+  },
+  rollbackPromptVersion(templateId: number, versionId: number) {
+    return http.post(`/api/admin/prompts/${templateId}/versions/${versionId}/rollback`)
   },
 }

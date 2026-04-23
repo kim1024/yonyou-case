@@ -8,6 +8,10 @@ from app.config import settings
 from app.database import get_db
 from app.models.enterprise import Enterprise
 from app.models.major import Major, Industry, MajorIndustry, Region, Hour
+from app.models.llm_config import LLMConfig
+from app.models.prompt_template import PromptTemplate
+from app.models.prompt_version import PromptVersion
+from app.models.token_usage_log import TokenUsageLog
 
 _logger = logging.getLogger(__name__)
 
@@ -175,22 +179,68 @@ def generate(request: dict, db: Session = Depends(get_db)):
     company_intro = enterprise.company_intro if enterprise else "暂无企业简介"
     yonyou_content = enterprise.yonyou_content if enterprise else "暂无建设内容"
 
-    # 尝试调用 AI 大模型
-    llm_cfg = settings.get("llm", {})
-    api_key = llm_cfg.get("api_key", "")
-    api_base_url = llm_cfg.get("api_base_url", "https://api.openai.com/v1")
-    model = llm_cfg.get("model", "gpt-4o")
+    # 优先从数据库读取活跃配置
+    llm_config_id = None
+    try:
+        db_llm = db.query(LLMConfig).filter(LLMConfig.is_active == True).first()
+    except Exception:
+        db_llm = None
+    if db_llm:
+        api_key = db_llm.api_key
+        api_base_url = db_llm.api_base_url
+        model = db_llm.model
+        temperature = db_llm.temperature or 0.7
+        max_tokens = db_llm.max_tokens or 2000
+        timeout = db_llm.timeout or 60
+        llm_config_id = db_llm.id
+    else:
+        # fallback 到 config.yaml
+        llm_cfg = settings.get("llm", {})
+        api_key = llm_cfg.get("api_key", "")
+        api_base_url = llm_cfg.get("api_base_url", "https://api.openai.com/v1")
+        model = llm_cfg.get("model", "gpt-4o")
+        temperature = llm_cfg.get("temperature", 0.7)
+        max_tokens = llm_cfg.get("max_tokens", 2000)
+        timeout = llm_cfg.get("timeout", 60)
 
     # 对数据库字段做长度限制，防止提示注入
     def _safe(text: str, max_len: int = 500) -> str:
         return str(text)[:max_len].replace("{", "{{").replace("}", "}}")
+
+    # 优先从数据库读取活跃提示词模板
+    db_prompt_content = None
+    try:
+        db_template = db.query(PromptTemplate).filter(
+            PromptTemplate.scene == "课程方案生成",
+            PromptTemplate.is_active == True,
+        ).first()
+        if db_template and db_template.current_version_id:
+            db_version = db.query(PromptVersion).filter(
+                PromptVersion.id == db_template.current_version_id
+            ).first()
+            if db_version:
+                db_prompt_content = db_version.content
+    except Exception:
+        pass
 
     # 预计算报价，用于模板
     hour_record = db.query(Hour).filter(Hour.value == hour, Hour.is_active == True).first()
     rate = hour_record.unit_price if hour_record and hour_record.unit_price else 2000
     total_cost = rate * hour
 
-    prompt = f"""请根据以下信息，生成一份产业案例教学课程设计方案。
+    if db_prompt_content:
+        prompt = db_prompt_content.format(
+            major=_safe(major),
+            industry=_safe(industry),
+            enterprise_name=_safe(enterprise_name),
+            region=_safe(region),
+            hour=hour,
+            company_intro=_safe(company_intro, 1000),
+            yonyou_content=_safe(yonyou_content, 1000),
+            total_cost=f"{total_cost:,}",
+        )
+    else:
+        prompt = f"""请根据以下信息，生成一份产业案例教学课程设计方案。
 
 专业方向：{_safe(major)}
 行业：{_safe(industry)}
@@ -285,14 +335,26 @@ def generate(request: dict, db: Session = Depends(get_db)):
                 json={
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": llm_cfg.get("temperature", 0.7),
-                    "max_tokens": llm_cfg.get("max_tokens", 2000),
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
                 },
-                timeout=llm_cfg.get("timeout", 60),
+                timeout=timeout,
             )
             if response.status_code == 200:
                 result = response.json()
                 content = result["choices"][0]["message"]["content"]
+                # 记录 token 消耗
+                usage = result.get("usage", {})
+                if llm_config_id:
+                    log = TokenUsageLog(
+                        llm_config_id=llm_config_id,
+                        model=model,
+                        prompt_tokens=usage.get("prompt_tokens", 0),
+                        completion_tokens=usage.get("completion_tokens", 0),
+                        total_tokens=usage.get("total_tokens", 0),
+                    )
+                    db.add(log)
+                    db.commit()
                 # 修复 LLM 可能生成的单 * (italic) 为 ** (bold)
                 content = re.sub(r'(?<!\*)\*(?!\s)([^\*]+?)(?<!\s)\*(?!\*)', r'**\1**', content)
 

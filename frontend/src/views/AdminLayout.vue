@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { Building2, BarChart3, GraduationCap, Briefcase, MapPin, Clock, LogOut, LayoutDashboard } from 'lucide-vue-next'
+import { Building2, BarChart3, GraduationCap, Briefcase, MapPin, Clock, LogOut, LayoutDashboard, Bot } from 'lucide-vue-next'
 
 const router = useRouter()
 const { username, logout } = useAuth()
@@ -93,6 +93,15 @@ function handleLogout() {
         >
           <Clock :size="18" :stroke-width="1.8" />
           <span>课时管理</span>
+        </router-link>
+
+        <router-link
+          to="/admin/llm"
+          class="sidebar-nav-item"
+          :class="{ 'is-active': $route.name === 'llm' }"
+        >
+          <Bot :size="18" :stroke-width="1.8" />
+          <span>大模型管理</span>
         </router-link>
       </nav>
 

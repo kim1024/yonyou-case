@@ -200,3 +200,116 @@ export interface ApiResponse<T> {
   data: T
   message?: string
 }
+
+// ── 大模型配置 ──
+export interface LlmConfig {
+  id: number
+  name: string
+  api_base_url: string
+  api_key_masked: string
+  model: string
+  temperature: number
+  max_tokens: number
+  timeout: number
+  is_active: boolean
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface LlmConfigCreate {
+  name: string
+  api_base_url: string
+  api_key: string
+  model: string
+  temperature: number
+  max_tokens: number
+  timeout: number
+  is_active: boolean
+}
+
+export interface LlmConfigUpdate {
+  name?: string
+  api_base_url?: string
+  api_key?: string
+  model?: string
+  temperature?: number
+  max_tokens?: number
+  timeout?: number
+  is_active?: boolean
+}
+
+// ── Token 统计 ──
+export interface TokenStats {
+  total_tokens: number
+  total_calls: number
+  today_tokens: number
+  today_calls: number
+  avg_tokens_per_call: number
+  by_model: { model: string; total_tokens: number; calls: number }[]
+  daily_trend: { date: string; tokens: number; calls: number }[]
+}
+
+// ── 提示词模板 ──
+export interface PromptTemplate {
+  id: number
+  name: string
+  description: string | null
+  scene: string | null
+  is_active: boolean
+  current_version_id: number | null
+  current_version_number: number | null
+  content_summary: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface PromptTemplateDetail {
+  id: number
+  name: string
+  description: string | null
+  scene: string | null
+  is_active: boolean
+  current_version_id: number | null
+  created_at: string | null
+  updated_at: string | null
+  current_version: PromptVersion | null
+}
+
+export interface PromptVersion {
+  id: number
+  version_number: number
+  content: string
+  variables: string | null
+  remark: string | null
+  created_by: string | null
+  created_at: string | null
+  is_current?: boolean
+}
+
+export interface PromptTemplateCreate {
+  name: string
+  description?: string
+  scene?: string
+  content: string
+  variables?: string
+  remark?: string
+}
+
+export interface PromptVersionCreate {
+  content: string
+  variables?: string
+  remark?: string
+  created_by?: string
+}
+
+export interface LlmListParams {
+  page: number
+  page_size: number
+}
+
+export interface PromptListParams {
+  page: number
+  page_size: number
+  scene?: string
+  keyword?: string
+}
