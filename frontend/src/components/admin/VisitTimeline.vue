@@ -61,8 +61,8 @@ function hideTooltip() {
     <svg :viewBox="`0 0 ${W} ${H}`" class="w-full">
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#007AFF" stop-opacity="0.25" />
-          <stop offset="100%" stop-color="#007AFF" stop-opacity="0.02" />
+          <stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="#6366F1" stop-opacity="0.02" />
         </linearGradient>
       </defs>
 
@@ -85,7 +85,7 @@ function hideTooltip() {
         v-if="data.length"
         :d="pathD"
         fill="none"
-        stroke="#007AFF"
+        stroke="#6366F1"
         stroke-width="2.5"
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -97,7 +97,7 @@ function hideTooltip() {
         v-for="(d, i) in data" :key="i"
         :cx="px(i)" :cy="py(d.count)"
         :r="hoverPointIdx === i ? 6 : 4"
-        fill="#007AFF"
+        fill="#6366F1"
         stroke="white"
         stroke-width="2"
         class="cursor-pointer"

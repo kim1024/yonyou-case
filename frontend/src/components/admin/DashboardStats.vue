@@ -6,10 +6,10 @@ import { Eye, Building2, CalendarDays, TrendingUp } from 'lucide-vue-next'
 defineProps<{ summary: AnalyticsSummary | null }>()
 
 const cards = [
-  { key: 'total_visits', label: '总访问量', icon: Eye, gradient: 'linear-gradient(90deg, #007AFF, #4DA3FF)' },
-  { key: 'total_enterprises', label: '企业总数', icon: Building2, gradient: 'linear-gradient(90deg, #30D158, #5EDC7C)' },
-  { key: 'today_visits', label: '今日访问', icon: CalendarDays, gradient: 'linear-gradient(90deg, #FF9F0A, #FFB84D)' },
-  { key: 'week_visits', label: '本周访问', icon: TrendingUp, gradient: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' },
+  { key: 'total_visits', label: '总访问量', icon: Eye, gradient: 'linear-gradient(90deg, #6366F1, #A78BFA)' },
+  { key: 'total_enterprises', label: '企业总数', icon: Building2, gradient: 'linear-gradient(90deg, #10B981, #6EE7B7)' },
+  { key: 'today_visits', label: '今日访问', icon: CalendarDays, gradient: 'linear-gradient(90deg, #F59E0B, #FCD34D)' },
+  { key: 'week_visits', label: '本周访问', icon: TrendingUp, gradient: 'linear-gradient(90deg, #EC4899, #F9A8D4)' },
 ]
 
 function formatNumber(val: number | null | undefined): string {

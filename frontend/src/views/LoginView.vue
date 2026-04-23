@@ -25,7 +25,7 @@ async function handleLogin() {
 <template>
   <div
     class="min-h-screen flex items-center justify-center relative overflow-hidden"
-    style="background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%);"
+    style="background: linear-gradient(135deg, #0F0F1A 0%, #1E1B4B 50%, #0F0F1A 100%);"
   >
     <!-- 背景装饰 -->
     <div class="absolute inset-0 pointer-events-none">
@@ -34,7 +34,7 @@ async function handleLogin() {
         style="
           width: 600px; height: 600px;
           top: -200px; right: -150px;
-          background: radial-gradient(circle, rgba(0, 122, 255, 0.12) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
         "
       />
       <div
@@ -51,7 +51,7 @@ async function handleLogin() {
           width: 300px; height: 300px;
           top: 50%; left: 50%;
           transform: translate(-50%, -50%);
-          background: radial-gradient(circle, rgba(0, 122, 255, 0.06) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
         "
       />
       <!-- 几何装饰线 -->
@@ -92,7 +92,7 @@ async function handleLogin() {
         <div class="text-center mb-10">
           <div
             class="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-5"
-            style="background: linear-gradient(135deg, #007AFF 0%, #4F46E5 100%); box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);"
+            style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -169,8 +169,8 @@ async function handleLogin() {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .login-input:focus {
-  border-color: rgba(0, 122, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   outline: none;
 }
 .login-input::placeholder {
@@ -178,15 +178,15 @@ async function handleLogin() {
 }
 
 .login-btn {
-  background: linear-gradient(135deg, #007AFF 0%, #4F46E5 100%);
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .login-btn:hover {
-  box-shadow: 0 8px 28px rgba(0, 122, 255, 0.45);
+  box-shadow: 0 8px 28px rgba(99, 102, 241, 0.45);
   transform: translateY(-1px);
 }
 .login-btn:active {
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
   transform: translateY(0);
 }
 </style>

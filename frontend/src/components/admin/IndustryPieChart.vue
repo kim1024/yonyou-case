@@ -4,8 +4,16 @@ import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import type { IndustryCount } from '@/types'
 
 const COLORS = [
-  '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444',
-  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
+  '#6366F1',  // 靛蓝
+  '#06B6D4',  // 青碧
+  '#10B981',  // 翡翠
+  '#F59E0B',  // 琥珀
+  '#EF4444',  // 玫瑰
+  '#8B5CF6',  // 紫罗兰
+  '#EC4899',  // 玫瑰粉
+  '#14B8A6',  // 青绿
+  '#F97316',  // 橘红
+  '#6366F1',  // 靛蓝（循环）
 ]
 
 const props = defineProps<{ data: IndustryCount[] }>()
@@ -74,7 +82,7 @@ function showTooltip(e: MouseEvent, s: { industry: string; count: number; pct: s
       <path
         v-for="(s, i) in slices" :key="i"
         :d="s.path"
-        :fill="hoverIdx === i ? '#1e40af' : s.color"
+        :fill="hoverIdx === i ? '#4338CA' : s.color"
         :transform="`translate(${s.tx}, ${s.ty})`"
         :filter="hoverIdx === i ? 'url(#donutShadow)' : 'none'"
         class="cursor-pointer"

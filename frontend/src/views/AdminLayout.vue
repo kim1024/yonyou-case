@@ -17,14 +17,14 @@ function handleLogout() {
     <!-- 侧边栏 -->
     <aside
       class="w-64 flex flex-col fixed inset-y-0 left-0 z-30"
-      style="background: linear-gradient(180deg, #141620 0%, #0F1117 100%);"
+      style="background: linear-gradient(180deg, #141425 0%, #0F0F1A 100%);"
     >
       <!-- 品牌区 -->
       <div class="px-6 py-7 border-b" style="border-color: var(--sidebar-dark-border);">
         <div class="flex items-center gap-3">
           <div
             class="w-8 h-8 rounded-lg flex items-center justify-center"
-            style="background: linear-gradient(135deg, var(--color-primary-500) 0%, #4F46E5 100%);"
+            style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);"
           >
             <LayoutDashboard :size="16" color="#fff" :stroke-width="2" />
           </div>
