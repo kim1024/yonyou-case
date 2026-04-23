@@ -3,11 +3,11 @@ import EnterpriseInfoPanel from '@/components/wizard/EnterpriseInfoPanel.vue'
 import type { Enterprise } from '@/types'
 
 defineProps<{
-  enterprises: Enterprise[]
+  enterprises: string[]
   loading: boolean
   enterpriseInfo: Enterprise | null
 }>()
-const emit = defineEmits<{ select: [enterprise: Enterprise] }>()
+const emit = defineEmits<{ select: [name: string] }>()
 </script>
 
 <template>
@@ -18,12 +18,12 @@ const emit = defineEmits<{ select: [enterprise: Enterprise] }>()
       <div>
         <div class="max-h-96 overflow-y-auto space-y-2">
           <button
-            v-for="enterprise in enterprises"
-            :key="enterprise.customer_name"
+            v-for="name in enterprises"
+            :key="name"
             class="w-full p-3 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
-            @click="emit('select', enterprise)"
+            @click="emit('select', name)"
           >
-            <div class="text-sm font-medium text-gray-700">{{ enterprise.customer_name }}</div>
+            <div class="text-sm font-medium text-gray-700">{{ name }}</div>
           </button>
         </div>
       </div>

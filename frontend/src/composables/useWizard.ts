@@ -1,6 +1,6 @@
 import { reactive, computed } from 'vue'
 import { wizardApi } from '@/api/wizard'
-import type { WizardState, CascadeData, Enterprise } from '@/types'
+import type { WizardState, CascadeData } from '@/types'
 
 export function useWizard() {
   const state = reactive<WizardState>({
@@ -99,8 +99,8 @@ export function useWizard() {
   }
 
   // 选择企业 → 加载详情
-  async function selectEnterprise(enterprise: Enterprise) {
-    state.enterprise = enterprise
+  async function selectEnterprise(name: string) {
+    state.enterprise = name
     state.currentStep = 5
 
     loading.enterpriseInfo = true
@@ -108,7 +108,7 @@ export function useWizard() {
       const res = await wizardApi.getEnterpriseInfo(
         state.industry!,
         state.region!,
-        enterprise.customer_name
+        name
       )
       cascade.enterpriseInfo = res.data
     } catch (e) {
@@ -132,8 +132,8 @@ export function useWizard() {
       const res = await wizardApi.generate({
         major: state.major!,
         industry: state.industry!,
-        enterprise: state.enterprise!.customer_name,
-        hour: Number(state.hour),
+        enterprise: state.enterprise!,
+        hour: state.hour!,
       })
       return res.data
     } catch (e) {

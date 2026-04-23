@@ -43,12 +43,29 @@ const router = createRouter({
 })
 
 // 导航守卫
+function isTokenValid(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    // exp 是秒级时间戳
+    return typeof payload.exp === 'number' && payload.exp * 1000 > Date.now()
+  } catch {
+    return false
+  }
+}
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
 
-  if (to.meta.requiresAuth && !token) {
-    next({ name: 'login', query: { redirect: to.fullPath } })
-  } else if (to.name === 'login' && token) {
+  if (to.meta.requiresAuth) {
+    if (!token || !isTokenValid(token)) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('username')
+      next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+
+  if (to.name === 'login' && token && isTokenValid(token)) {
     next({ name: 'enterprises' })
   } else {
     next()

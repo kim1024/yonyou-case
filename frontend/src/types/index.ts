@@ -17,8 +17,8 @@ export interface WizardState {
   major: string | null
   industry: string | null
   region: string | null
-  enterprise: Enterprise | null
-  hour: string | null
+  enterprise: string | null
+  hour: number | null
 }
 
 // 级联数据
@@ -26,8 +26,8 @@ export interface CascadeData {
   majors: string[]
   industries: string[]
   regions: string[]
-  enterprises: Enterprise[]
-  hours: string[]
+  enterprises: string[]
+  hours: number[]
   enterpriseInfo: Enterprise | null
 }
 
