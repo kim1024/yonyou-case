@@ -33,6 +33,34 @@ function handleLogout() {
         >
           统计面板
         </router-link>
+        <router-link
+          to="/admin/majors"
+          class="block px-4 py-3 rounded-lg text-sm font-medium transition"
+          :class="$route.name === 'majors' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'"
+        >
+          专业管理
+        </router-link>
+        <router-link
+          to="/admin/industries"
+          class="block px-4 py-3 rounded-lg text-sm font-medium transition"
+          :class="$route.name === 'industries' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'"
+        >
+          行业管理
+        </router-link>
+        <router-link
+          to="/admin/regions"
+          class="block px-4 py-3 rounded-lg text-sm font-medium transition"
+          :class="$route.name === 'regions' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'"
+        >
+          地区管理
+        </router-link>
+        <router-link
+          to="/admin/hours"
+          class="block px-4 py-3 rounded-lg text-sm font-medium transition"
+          :class="$route.name === 'hours' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'"
+        >
+          课时管理
+        </router-link>
       </nav>
       <div class="absolute bottom-0 w-64 p-4 border-t">
         <div class="flex items-center justify-between">

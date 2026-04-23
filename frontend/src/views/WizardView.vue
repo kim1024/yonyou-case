@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ArrowRight, RotateCcw, Loader2 } from 'lucide-vue-next'
 import { useWizard } from '@/composables/useWizard'
-import StepProgress from '@/components/wizard/StepProgress.vue'
+import SummaryBar from '@/components/wizard/SummaryBar.vue'
+import WizardSection from '@/components/wizard/WizardSection.vue'
 import StepMajor from '@/components/wizard/StepMajor.vue'
 import StepIndustry from '@/components/wizard/StepIndustry.vue'
 import StepRegion from '@/components/wizard/StepRegion.vue'
@@ -14,83 +16,24 @@ const {
   state,
   cascade,
   loading,
+  unlocked,
   canSubmit,
   init,
   selectMajor,
   selectIndustry,
   selectRegion,
   selectEnterprise,
-  confirmEnterprise,
-  goToStep,
   selectHour,
   generate,
   reset,
 } = useWizard()
-
-// 追踪动画方向
-let prevStep = 1
-const stepDirection = ref<'left' | 'right'>('left')
-
-const transitionName = computed(() => {
-  return stepDirection.value === 'left' ? 'slide-left' : 'slide-right'
-})
-
-const currentStepKey = computed(() => {
-  return `${stepDirection.value}-${state.currentStep}`
-})
-
-// 包装原始函数以追踪步骤方向
-function handleSelectMajor(major: string) {
-  stepDirection.value = 'left'
-  prevStep = state.currentStep
-  selectMajor(major)
-}
-
-async function handleSelectIndustry(industry: string) {
-  stepDirection.value = 'left'
-  prevStep = state.currentStep
-  await selectIndustry(industry)
-}
-
-async function handleSelectRegion(region: string) {
-  stepDirection.value = 'left'
-  prevStep = state.currentStep
-  await selectRegion(region)
-}
-
-async function handleSelectEnterprise(name: string) {
-  stepDirection.value = 'left'
-  prevStep = state.currentStep
-  await selectEnterprise(name)
-}
-
-function handleGoToStep(targetStep: number) {
-  stepDirection.value = targetStep < prevStep ? 'right' : 'left'
-  prevStep = state.currentStep
-  goToStep(targetStep)
-}
-
-function handleConfirmEnterprise() {
-  stepDirection.value = 'left'
-  prevStep = state.currentStep
-  confirmEnterprise()
-}
-
-function handleSelectHour(hour: number) {
-  selectHour(hour)
-}
-
-function handleReset() {
-  stepDirection.value = 'left'
-  prevStep = 1
-  reset()
-}
 
 onMounted(() => {
   init()
 })
 
 async function handleSubmit() {
+  if (!canSubmit.value || loading.generating) return
   const result = await generate()
   if (result) {
     sessionStorage.setItem('resultContent', result.content)
@@ -106,127 +49,165 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <h1 class="text-xl font-bold text-gray-900">产业案例课程定制</h1>
+  <div class="min-h-screen bg-neutral-50">
+    <!-- 顶部栏 -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-neutral-200">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        <h1 class="text-lg font-bold text-neutral-900 tracking-tight">产业案例课程定制</h1>
         <button
-          class="text-sm text-gray-500 hover:text-gray-700 transition"
-          @click="handleReset"
+          class="btn-ghost text-sm"
+          @click="reset"
         >
+          <RotateCcw class="w-4 h-4" :stroke-width="1.5" />
           重新开始
         </button>
       </div>
     </header>
 
-    <!-- Progress bar -->
-    <div class="bg-white border-b border-gray-100">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <StepProgress
-          :current-step="state.currentStep"
-          @go-to-step="handleGoToStep"
-        />
-      </div>
-    </div>
+    <!-- 摘要栏 -->
+    <SummaryBar
+      :major="state.major"
+      :industry="state.industry"
+      :region="state.region"
+      :enterprise="state.enterprise"
+      :hour="state.hour"
+      @reset="reset"
+    />
 
-    <!-- Step content -->
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Transition :name="transitionName" mode="out-in">
+    <!-- 主体内容 -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+      <!-- Section 01: 专业方向（始终激活） -->
+      <WizardSection
+        number="01"
+        title="专业方向"
+        description="请选择您的教学专业，我们将为您定制专属课程方案"
+        :unlocked="true"
+      >
         <StepMajor
-          v-if="state.currentStep === 1"
-          :key="currentStepKey"
           :majors="cascade.majors"
           :loading="loading.init"
-          @select="handleSelectMajor"
+          :selected-major="state.major"
+          @select="selectMajor"
         />
+      </WizardSection>
+
+      <!-- Section 02: 行业选择（选专业后解锁） -->
+      <WizardSection
+        number="02"
+        title="行业选择"
+        description="选择案例所属行业，系统将匹配该行业的标杆企业"
+        :unlocked="unlocked.industry"
+      >
         <StepIndustry
-          v-else-if="state.currentStep === 2"
-          :key="currentStepKey"
           :industries="cascade.industries"
-          :loading="loading.init"
-          @select="handleSelectIndustry"
+          :loading="loading.industries"
+          :selected-industry="state.industry"
+          @select="selectIndustry"
         />
+      </WizardSection>
+
+      <!-- Section 03: 地区选择（选行业后解锁） -->
+      <WizardSection
+        number="03"
+        title="地区选择"
+        description="选择企业所在省份，缩小企业匹配范围"
+        :unlocked="unlocked.region"
+      >
         <StepRegion
-          v-else-if="state.currentStep === 3"
-          :key="currentStepKey"
           :regions="cascade.regions"
           :loading="loading.regions"
-          @select="handleSelectRegion"
+          :selected-region="state.region"
+          @select="selectRegion"
         />
+      </WizardSection>
+
+      <!-- Section 04: 企业选择（选地区后解锁） -->
+      <WizardSection
+        number="04"
+        title="企业选择"
+        description="选择一家企业，查看其详细信息和用友可提供的内容"
+        :unlocked="unlocked.enterprise"
+      >
         <StepEnterprise
-          v-else-if="state.currentStep === 4"
-          :key="currentStepKey"
           :enterprises="cascade.enterprises"
           :loading="loading.enterprises"
           :enterprise-info="cascade.enterpriseInfo"
           :selected-enterprise="state.enterprise"
           :info-loading="loading.enterpriseInfo"
-          @select="handleSelectEnterprise"
+          @select="selectEnterprise"
         />
+      </WizardSection>
+
+      <!-- Section 05: 课时安排（始终激活） -->
+      <WizardSection
+        number="05"
+        title="课时安排"
+        description="选择课程总课时数，不同课时数对应不同的教学深度"
+        :unlocked="true"
+      >
         <StepHour
-          v-else-if="state.currentStep === 5"
-          :key="currentStepKey"
           :hours="cascade.hours"
           :selected-hour="state.hour"
-          @select="handleSelectHour"
+          :loading="loading.init"
+          @select="selectHour"
         />
-      </Transition>
+      </WizardSection>
 
-      <!-- Step 4: 确认按钮（选择企业后显示） -->
-      <div v-if="state.currentStep === 4 && state.enterprise" class="mt-8 text-center">
-        <button
-          class="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition shadow-sm"
-          @click="handleConfirmEnterprise"
-        >
-          下一步 &rarr;
-        </button>
-      </div>
-
-      <!-- Step 5: 生成按钮 -->
-      <div v-if="state.currentStep === 5" class="mt-8 text-center">
-        <button
-          :disabled="!canSubmit || loading.generating"
-          class="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
-          @click="handleSubmit"
-        >
-          {{ loading.generating ? '生成中...' : '生成课程方案' }}
-        </button>
+      <!-- 底部 CTA -->
+      <div class="pt-4 pb-8">
+        <div class="text-center">
+          <button
+            :disabled="!canSubmit || loading.generating"
+            :class="[
+              'inline-flex items-center gap-2.5 px-10 py-3.5 rounded-xl font-semibold text-base',
+              'transition-all duration-300 cursor-pointer',
+              canSubmit && !loading.generating
+                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-600 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
+                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed',
+            ]"
+            @click="handleSubmit"
+          >
+            <Loader2
+              v-if="loading.generating"
+              class="w-5 h-5 animate-spin"
+              :stroke-width="2"
+            />
+            <span>{{ loading.generating ? '正在生成课程方案...' : '生成课程方案' }}</span>
+            <ArrowRight
+              v-if="!loading.generating"
+              class="w-5 h-5"
+              :stroke-width="2"
+            />
+          </button>
+        </div>
       </div>
     </main>
+
+    <!-- 移动端固定底部 CTA -->
+    <div class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/90 backdrop-blur-md border-t border-neutral-200 p-4 z-30">
+      <button
+        :disabled="!canSubmit || loading.generating"
+        :class="[
+          'w-full inline-flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-base',
+          'transition-all duration-300 cursor-pointer',
+          canSubmit && !loading.generating
+            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25 active:translate-y-0'
+            : 'bg-neutral-200 text-neutral-400 cursor-not-allowed',
+        ]"
+        @click="handleSubmit"
+      >
+        <Loader2
+          v-if="loading.generating"
+          class="w-5 h-5 animate-spin"
+          :stroke-width="2"
+        />
+        <span>{{ loading.generating ? '生成中...' : '生成课程方案' }}</span>
+        <ArrowRight
+          v-if="!loading.generating"
+          class="w-5 h-5"
+          :stroke-width="2"
+        />
+      </button>
+    </div>
   </div>
 </template>
-
-<style scoped>
-/* Forward transition: new slide enters from right, old exits to left */
-.slide-left-enter-active,
-.slide-left-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.slide-left-enter-from {
-  opacity: 0;
-  transform: translateX(40px);
-}
-
-.slide-left-leave-to {
-  opacity: 0;
-  transform: translateX(-40px);
-}
-
-/* Backward transition: new slide enters from left, old exits to right */
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.slide-right-enter-from {
-  opacity: 0;
-  transform: translateX(-40px);
-}
-
-.slide-right-leave-to {
-  opacity: 0;
-  transform: translateX(40px);
-}
-</style>

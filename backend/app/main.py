@@ -10,11 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
 from app.routers import admin_auth, wizard, admin_analytics, admin_enterprises
+from app.routers import admin_majors, admin_industries, admin_regions, admin_hours
 from app.middleware.analytics_middleware import AnalyticsMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
 
 # 导入所有模型以确保 create_all 能发现它们
 from app.models import Enterprise, AdminUser, VisitLog  # noqa: F401
+from app.models import Major, Industry, MajorIndustry, Region, Hour  # noqa: F401
 
 app = FastAPI(title="用友案例定制系统 API")
 
@@ -34,6 +36,10 @@ app.include_router(admin_auth.router)
 app.include_router(wizard.router)
 app.include_router(admin_analytics.router)
 app.include_router(admin_enterprises.router)
+app.include_router(admin_majors.router)
+app.include_router(admin_industries.router)
+app.include_router(admin_regions.router)
+app.include_router(admin_hours.router)
 
 # 注册分析中间件
 app.add_middleware(AnalyticsMiddleware)

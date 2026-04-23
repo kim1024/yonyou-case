@@ -4,8 +4,8 @@ import type { WizardState, CascadeData } from '@/types'
 
 export function useWizard() {
   const state = reactive<WizardState>({
-    currentStep: 1,
     major: null,
+    majorId: null,
     industry: null,
     region: null,
     enterprise: null,
@@ -23,26 +23,38 @@ export function useWizard() {
 
   const loading = reactive({
     init: false,
+    industries: false,
     regions: false,
     enterprises: false,
     enterpriseInfo: false,
     generating: false,
   })
 
-  const canSubmit = computed(() => {
-    return state.major && state.industry && state.region && state.enterprise && state.hour
+  // 各区域解锁状态
+  const unlocked = reactive({
+    industry: false,
+    region: false,
+    enterprise: false,
   })
 
+  // 所有必选项是否已选完
+  const canSubmit = computed(() => {
+    return state.major !== null
+      && state.industry !== null
+      && state.region !== null
+      && state.enterprise !== null
+      && state.hour !== null
+  })
+
+  // 初始化：加载 majors + hours
   async function init() {
     loading.init = true
     try {
-      const [majorsRes, industriesRes, hoursRes] = await Promise.all([
+      const [majorsRes, hoursRes] = await Promise.all([
         wizardApi.getMajors(),
-        wizardApi.getIndustries(),
         wizardApi.getHours(),
       ])
       cascade.majors = majorsRes.data
-      cascade.industries = industriesRes.data
       cascade.hours = hoursRes.data
     } catch (e) {
       console.error('初始化失败:', e)
@@ -51,31 +63,51 @@ export function useWizard() {
     }
   }
 
-  function selectMajor(major: string) {
-    state.major = major
+  // 选择专业 → 加载该专业关联的行业 → 解锁行业区
+  async function selectMajor(majorName: string, majorId: number) {
+    state.major = majorName
+    state.majorId = majorId
+    // 级联重置下游
     state.industry = null
     state.region = null
     state.enterprise = null
-    state.hour = null
     cascade.regions = []
     cascade.enterprises = []
     cascade.enterpriseInfo = null
-    state.currentStep = 2
+    unlocked.industry = false
+    unlocked.region = false
+    unlocked.enterprise = false
+
+    // 加载该专业关联的行业
+    loading.industries = true
+    try {
+      const res = await wizardApi.getIndustries(majorId)
+      cascade.industries = res.data
+      unlocked.industry = true
+    } catch (e) {
+      console.error('加载行业失败:', e)
+    } finally {
+      loading.industries = false
+    }
   }
 
+  // 选择行业 → 加载地区 → 解锁地区区
   async function selectIndustry(industry: string) {
     state.industry = industry
+    // 级联重置下游
     state.region = null
     state.enterprise = null
     cascade.regions = []
     cascade.enterprises = []
     cascade.enterpriseInfo = null
-    state.currentStep = 3
+    unlocked.region = false
+    unlocked.enterprise = false
 
     loading.regions = true
     try {
       const res = await wizardApi.getRegions(industry)
       cascade.regions = res.data
+      unlocked.region = true
     } catch (e) {
       console.error('加载省份失败:', e)
     } finally {
@@ -83,17 +115,19 @@ export function useWizard() {
     }
   }
 
+  // 选择地区 → 加载企业 → 解锁企业区
   async function selectRegion(region: string) {
     state.region = region
     state.enterprise = null
     cascade.enterprises = []
     cascade.enterpriseInfo = null
-    state.currentStep = 4
+    unlocked.enterprise = false
 
     loading.enterprises = true
     try {
       const res = await wizardApi.getEnterprises(state.industry!, region)
       cascade.enterprises = res.data
+      unlocked.enterprise = true
     } catch (e) {
       console.error('加载企业失败:', e)
     } finally {
@@ -101,9 +135,10 @@ export function useWizard() {
     }
   }
 
+  // 选择企业（加载详情）
   async function selectEnterprise(name: string) {
     state.enterprise = name
-    // 不自动跳转到 Step 5，停留在 Step 4 等待用户确认
+    cascade.enterpriseInfo = null
 
     loading.enterpriseInfo = true
     try {
@@ -120,51 +155,12 @@ export function useWizard() {
     }
   }
 
-  function confirmEnterprise() {
-    if (state.enterprise) {
-      state.currentStep = 5
-    }
-  }
-
-  function goToStep(targetStep: number) {
-    if (targetStep >= state.currentStep) return
-    if (targetStep < 1) return
-
-    // 按目标步骤清除级联数据
-    if (targetStep === 1) {
-      state.major = null
-      state.industry = null
-      state.region = null
-      state.enterprise = null
-      state.hour = null
-      cascade.regions = []
-      cascade.enterprises = []
-      cascade.enterpriseInfo = null
-    } else if (targetStep === 2) {
-      state.industry = null
-      state.region = null
-      state.enterprise = null
-      state.hour = null
-      cascade.regions = []
-      cascade.enterprises = []
-      cascade.enterpriseInfo = null
-    } else if (targetStep === 3) {
-      state.region = null
-      state.enterprise = null
-      state.hour = null
-      cascade.enterprises = []
-      cascade.enterpriseInfo = null
-    } else if (targetStep === 4) {
-      state.hour = null
-    }
-
-    state.currentStep = targetStep
-  }
-
+  // 选择课时
   function selectHour(hour: number) {
     state.hour = hour
   }
 
+  // 生成课程方案
   async function generate() {
     if (!canSubmit.value) return null
 
@@ -185,30 +181,34 @@ export function useWizard() {
     }
   }
 
+  // 重置全部
   function reset() {
-    state.currentStep = 1
     state.major = null
+    state.majorId = null
     state.industry = null
     state.region = null
     state.enterprise = null
     state.hour = null
+    cascade.industries = []
     cascade.regions = []
     cascade.enterprises = []
     cascade.enterpriseInfo = null
+    unlocked.industry = false
+    unlocked.region = false
+    unlocked.enterprise = false
   }
 
   return {
     state,
     cascade,
     loading,
+    unlocked,
     canSubmit,
     init,
     selectMajor,
     selectIndustry,
     selectRegion,
     selectEnterprise,
-    confirmEnterprise,
-    goToStep,
     selectHour,
     generate,
     reset,

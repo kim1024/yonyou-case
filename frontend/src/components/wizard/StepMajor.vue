@@ -1,26 +1,51 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Calculator, Building2, TrendingUp } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import {
+  Factory,
+  ShoppingBag,
+  Landmark,
+  HeartPulse,
+  GraduationCap,
+  Building,
+  UtensilsCrossed,
+  Cpu,
+  Leaf,
+  Building2,
+  type Component,
+} from 'lucide-vue-next'
+import type { Major } from '@/types'
 
-defineProps<{ majors: string[]; loading: boolean }>()
-const emit = defineEmits<{ select: [major: string] }>()
+const props = defineProps<{
+  majors: Major[]
+  loading: boolean
+  selectedMajor: string | null
+}>()
+const emit = defineEmits<{ select: [name: string, id: number] }>()
 
 const poppedKey = ref<string | null>(null)
 
-const majorMeta: Record<string, { icon: typeof Calculator; desc: string }> = {
-  '大数据与会计': { icon: Calculator, desc: '涵盖智能财务、数据分析与审计实务' },
-  '工商企业管理': { icon: Building2, desc: '聚焦企业战略、运营管理与组织发展' },
-  '市场营销': { icon: TrendingUp, desc: '深入品牌管理、数字营销与市场策略' },
+// 图标名 → 组件映射
+const iconMap: Record<string, Component> = {
+  Factory,
+  ShoppingBag,
+  Landmark,
+  HeartPulse,
+  GraduationCap,
+  Building,
+  UtensilsCrossed,
+  Cpu,
+  Leaf,
+  Building2,
 }
 
-function getMeta(name: string) {
-  return majorMeta[name] ?? { icon: Building2, desc: '' }
+function resolveIcon(iconName: string): Component {
+  return iconMap[iconName] ?? Building2
 }
 
-function handleSelect(major: string) {
-  poppedKey.value = major
+function handleSelect(major: Major) {
+  poppedKey.value = major.name
   setTimeout(() => {
-    emit('select', major)
+    emit('select', major.name, major.id)
     poppedKey.value = null
   }, 250)
 }
@@ -28,20 +53,14 @@ function handleSelect(major: string) {
 
 <template>
   <div>
-    <div class="mb-8">
-      <span class="text-sm font-bold text-indigo-500 tracking-wide uppercase">01</span>
-      <h2 class="mt-1 text-2xl font-bold text-gray-900">选择专业方向</h2>
-      <p class="mt-1 text-sm text-gray-500">请选择您的教学专业，我们将为您定制专属课程方案</p>
-    </div>
-
     <!-- 骨架屏 -->
     <div v-if="loading" class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div
         v-for="i in 3"
         :key="i"
-        class="bg-white border border-gray-200 rounded-[10px] p-6 shadow-xs"
+        class="card p-6"
       >
-        <div class="skeleton w-12 h-12 rounded-full mx-auto mb-4" />
+        <div class="skeleton w-14 h-14 rounded-full mx-auto mb-4" />
         <div class="skeleton h-5 w-32 mx-auto mb-3" />
         <div class="skeleton h-4 w-48 mx-auto" />
       </div>
@@ -51,20 +70,35 @@ function handleSelect(major: string) {
     <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <button
         v-for="major in majors"
-        :key="major"
+        :key="major.id"
         :class="[
-          'bg-white border border-gray-200 rounded-[10px] p-6 shadow-xs',
-          'hover:border-indigo-400 hover:shadow-md hover:-translate-y-0.5',
-          'transition-all duration-200 text-center cursor-pointer',
-          poppedKey === major ? 'animate-select-pop' : '',
+          'card p-6 text-center cursor-pointer',
+          'hover:shadow-lifted hover:-translate-y-0.5',
+          'transition-all duration-200',
+          selectedMajor === major.name
+            ? 'ring-2 ring-primary-500 bg-primary-50/50 shadow-lifted'
+            : '',
+          poppedKey === major.name ? 'animate-select-pop' : '',
         ]"
         @click="handleSelect(major)"
       >
-        <div class="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-          <component :is="getMeta(major).icon" class="w-6 h-6 text-indigo-500" :stroke-width="1.5" />
+        <div
+          :class="[
+            'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-200',
+            selectedMajor === major.name ? 'bg-primary-100' : 'bg-neutral-100',
+          ]"
+        >
+          <component
+            :is="resolveIcon(major.icon)"
+            :class="[
+              'w-7 h-7 transition-colors duration-200',
+              selectedMajor === major.name ? 'text-primary-600' : 'text-neutral-400',
+            ]"
+            :stroke-width="1.5"
+          />
         </div>
-        <div class="text-lg font-semibold text-gray-900">{{ major }}</div>
-        <p class="text-sm text-gray-500 mt-2">{{ getMeta(major).desc }}</p>
+        <div class="text-base font-semibold text-neutral-900">{{ major.name }}</div>
+        <p class="text-sm text-neutral-500 mt-2 leading-relaxed">{{ major.description }}</p>
       </button>
     </div>
   </div>

@@ -11,10 +11,14 @@ import {
   Cpu,
   Leaf,
   Building2,
+  type Component,
 } from 'lucide-vue-next'
-import type { Component } from 'vue'
 
-defineProps<{ industries: string[]; loading: boolean }>()
+const props = defineProps<{
+  industries: string[]
+  loading: boolean
+  selectedIndustry: string | null
+}>()
 const emit = defineEmits<{ select: [industry: string] }>()
 
 const poppedKey = ref<string | null>(null)
@@ -53,45 +57,37 @@ function handleSelect(industry: string) {
 
 <template>
   <div>
-    <div class="mb-8">
-      <span class="text-sm font-bold text-indigo-500 tracking-wide uppercase">02</span>
-      <h2 class="mt-1 text-2xl font-bold text-gray-900">选择行业</h2>
-      <p class="mt-1 text-sm text-gray-500">选择案例所属行业，系统将匹配该行业的标杆企业</p>
-    </div>
-
     <!-- 骨架屏 -->
-    <div v-if="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div v-if="loading" class="flex flex-wrap gap-3">
       <div
         v-for="i in 10"
         :key="i"
-        class="bg-white border border-gray-200 rounded-[10px] p-4 shadow-xs"
-      >
-        <div class="skeleton w-9 h-9 rounded-full mx-auto mb-3" />
-        <div class="skeleton h-4 w-20 mx-auto" />
-      </div>
+        class="h-10 w-24 rounded-full bg-neutral-100 animate-pulse"
+      />
     </div>
 
-    <!-- 行业卡片 -->
-    <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <!-- Pill 按钮组 -->
+    <div v-else class="flex flex-wrap gap-3">
       <button
         v-for="industry in industries"
         :key="industry"
         :class="[
-          'bg-white border border-gray-200 rounded-[10px] p-4 shadow-xs',
-          'hover:border-indigo-400 hover:shadow-md hover:-translate-y-0.5',
-          'transition-all duration-200 text-center cursor-pointer',
+          'inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium',
+          'transition-all duration-200 cursor-pointer',
+          'border',
+          selectedIndustry === industry
+            ? 'bg-primary-500 text-white border-primary-500 shadow-md shadow-primary-500/25 -translate-y-0.5'
+            : 'bg-white text-neutral-600 border-neutral-200 hover:border-primary-300 hover:text-primary-600 hover:-translate-y-0.5',
           poppedKey === industry ? 'animate-select-pop' : '',
         ]"
         @click="handleSelect(industry)"
       >
-        <div class="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-3">
-          <component
-            :is="getIndustryIcon(industry)"
-            class="w-5 h-5 text-indigo-500"
-            :stroke-width="1.5"
-          />
-        </div>
-        <div class="text-sm font-medium text-gray-700">{{ industry }}</div>
+        <component
+          :is="getIndustryIcon(industry)"
+          class="w-4 h-4"
+          :stroke-width="1.5"
+        />
+        <span>{{ industry }}</span>
       </button>
     </div>
   </div>

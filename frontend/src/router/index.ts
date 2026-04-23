@@ -34,6 +34,26 @@ const router = createRouter({
           component: () => import('@/views/AnalyticsView.vue'),
         },
         {
+          path: 'majors',
+          name: 'majors',
+          component: () => import('@/views/MajorView.vue'),
+        },
+        {
+          path: 'industries',
+          name: 'industries',
+          component: () => import('@/views/IndustryView.vue'),
+        },
+        {
+          path: 'regions',
+          name: 'regions',
+          component: () => import('@/views/RegionView.vue'),
+        },
+        {
+          path: 'hours',
+          name: 'hours',
+          component: () => import('@/views/HourView.vue'),
+        },
+        {
           path: '',
           redirect: '/admin/enterprises',
         },

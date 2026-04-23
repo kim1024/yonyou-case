@@ -1,28 +1,59 @@
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
 from app.models.enterprise import Enterprise
+from app.models.major import Major, Industry, MajorIndustry, Region, Hour
 
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["wizard"])
 
-MAJORS = ["大数据与会计", "工商企业管理", "市场营销"]
-HOURS = [8, 16, 24, 32]
-
 
 @router.get("/api/majors")
-def get_majors():
-    return MAJORS
+def get_majors(db: Session = Depends(get_db)):
+    """获取所有启用的专业列表（返回完整对象，支持卡片展示）"""
+    majors = (
+        db.query(Major)
+        .filter(Major.is_active == True)
+        .order_by(Major.sort_order, Major.id)
+        .all()
+    )
+    return [
+        {"id": m.id, "name": m.name, "description": m.description or "", "icon": m.icon or ""}
+        for m in majors
+    ]
 
 
 @router.get("/api/industries")
-def get_industries(db: Session = Depends(get_db)):
-    results = db.query(Enterprise.industry).distinct().all()
+def get_industries(
+    major_id: int = Query(None),
+    db: Session = Depends(get_db),
+):
+    """获取行业列表，可选按专业过滤"""
+    if major_id is not None:
+        # 按专业过滤：先查关联表，再取行业
+        industry_ids = (
+            db.query(MajorIndustry.industry_id)
+            .filter(MajorIndustry.major_id == major_id)
+            .subquery()
+        )
+        results = (
+            db.query(Industry.name)
+            .filter(Industry.is_active == True, Industry.id.in_(industry_ids))
+            .order_by(Industry.sort_order, Industry.id)
+            .all()
+        )
+    else:
+        results = (
+            db.query(Industry.name)
+            .filter(Industry.is_active == True)
+            .order_by(Industry.sort_order, Industry.id)
+            .all()
+        )
     return [r[0] for r in results]
 
 
@@ -36,9 +67,31 @@ def get_config():
 
 @router.post("/api/regions")
 def get_regions(request: dict, db: Session = Depends(get_db)):
+    """获取地区列表（支持按行业筛选，优先从 Region 表查询）"""
     industry = request.get("industry")
-    results = db.query(Enterprise.province).filter(Enterprise.industry == industry).distinct().all()
-    return [r[0] for r in results]
+    if industry:
+        # 从 Region 表查询活跃的地区
+        regions = (
+            db.query(Region.name)
+            .filter(Region.is_active == True)
+            .order_by(Region.sort_order, Region.id)
+            .all()
+        )
+        if regions:
+            return [r[0] for r in regions]
+        # 如果 Region 表为空，回退到 enterprise 表去重查询
+        results = db.query(Enterprise.province).filter(
+            Enterprise.industry == industry
+        ).distinct().all()
+        return [r[0] for r in results]
+    else:
+        regions = (
+            db.query(Region.name)
+            .filter(Region.is_active == True)
+            .order_by(Region.sort_order, Region.id)
+            .all()
+        )
+        return [r[0] for r in regions]
 
 
 @router.post("/api/enterprises")
@@ -75,8 +128,18 @@ def get_enterprise_info(request: dict, db: Session = Depends(get_db)):
 
 
 @router.get("/api/hours")
-def get_hours():
-    return HOURS
+def get_hours(db: Session = Depends(get_db)):
+    """获取所有启用的课时选项"""
+    hours = (
+        db.query(Hour)
+        .filter(Hour.is_active == True)
+        .order_by(Hour.sort_order, Hour.value)
+        .all()
+    )
+    if hours:
+        return [h.value for h in hours]
+    # 如果 Hour 表为空，返回默认值
+    return [8, 16, 24, 32]
 
 
 @router.post("/api/generate")
@@ -119,14 +182,50 @@ def generate(request: dict, db: Session = Depends(get_db)):
 {_safe(yonyou_content, 1000)}
 </用友建设内容>
 
-请生成包含以下内容的课程方案：
-1. 课程名称
-2. 教学目标
-3. 教学内容（分章节）
-4. 案例分析要点
-5. 实践项目设计
-6. 考核方式
-7. 预估费用（按每课时{settings.get('pricing', {}).get('rate_per_hour', 2000)}元计算）
+请严格按照以下格式生成 Markdown 方案，用 **红色加粗** 标注关键字（在 Markdown 中用两个星号加粗）：
+
+# {_safe(enterprise_name)}案例教学课程方案
+
+## {_safe(enterprise_name)}
+
+---
+
+## 一、项目名称
+{_safe(enterprise_name)}{_safe(major)}专业产业教学案例
+
+## 二、总体介绍
+本教学案例基于**{_safe(enterprise_name)}**的真实业务场景，结合**{_safe(major)}**专业技术，设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解**{_safe(industry)}**与**{_safe(major)}**技术的融合应用，掌握实际项目中的核心技能。
+
+## 三、案例课程主要结构
+模块一：行业背景与需求分析（{hour//4}课时）
+- （列出2-3个具体内容）
+- ...
+
+模块二：技术基础与工具介绍（{hour//4}课时）
+- （列出2-3个具体内容）
+- ...
+
+模块三：案例实战与项目实施（{hour//2}课时）
+- （列出2-3个具体内容）
+- ...
+
+模块四：总结与拓展（{hour - hour//4 - hour//4 - hour//2}课时）
+- （列出2-3个具体内容）
+- ...
+
+## 四、学习后可以胜任的岗位
+结合{_safe(industry)}行业与{_safe(major)}专业，学员毕业后可胜任以下岗位：
+
+1. 岗位名称
+- 岗位职责
+- 技能要求
+
+（共列出5个岗位）
+
+---
+
+## 费用明细
+预估费用合计：{settings.get("pricing", {}).get("rate_per_hour", 2000) * hour}元
 
 请使用 Markdown 格式输出。"""
 
@@ -153,54 +252,69 @@ def generate(request: dict, db: Session = Depends(get_db)):
     # 回退到模板生成
     rate = settings.get("pricing", {}).get("rate_per_hour", 2000)
     total_cost = rate * hour
-    template = f"""# {enterprise_name} — {major}产业案例教学课程方案
+    template = f"""# {enterprise_name}案例教学课程方案
 
-## 一、课程概述
+## {enterprise_name}
 
-本课程以{enterprise_name}为产业案例，结合{major}专业知识，开展{industry}领域的案例教学。课程总课时{hour}课时，预估费用{total_cost}元。
+---
 
-## 二、企业背景
+## 一、项目名称
 
-{enterprise_name}是一家{industry}企业。
+{enterprise_name}{major}专业产业教学案例
 
-{company_intro}
+## 二、总体介绍
 
-## 三、用友建设内容
+本教学案例基于{enterprise_name}的真实业务场景，结合{major}专业技术，设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解{industry}与{major}技术的融合应用，掌握实际项目中的核心技能。
 
-{yonyou_content}
+## 三、案例课程主要结构
 
-## 四、教学目标
+### 模块一：行业背景与需求分析（{hour//4}课时）
+- {industry}行业现状与发展趋势
+- {enterprise_name}业务模式与技术需求分析
+- 数字化转型痛点与机遇
 
-1. 掌握{major}专业的核心理论与实践技能
-2. 了解{industry}行业的数字化转型实践
-3. 学会运用用友产品解决实际业务问题
-4. 培养分析问题和解决问题的能力
+### 模块二：技术基础与工具介绍（{hour//4}课时）
+- {major}核心技术原理与架构
+- 用友产品体系与解决方案概览
+- 开发环境搭建与工具链配置
 
-## 五、教学内容
+### 模块三：案例实战与项目实施（{hour//2}课时）
+- {enterprise_name}真实业务场景解析
+- 基于用友平台的功能开发与集成
+- 项目方案设计、实施与优化
 
-### 第一阶段：理论基础（{hour//3}课时）
-- {industry}行业概述
-- {major}专业基础理论
-- 数字化转型趋势
+### 模块四：总结与拓展（{hour - hour//4 - hour//4 - hour//2}课时）
+- 项目成果展示与答辩
+- {industry}领域最佳实践总结
+- 职业发展路径与学习资源推荐
 
-### 第二阶段：案例分析（{hour//3}课时）
-- {enterprise_name}案例剖析
-- 用友解决方案分析
-- 同行业案例对比
+## 四、学习后可以胜任的岗位
 
-### 第三阶段：实践操作（{hour - 2*(hour//3)}课时）
-- 用友产品实操训练
-- 综合项目设计
-- 成果汇报与点评
+结合{industry}行业与{major}专业，学员毕业后可胜任以下岗位：
 
-## 六、考核方式
+1. **{major}工程师**
+   - 负责{industry}领域的数据/系统开发
+   - 参与企业数字化转型项目
 
-- 案例分析报告：30%
-- 实践操作成绩：40%
-- 课堂表现：20%
-- 出勤率：10%
+2. **{industry}解决方案架构师**
+   - 设计行业数字化解决方案
+   - 对接客户需求与技术实现
 
-## 七、费用明细
+3. **项目实施顾问**
+   - 负责用友产品在企业的落地实施
+   - 提供客户培训与技术支持
+
+4. **业务分析师**
+   - 分析{industry}业务流程与需求
+   - 设计数字化优化方案
+
+5. **技术项目经理**
+   - 管理{industry}领域IT项目
+   - 协调团队与客户资源
+
+---
+
+## 费用明细
 
 | 项目 | 金额 |
 |------|------|

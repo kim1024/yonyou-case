@@ -1,4 +1,4 @@
-"""seed.py - 从 Excel 导入企业数据，并自动创建管理员账号。"""
+"""seed.py - 从 Excel 导入企业数据，自动创建管理员账号，初始化基础数据。"""
 
 import logging
 import sys
@@ -20,6 +20,7 @@ from openpyxl import load_workbook
 from app.database import Base, engine, SessionLocal
 from app.models.enterprise import Enterprise
 from app.models.admin import AdminUser
+from app.models.major import Major, Industry, MajorIndustry, Region, Hour
 from app.services.auth_service import get_password_hash
 
 # ---------- 路径 ----------
@@ -110,9 +111,113 @@ def seed_database():
     try:
         seed_enterprises(db)
         seed_admin(db)
+        seed_majors(db)
+        seed_industries(db)
+        seed_regions(db)
+        seed_hours(db)
     finally:
         db.close()
     _logger.info("Seed completed.")
+
+
+# ---------- 基础数据 ----------
+
+def seed_majors(db):
+    """初始化专业数据（仅在表为空时执行）。"""
+    if db.query(Major).first() is not None:
+        _logger.info("majors table already has data, skipping.")
+        return
+
+    majors_data = [
+        {"name": "大数据", "description": "聚焦数据采集、存储、分析与可视化等核心技术", "icon": "BarChart3", "sort_order": 1},
+        {"name": "人工智能", "description": "聚焦机器学习、深度学习与智能应用开发", "icon": "Brain", "sort_order": 2},
+        {"name": "工业互联网", "description": "聚焦工业物联网、智能制造与数字化转型", "icon": "Cpu", "sort_order": 3},
+    ]
+    for data in majors_data:
+        db.add(Major(**data))
+    db.commit()
+    _logger.info("Created %d major records.", len(majors_data))
+
+
+def seed_industries(db):
+    """从 enterprises 表提取行业去重，创建 Industry 记录及 MajorIndustry 关联。"""
+    if db.query(Industry).first() is not None:
+        _logger.info("industries table already has data, skipping.")
+        return
+
+    # 从 enterprises 表中提取所有不同行业
+    rows = db.query(Enterprise.industry).distinct().all()
+    industry_names = sorted({r[0] for r in rows if r[0]})
+
+    if not industry_names:
+        _logger.warning("No industries found in enterprises table.")
+        return
+
+    # 获取所有专业 ID（按 sort_order 排序）
+    majors = db.query(Major).order_by(Major.sort_order).all()
+    major_count = len(majors)
+
+    industry_id_map = {}
+    for idx, name in enumerate(industry_names):
+        industry = Industry(name=name, sort_order=idx + 1)
+        db.add(industry)
+        db.flush()  # 获取自增 id
+        industry_id_map[name] = industry.id
+
+    # 创建 MajorIndustry 关联：将行业轮流分配给各专业
+    associations = []
+    for idx, name in enumerate(industry_names):
+        if major_count > 0:
+            major_id = majors[idx % major_count].id
+            associations.append(
+                MajorIndustry(major_id=major_id, industry_id=industry_id_map[name])
+            )
+    if associations:
+        db.add_all(associations)
+
+    db.commit()
+    _logger.info(
+        "Created %d industry records and %d MajorIndustry associations.",
+        len(industry_names), len(associations),
+    )
+
+
+def seed_regions(db):
+    """从 enterprises 表提取省份去重，创建 Region 记录。"""
+    if db.query(Region).first() is not None:
+        _logger.info("regions table already has data, skipping.")
+        return
+
+    rows = db.query(Enterprise.province).distinct().all()
+    region_names = sorted({r[0] for r in rows if r[0]})
+
+    if not region_names:
+        _logger.warning("No regions found in enterprises table.")
+        return
+
+    for idx, name in enumerate(region_names):
+        db.add(Region(name=name, sort_order=idx + 1))
+
+    db.commit()
+    _logger.info("Created %d region records.", len(region_names))
+
+
+def seed_hours(db):
+    """初始化课时数据（仅在表为空时执行）。"""
+    if db.query(Hour).first() is not None:
+        _logger.info("hours table already has data, skipping.")
+        return
+
+    hours_data = [
+        {"value": 8,  "label": "8课时（1天）",  "sort_order": 1},
+        {"value": 16, "label": "16课时（2天）", "sort_order": 2},
+        {"value": 24, "label": "24课时（3天）", "sort_order": 3},
+        {"value": 32, "label": "32课时（4天）", "sort_order": 4},
+    ]
+    for data in hours_data:
+        db.add(Hour(**data))
+    db.commit()
+    _logger.info("Created %d hour records.", len(hours_data))
 
 
 if __name__ == "__main__":

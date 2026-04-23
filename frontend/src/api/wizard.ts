@@ -2,7 +2,10 @@ import http from './http'
 
 export const wizardApi = {
   getMajors() { return http.get('/api/majors') },
-  getIndustries() { return http.get('/api/industries') },
+  getIndustries(majorId?: number) {
+    const params = majorId !== undefined ? { major_id: majorId } : undefined
+    return http.get('/api/industries', { params })
+  },
   getRegions(industry: string) { return http.post('/api/regions', { industry }) },
   getEnterprises(industry: string, province: string) {
     return http.post('/api/enterprises', { industry, province })
