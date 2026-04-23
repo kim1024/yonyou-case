@@ -32,7 +32,7 @@ renderer.heading = function (token: unknown) {
       !/案例|课程|教学|结构|介绍|岗位|模块|成果|报价|背景/.test(strippedText)
 
     if (isSubtitle) {
-      return `<h2 style="font-size:24px;font-weight:700;color:#DC2626;margin-top:4px;margin-bottom:28px;text-align:center;line-height:1.4;letter-spacing:1px">${inner}</h2>`
+      return `<h2 style="font-size:24px;font-weight:800;color:#DC2626;margin-top:4px;margin-bottom:28px;text-align:center;line-height:1.3;padding-bottom:16px;border-bottom:2px solid var(--color-primary-300);letter-spacing:0.5px">${inner}</h2>`
     }
 
     return `<h2 style="font-size:22px;font-weight:700;color:var(--color-neutral-900);margin-top:36px;margin-bottom:14px;padding:10px 18px;border-left:3px solid var(--color-primary-500);background:rgba(99,102,241,0.05);border-radius:0 6px 6px 0;line-height:1.4">${inner}</h2>`
