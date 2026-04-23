@@ -130,24 +130,32 @@ async def import_excel(file: UploadFile = File(...), db: Session = Depends(get_d
         tmp.write(contents)
         tmp.close()
 
-        wb = load_workbook(tmp.name, read_only=True)
-        ws = wb.active
-        headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-        header_index = {h: i for i, h in enumerate(headers) if h}
+        try:
+            wb = load_workbook(tmp.name, read_only=True)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"文件解析失败，请确认是有效的 Excel 文件: {e}")
 
-        count = 0
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            kwargs = {}
-            for cn_name, field in COLUMN_MAP.items():
-                idx = header_index.get(cn_name)
-                if idx is not None:
-                    kwargs[field] = row[idx] if row[idx] is not None else ""
-            if kwargs.get("customer_name"):
-                db.add(Enterprise(**kwargs))
-                count += 1
+        try:
+            ws = wb.active
+            headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+            header_index = {h: i for i, h in enumerate(headers) if h}
 
-        wb.close()
-        db.commit()
-        return {"message": f"成功导入 {count} 条记录"}
+            count = 0
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                kwargs = {}
+                for cn_name, field in COLUMN_MAP.items():
+                    idx = header_index.get(cn_name)
+                    if idx is not None:
+                        kwargs[field] = row[idx] if row[idx] is not None else ""
+                if kwargs.get("customer_name"):
+                    db.add(Enterprise(**kwargs))
+                    count += 1
+
+            wb.close()
+            db.commit()
+            return {"message": f"成功导入 {count} 条记录"}
+        except Exception:
+            db.rollback()
+            raise
     finally:
         os.unlink(tmp.name)

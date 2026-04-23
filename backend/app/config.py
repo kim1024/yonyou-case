@@ -46,8 +46,15 @@ class Settings:
             # 深度合并默认值和文件配置
             self._config = self._deep_merge(DEFAULT_CONFIG, file_config)
         else:
-            print("警告: config.yaml 不存在，使用默认配置。生产环境请务必创建 config.yaml 并修改默认密码和密钥。")
             self._config = DEFAULT_CONFIG.copy()
+            print("=" * 70)
+            print("⚠️  WARNING: config.yaml not found — using INSECURE defaults!  ⚠️")
+            print("  • admin.password is 'changeme' — anyone can log in.")
+            print("  • admin.jwt_secret is 'change-me-in-production' —")
+            print("    anyone can forge authentication tokens.")
+            print("  • llm.api_key is a placeholder — LLM calls will fail.")
+            print("Create config.yaml with real values before deploying.")
+            print("=" * 70)
 
     @staticmethod
     def _deep_merge(base: dict, override: dict) -> dict:

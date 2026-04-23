@@ -12,10 +12,10 @@ app = FastAPI(title="用友案例定制系统 API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.get("server", {}).get("cors_origins", ["http://localhost:5173"]),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.get("server", {}).get("cors_origins", ["http://localhost:5173"]),
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # 注册路由

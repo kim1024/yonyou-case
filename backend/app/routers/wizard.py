@@ -98,15 +98,23 @@ def generate(request: dict, db: Session = Depends(get_db)):
     api_base_url = llm_cfg.get("api_base_url", "https://api.openai.com/v1")
     model = llm_cfg.get("model", "gpt-4o")
 
+    # 对数据库字段做长度限制，防止提示注入
+    def _safe(text: str, max_len: int = 500) -> str:
+        return str(text)[:max_len].replace("{", "{{").replace("}", "}}")
+
     prompt = f"""请根据以下信息，生成一份产业案例教学课程设计方案。
 
-专业方向：{major}
-行业：{industry}
-企业：{enterprise_name}
+专业方向：{_safe(major)}
+行业：{_safe(industry)}
+企业：{_safe(enterprise_name)}
 课时：{hour}课时
 
-企业简介：{company_intro}
-用友建设内容：{yonyou_content}
+<企业简介>
+{_safe(company_intro, 1000)}
+</企业简介>
+<用友建设内容>
+{_safe(yonyou_content, 1000)}
+</用友建设内容>
 
 请生成包含以下内容的课程方案：
 1. 课程名称
