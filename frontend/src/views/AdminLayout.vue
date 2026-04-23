@@ -42,21 +42,21 @@ function handleLogout() {
         </div>
 
         <router-link
-          to="/admin/enterprises"
-          class="sidebar-nav-item"
-          :class="{ 'is-active': $route.name === 'enterprises' }"
-        >
-          <Building2 :size="18" :stroke-width="1.8" />
-          <span>企业管理</span>
-        </router-link>
-
-        <router-link
           to="/admin/analytics"
           class="sidebar-nav-item"
           :class="{ 'is-active': $route.name === 'analytics' }"
         >
           <BarChart3 :size="18" :stroke-width="1.8" />
           <span>统计面板</span>
+        </router-link>
+
+        <router-link
+          to="/admin/enterprises"
+          class="sidebar-nav-item"
+          :class="{ 'is-active': $route.name === 'enterprises' }"
+        >
+          <Building2 :size="18" :stroke-width="1.8" />
+          <span>企业管理</span>
         </router-link>
 
         <router-link
