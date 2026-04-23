@@ -282,6 +282,22 @@ def generate(request: dict, db: Session = Depends(get_db)):
                 content = result["choices"][0]["message"]["content"]
                 # 修复 LLM 可能生成的单 * (italic) 为 ** (bold)
                 content = re.sub(r'(?<!\*)\*(?!\s)([^\*]+?)(?<!\s)\*(?!\*)', r'**\1**', content)
+
+                # ========== 标准化报价区域 HTML ==========
+                # 将报价标题 span 标准化为前端正则可匹配的格式
+                content = re.sub(
+                    r'<span\s[^>]*font-size\s*:\s*15px[^>]*>([^<]*最终报价[^<]*)</span>',
+                    '<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">课程最终报价</span>',
+                    content,
+                )
+                # 将报价数字 span 标准化为前端正则可匹配的格式（提取 ¥ 数字部分）
+                content = re.sub(
+                    r'<span\s[^>]*font-size\s*:\s*56px[^>]*>(¥[\d,]+)</span>',
+                    '<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">\\1</span>',
+                    content,
+                )
+                # ========== 标准化结束 ==========
+
                 return {"content": content, "source": "ai"}
     except Exception as e:
         _logger.error("AI API call failed: %s", e)

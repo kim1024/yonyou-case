@@ -154,6 +154,17 @@ const html = computed(() => {
   }
 
   // 将报价标题 span (15px) 和价格 span (56px) 包裹为金色渐变卡片
+  // 第一步：标准化报价标题 span（确保 letter-spacing:2px）
+  result = result.replace(
+    /<span\s[^>]*font-size\s*:\s*15px[^>]*>([^<]*最终报价[^<]*)<\/span>/,
+    '<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">$1</span>'
+  )
+  // 第二步：标准化报价数字 span（确保 letter-spacing:-1px）
+  result = result.replace(
+    /<span\s[^>]*font-size\s*:\s*56px[^>]*>(¥[\d,]+)<\/span>/,
+    '<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">$1</span>'
+  )
+  // 第三步：包裹为金色卡片（此时格式已标准化）
   result = result.replace(
     /<span style="[^"]*font-size:15px[^"]*letter-spacing:2px">(.*?)<\/span>\s*<span style="[^"]*font-size:56px[^"]*letter-spacing:-1px">(.*?)<\/span>\s*(<div[^>]*>.*?<\/div>)/,
     `<div style="text-align:center;margin:40px 0;padding:36px 32px 28px;background:linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,193,37,0.03));border-radius:20px;border:1px solid rgba(212,175,55,0.2)">
