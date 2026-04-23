@@ -1,4 +1,5 @@
 import logging
+import re
 import httpx
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
@@ -289,6 +290,8 @@ def generate(request: dict, db: Session = Depends(get_db)):
             if response.status_code == 200:
                 result = response.json()
                 content = result["choices"][0]["message"]["content"]
+                # 修复 LLM 可能生成的单 * (italic) 为 ** (bold)
+                content = re.sub(r'(?<!\*)\*(?!\s)([^\*]+?)(?<!\s)\*(?!\*)', r'**\1**', content)
                 return {"content": content, "source": "ai"}
     except Exception as e:
         _logger.error("AI API call failed: %s", e)
