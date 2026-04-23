@@ -122,14 +122,16 @@ export function useWizard() {
   }
 
   // 选择地区 → 加载企业 → 解锁企业区
-  async function selectRegion(region: string) {
+  async function selectRegion(region: string | null) {
     state.region = region
+    // 清除选择时重置下游
     state.enterprise = null
     state.hour = null
     cascade.enterprises = []
     cascade.enterpriseInfo = null
     unlocked.enterprise = false
     unlocked.hour = false
+    if (!region) return
 
     loading.enterprises = true
     try {
@@ -144,9 +146,13 @@ export function useWizard() {
   }
 
   // 选择企业（加载详情）
-  async function selectEnterprise(name: string) {
+  async function selectEnterprise(name: string | null) {
     state.enterprise = name
     cascade.enterpriseInfo = null
+    if (!name) {
+      unlocked.hour = false
+      return
+    }
 
     loading.enterpriseInfo = true
     try {

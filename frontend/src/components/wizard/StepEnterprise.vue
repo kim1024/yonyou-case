@@ -11,7 +11,7 @@ const props = defineProps<{
   selectedEnterprise: string | null
   infoLoading: boolean
 }>()
-const emit = defineEmits<{ select: [name: string] }>()
+const emit = defineEmits<{ select: [name: string | null] }>()
 
 const isOpen = ref(false)
 const searchQuery = ref('')
@@ -58,7 +58,7 @@ function selectItem(name: string) {
 
 function clearSelection(e: Event) {
   e.stopPropagation()
-  emit('select', '')
+  emit('select', null)
   close()
 }
 

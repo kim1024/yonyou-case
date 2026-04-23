@@ -7,7 +7,7 @@ const props = defineProps<{
   loading: boolean
   selectedRegion: string | null
 }>()
-const emit = defineEmits<{ select: [region: string] }>()
+const emit = defineEmits<{ select: [region: string | null] }>()
 
 const isOpen = ref(false)
 const searchQuery = ref('')
@@ -54,7 +54,7 @@ function selectItem(region: string) {
 
 function clearSelection(e: Event) {
   e.stopPropagation()
-  emit('select', '')
+  emit('select', null)
   close()
 }
 

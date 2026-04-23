@@ -12,10 +12,10 @@ const emit = defineEmits<{ select: [hour: number] }>()
       <div
         v-for="i in 4"
         :key="i"
-        class="p-3 rounded-xl bg-neutral-100 animate-pulse flex flex-col items-center gap-1.5"
+        class="h-24 rounded-xl bg-neutral-100 animate-pulse flex flex-col items-center justify-center gap-1.5"
       >
         <div class="w-5 h-5 bg-neutral-200 rounded" />
-        <div class="w-10 h-5 bg-neutral-200 rounded" />
+        <div class="w-10 h-6 bg-neutral-200 rounded" />
         <div class="w-6 h-2.5 bg-neutral-200 rounded" />
       </div>
     </div>
@@ -25,31 +25,40 @@ const emit = defineEmits<{ select: [hour: number] }>()
       <button
         v-for="hour in hours"
         :key="hour"
-        class="p-3 rounded-xl text-center transition-all duration-200 cursor-pointer border"
+        class="group relative h-24 rounded-xl text-center transition-all duration-150 cursor-pointer border"
         :class="
           selectedHour == hour
-            ? 'bg-primary-50 border-primary-400 shadow-lifted shadow-primary-500/10 -translate-y-0.5'
-            : 'bg-white border-neutral-200 hover:border-primary-300 hover:shadow-lifted hover:-translate-y-0.5'
+            ? 'bg-primary-50 border-primary-400'
+            : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
         "
         @click="emit('select', hour)"
       >
+        <!-- 选中态底部指示条 -->
+        <span
+          v-if="selectedHour == hour"
+          class="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-primary-500"
+        />
+
         <!-- 图标 -->
         <Clock
-          class="w-5 h-5 mx-auto mb-1.5"
-          :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-300 transition-colors duration-200'"
+          class="w-4 h-4 mx-auto mt-3 mb-1"
+          :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-300 group-hover:text-neutral-400'"
           :stroke-width="1.5"
         />
 
         <!-- 数字 -->
         <div
-          class="text-xl font-bold tracking-tight"
-          :class="selectedHour == hour ? 'text-primary-600' : 'text-neutral-400 transition-colors duration-200'"
+          class="text-xl font-bold tracking-tight leading-none"
+          :class="selectedHour == hour ? 'text-primary-600' : 'text-neutral-500 group-hover:text-neutral-600'"
         >
           {{ hour }}
         </div>
 
         <!-- 单位 -->
-        <div class="text-xs font-medium" :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-400'">
+        <div
+          class="text-[11px] font-medium mt-1"
+          :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-400'"
+        >
           课时
         </div>
       </button>
