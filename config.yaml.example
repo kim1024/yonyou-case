@@ -1,0 +1,28 @@
+# 用友产业案例教学课程定制系统 - 配置文件模板
+# 复制此文件为 config.yaml 并修改配置
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins: ["http://localhost:5173"]
+
+database:
+  url: "sqlite:///./data/app.db"
+
+admin:
+  username: "admin"
+  password: "changeme"  # 首次启动后建议修改
+
+llm:
+  api_key: "sk-xxx"
+  api_base_url: "https://api.openai.com/v1"
+  model: "gpt-4o"
+  temperature: 0.7
+  max_tokens: 2000
+  timeout: 60
+
+pricing:
+  rate_per_hour: 2000
+
+frontend:
+  title: "用友产业案例教学项目课程定制系统"
