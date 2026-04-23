@@ -23,7 +23,7 @@ renderer.heading = function (token: unknown) {
   const inner = this.parser.parseInline(t.tokens)
 
   if (t.depth === 1) {
-    return `<h1 style="font-size:32px;font-weight:700;color:var(--color-neutral-900);margin-bottom:4px;text-align:center;line-height:1.3;padding-bottom:12px;border-bottom:2px solid var(--color-neutral-200)">${inner}</h1>`
+    return `<h1 style="font-size:38px;font-weight:800;color:var(--color-neutral-900);margin-bottom:8px;text-align:center;line-height:1.3;padding-bottom:16px;border-bottom:2px solid var(--color-primary-300);letter-spacing:0.5px">${inner}</h1>`
   }
 
   if (t.depth === 2) {
@@ -34,10 +34,10 @@ renderer.heading = function (token: unknown) {
       !/案例|课程|教学|结构|介绍|岗位|模块|成果|报价|背景/.test(strippedText)
 
     if (isSubtitle) {
-      return `<h2 style="font-size:20px;font-weight:500;color:var(--color-neutral-500);margin-top:12px;margin-bottom:24px;text-align:center;line-height:1.4;font-style:italic">${inner}</h2>`
+      return `<h2 style="font-size:24px;font-weight:700;color:var(--color-neutral-600);margin-top:4px;margin-bottom:28px;text-align:center;line-height:1.4;letter-spacing:1px">${inner}</h2>`
     }
 
-    return `<h2 style="font-size:22px;font-weight:700;color:var(--color-neutral-900);margin-top:32px;margin-bottom:12px;padding:8px 16px;border-left:3px solid var(--color-primary-500);background:rgba(0,122,255,0.04);border-radius:0 6px 6px 0;line-height:1.4">${inner}</h2>`
+    return `<h2 style="font-size:22px;font-weight:700;color:var(--color-neutral-900);margin-top:36px;margin-bottom:14px;padding:10px 18px;border-left:3px solid var(--color-primary-500);background:rgba(99,102,241,0.05);border-radius:0 6px 6px 0;line-height:1.4">${inner}</h2>`
   }
 
   if (t.depth === 3) {
@@ -115,7 +115,7 @@ renderer.tablecell = function (token: unknown) {
 renderer.blockquote = function (token: unknown) {
   const t = token as Tokens.Blockquote
   const inner = this.parser.parse(t.tokens)
-  return `<blockquote style="border-left:4px solid var(--color-primary-400);background:var(--color-primary-50);border-radius:0 10px 10px 0;padding:16px 24px;margin:20px 0">${inner}</blockquote>`
+  return `<blockquote style="border-left:4px solid var(--color-neutral-300);background:var(--color-neutral-50);border-radius:0 8px 8px 0;padding:14px 20px;margin:20px 0">${inner}</blockquote>`
 } as unknown as typeof renderer.blockquote
 
 renderer.strong = function (token: unknown) {
@@ -139,7 +139,13 @@ marked.use({ renderer })
 
 // ---------- Sanitized HTML ----------
 
-const html = computed(() => DOMPurify.sanitize(marked.parse(content.value) as string))
+const html = computed(() => {
+  const raw = DOMPurify.sanitize(marked.parse(content.value) as string)
+  return raw.replace(
+    /<span style="display:block;text-align:center;font-size:48px[^"]*">(.*?)<\/span>/,
+    `<div style="text-align:center;margin:32px 0;padding:28px 32px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(99,102,241,0.03));border-radius:16px;border:1px solid rgba(99,102,241,0.15)"><span style="display:block;font-size:48px;font-weight:800;color:var(--color-primary-600);letter-spacing:-1px">$1</span></div>`
+  )
+})
 
 // ---------- Print ----------
 

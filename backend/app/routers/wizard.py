@@ -169,6 +169,10 @@ def generate(request: dict, db: Session = Depends(get_db)):
     def _safe(text: str, max_len: int = 500) -> str:
         return str(text)[:max_len].replace("{", "{{").replace("}", "}}")
 
+    # 预计算报价，用于模板
+    rate = settings.get("pricing", {}).get("rate_per_hour", 2000)
+    total_cost = rate * hour
+
     prompt = f"""请根据以下信息，生成一份产业案例教学课程设计方案。
 
 专业方向：{_safe(major)}
@@ -192,10 +196,10 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ---
 
-## 二、总体介绍
+## 一、总体介绍
 本教学案例基于**{_safe(region)}**地区**{_safe(enterprise_name)}**公司的真实业务场景，结合**{_safe(major)}**专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解**{_safe(industry)}**行业与**{_safe(major)}**技术的融合应用，掌握实际项目中的核心技能。
 
-## 三、案例课程主要结构
+## 二、案例课程主要结构
 
 ### 模块一：行业背景与需求分析（{max(1, hour // 8)}课时）
 - {_safe(industry)}行业现状与发展趋势
@@ -217,7 +221,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 - {_safe(industry)}领域最佳实践总结
 - 职业发展路径与学习资源推荐
 
-## 四、学习后可以胜任的岗位
+## 三、学习后可以胜任的岗位
 
 结合**{_safe(industry)}**行业与**{_safe(major)}**专业，学员毕业后可胜任以下岗位：
 
@@ -257,11 +261,15 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ## 课程最终报价
 
-**{settings.get("pricing", {}).get("rate_per_hour", 2000) * hour}元**
+计价方式：**线性计费**
+
+> 价格 = 课时数 × 2,000 元 = {hour} × 2,000 = **{total_cost:,}元**
+
+<span style="display:block;text-align:center;font-size:48px;font-weight:800;color:var(--color-primary-600);margin:24px 0;letter-spacing:-1px">{total_cost:,}元</span>
 
 ---
 
-> 以上内容由 AI 生成，请结合实际教学需求进行调整。
+> ⚠️ 以上内容由 AI 生成，请结合实际教学需求进行调整。
 
 请使用 Markdown 格式输出。"""
 
@@ -286,19 +294,17 @@ def generate(request: dict, db: Session = Depends(get_db)):
         _logger.error("AI API call failed: %s", e)
 
     # 回退到模板生成
-    rate = settings.get("pricing", {}).get("rate_per_hour", 2000)
-    total_cost = rate * hour
     template = f"""# {enterprise_name}案例教学课程方案
 
 ## {enterprise_name}
 
 ---
 
-## 二、总体介绍
+## 一、总体介绍
 
 本教学案例基于**{region}**地区**{enterprise_name}**公司的真实业务场景，结合**{major}**专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解**{industry}**行业与**{major}**技术的融合应用，掌握实际项目中的核心技能。
 
-## 三、案例课程主要结构
+## 二、案例课程主要结构
 
 ### 模块一：行业背景与需求分析（{max(1, hour // 8)}课时）
 - {industry}行业现状与发展趋势
@@ -320,7 +326,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 - {industry}领域最佳实践总结
 - 职业发展路径与学习资源推荐
 
-## 四、学习后可以胜任的岗位
+## 三、学习后可以胜任的岗位
 
 结合**{industry}**行业与**{major}**专业，学员毕业后可胜任以下岗位：
 
@@ -360,10 +366,14 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ## 课程最终报价
 
-**{total_cost}元**
+计价方式：**线性计费**
+
+> 价格 = 课时数 × 2,000 元 = {hour} × 2,000 = **{total_cost:,}元**
+
+<span style="display:block;text-align:center;font-size:48px;font-weight:800;color:var(--color-primary-600);margin:24px 0;letter-spacing:-1px">{total_cost:,}元</span>
 
 ---
 
-> 以上内容由 AI 生成，请结合实际教学需求进行调整。
+> ⚠️ 以上内容由 AI 生成，请结合实际教学需求进行调整。
 """
     return {"content": template, "source": "template"}
