@@ -292,7 +292,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
                 )
                 # 将报价数字 span 标准化为前端正则可匹配的格式（提取 ¥ 数字部分）
                 content = re.sub(
-                    r'<span\s[^>]*font-size\s*:\s*56px[^>]*>(¥[\d,]+)</span>',
+                    r'<span\s[^>]*font-size\s*:\s*56px[^>]*>([¥￥][\d,]+)</span>',
                     '<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">\\1</span>',
                     content,
                 )
