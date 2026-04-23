@@ -54,6 +54,12 @@ function onDrop(e: DragEvent) {
   isDragOver.value = false
   const dropped = e.dataTransfer?.files?.[0]
   if (dropped) {
+    const name = dropped.name.toLowerCase()
+    if (!name.endsWith('.xlsx') && !name.endsWith('.xls')) {
+      result.value = '仅支持 .xlsx / .xls 格式文件'
+      isError.value = true
+      return
+    }
     file.value = dropped
     result.value = ''
     isError.value = false

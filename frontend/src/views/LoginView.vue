@@ -14,7 +14,10 @@ async function handleLogin() {
   const success = await login(username.value, password.value)
   if (success) {
     const redirect = (route.query.redirect as string) || '/admin/enterprises'
-    router.push(redirect)
+    const safeRedirect = redirect.startsWith('/') && !redirect.startsWith('//')
+      ? redirect
+      : '/admin/enterprises'
+    router.push(safeRedirect)
   }
 }
 </script>

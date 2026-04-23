@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { adminApi } from '@/api/admin'
 import type { Enterprise } from '@/types'
 
@@ -51,6 +51,10 @@ async function handleSave() {
 
 onMounted(() => {
   document.body.style.overflow = 'hidden'
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 </script>
 
