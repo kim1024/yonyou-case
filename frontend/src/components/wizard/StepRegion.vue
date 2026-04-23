@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { MapPin, Search } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { MapPin, Search, ChevronDown, X, Check } from 'lucide-vue-next'
 
 const props = defineProps<{
   regions: string[]
@@ -9,8 +9,12 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ select: [region: string] }>()
 
-const poppedKey = ref<string | null>(null)
+const isOpen = ref(false)
 const searchQuery = ref('')
+const highlightedIndex = ref(-1)
+const containerRef = ref<HTMLDivElement | null>(null)
+const searchInputRef = ref<HTMLInputElement | null>(null)
+const optionsRef = ref<HTMLDivElement | null>(null)
 
 const filteredRegions = computed(() => {
   if (!searchQuery.value.trim()) return props.regions
@@ -18,67 +22,277 @@ const filteredRegions = computed(() => {
   return props.regions.filter((r) => r.toLowerCase().includes(q))
 })
 
-function handleSelect(region: string) {
-  poppedKey.value = region
-  setTimeout(() => {
-    emit('select', region)
-    poppedKey.value = null
-  }, 250)
+const displayText = computed(() => props.selectedRegion ?? '请选择地区...')
+
+function toggle() {
+  if (isOpen.value) {
+    close()
+  } else {
+    open()
+  }
 }
+
+function open() {
+  isOpen.value = true
+  searchQuery.value = ''
+  highlightedIndex.value = -1
+  nextTick(() => {
+    searchInputRef.value?.focus()
+  })
+}
+
+function close() {
+  isOpen.value = false
+  searchQuery.value = ''
+  highlightedIndex.value = -1
+}
+
+function selectItem(region: string) {
+  emit('select', region)
+  close()
+}
+
+function clearSelection(e: Event) {
+  e.stopPropagation()
+  emit('select', '')
+  close()
+}
+
+function onClickOutside(e: MouseEvent) {
+  if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
+    close()
+  }
+}
+
+function onKeyDown(e: KeyboardEvent) {
+  const items = filteredRegions.value
+  if (e.key === 'Escape') {
+    close()
+    return
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    highlightedIndex.value = Math.min(highlightedIndex.value + 1, items.length - 1)
+    scrollToHighlighted()
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    highlightedIndex.value = Math.max(highlightedIndex.value - 1, 0)
+    scrollToHighlighted()
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (highlightedIndex.value >= 0 && highlightedIndex.value < items.length) {
+      selectItem(items[highlightedIndex.value])
+    }
+  }
+}
+
+function scrollToHighlighted() {
+  nextTick(() => {
+    if (!optionsRef.value) return
+    const el = optionsRef.value.querySelector(`[data-index="${highlightedIndex.value}"]`) as HTMLElement | null
+    el?.scrollIntoView({ block: 'nearest' })
+  })
+}
+
+watch(filteredRegions, () => {
+  highlightedIndex.value = -1
+})
+
+onMounted(() => {
+  document.addEventListener('mousedown', onClickOutside)
+})
+onUnmounted(() => {
+  document.removeEventListener('mousedown', onClickOutside)
+})
 </script>
 
 <template>
-  <div>
-    <!-- 搜索框 -->
-    <div class="relative mb-2">
-      <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="搜索地区..."
-        class="input-macos pl-10 w-full md:w-80"
-      />
-    </div>
-
+  <div class="relative" ref="containerRef">
     <!-- 骨架屏 -->
-    <div v-if="loading" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-      <div
-        v-for="i in 18"
-        :key="i"
-        class="h-8 rounded-lg bg-neutral-100 animate-pulse"
-      />
-    </div>
+    <div v-if="loading" class="h-10 rounded-lg skeleton w-full md:w-80" />
 
-    <!-- 地区网格 -->
-    <div
+    <!-- 触发器 -->
+    <button
       v-else
-      class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar"
+      type="button"
+      class="flex items-center gap-2.5 h-10 w-full md:w-80 pl-3.5 pr-4 bg-white border rounded-lg text-sm text-left transition-all duration-150 ease-out cursor-pointer"
+      :class="[
+        isOpen
+          ? 'border-primary-500 ring-[3px] ring-primary-500/15'
+          : 'border-neutral-200 hover:border-neutral-300',
+        selectedRegion ? 'text-neutral-700' : 'text-neutral-400',
+      ]"
+      @click="toggle"
     >
-      <button
-        v-for="region in filteredRegions"
-        :key="region"
-        :class="[
-          'h-8 rounded-lg flex items-center justify-center gap-1.5 border text-xs font-medium',
-          'transition-all duration-200 cursor-pointer',
-          selectedRegion === region
-            ? 'bg-primary-50 border-primary-400 text-primary-700 shadow-sm -translate-y-0.5'
-            : 'bg-white border-neutral-200 text-neutral-600 hover:border-primary-300 hover:text-primary-600 hover:-translate-y-0.5',
-          poppedKey === region ? 'animate-select-pop' : '',
-        ]"
-        @click="handleSelect(region)"
-      >
-        <MapPin class="w-3.5 h-3.5 shrink-0" :stroke-width="1.5" />
-        <span>{{ region }}</span>
-      </button>
-    </div>
+      <MapPin class="w-4 h-4 shrink-0" :class="selectedRegion ? 'text-primary-500' : 'text-neutral-400'" :stroke-width="1.5" />
+      <span class="flex-1 truncate">{{ displayText }}</span>
+      <X
+        v-if="selectedRegion"
+        class="w-3.5 h-3.5 text-neutral-400 hover:text-neutral-600 shrink-0 transition-colors"
+        @click="clearSelection"
+      />
+      <ChevronDown
+        class="w-4 h-4 shrink-0 text-neutral-400 transition-transform duration-200"
+        :class="{ 'rotate-180': isOpen }"
+      />
+    </button>
 
-    <!-- 空状态 -->
-    <div
-      v-if="!loading && filteredRegions.length === 0 && regions.length > 0"
-      class="text-center py-8 text-neutral-400 text-sm"
-    >
-      未找到匹配的地区
-    </div>
+    <!-- 下拉面板（桌面端） -->
+    <Transition name="dropdown">
+      <div
+        v-if="isOpen"
+        class="absolute left-0 right-0 z-50 mt-1.5 bg-white border border-neutral-200 rounded-xl shadow-elevated max-h-[280px] flex-col overflow-hidden hidden md:flex md:w-80"
+      >
+        <!-- 搜索框 -->
+        <div class="p-2 pb-1.5">
+          <div class="relative">
+            <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+            <input
+              ref="searchInputRef"
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索地区..."
+              class="h-8 w-full pl-8 pr-8 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-primary-500 focus:ring-[2px] focus:ring-primary-500/15 transition-all"
+              @keydown="onKeyDown"
+            />
+            <X
+              v-if="searchQuery"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 hover:text-neutral-600 cursor-pointer transition-colors"
+              @click="searchQuery = ''"
+            />
+          </div>
+        </div>
+
+        <!-- 分割线 -->
+        <div class="h-px bg-neutral-100 mx-2" />
+
+        <!-- 选项列表 -->
+        <div ref="optionsRef" class="flex-1 overflow-y-auto py-1.5 custom-scrollbar">
+          <button
+            v-for="(region, index) in filteredRegions"
+            :key="region"
+            :data-index="index"
+            type="button"
+            class="flex items-center gap-2.5 h-9 mx-1.5 px-2.5 rounded-lg text-sm cursor-pointer transition-colors duration-100 w-[calc(100%-12px)] text-left border-0"
+            :class="[
+              selectedRegion === region
+                ? 'bg-primary-50 text-primary-700 font-medium border-l-[3px] border-primary-500 pl-[7px]'
+                : highlightedIndex === index
+                  ? 'bg-neutral-50 text-neutral-700'
+                  : 'text-neutral-700 hover:bg-neutral-50',
+            ]"
+            @click="selectItem(region)"
+            @mouseenter="highlightedIndex = index"
+          >
+            <MapPin
+              class="w-3.5 h-3.5 shrink-0"
+              :class="selectedRegion === region ? 'text-primary-500' : 'text-neutral-400'"
+              :stroke-width="1.5"
+            />
+            <span class="flex-1 truncate">{{ region }}</span>
+            <Check
+              v-if="selectedRegion === region"
+              class="w-3.5 h-3.5 text-primary-500 shrink-0"
+            />
+          </button>
+
+          <!-- 空搜索 -->
+          <div
+            v-if="filteredRegions.length === 0"
+            class="text-center py-6 text-neutral-400 text-sm"
+          >
+            未找到匹配的地区
+          </div>
+        </div>
+
+        <!-- 底部统计 -->
+        <div class="h-px bg-neutral-100 mx-2" />
+        <div class="px-3 py-2 text-xs text-neutral-400 text-center">
+          共 {{ filteredRegions.length }} 个地区
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 移动端 Bottom Sheet 遮罩 -->
+    <Transition name="fade">
+      <div
+        v-if="isOpen"
+        class="fixed inset-0 bg-black/20 z-40 md:hidden"
+        @click="close"
+      />
+    </Transition>
+
+    <!-- 移动端 Bottom Sheet -->
+    <Transition name="sheet">
+      <div
+        v-if="isOpen"
+        class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-overlay max-h-[60vh] flex flex-col md:hidden"
+      >
+        <!-- 拖拽指示条 -->
+        <div class="flex justify-center py-2">
+          <div class="w-9 h-1 rounded-full bg-neutral-200" />
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="px-4 pb-2">
+          <div class="relative">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索地区..."
+              class="h-10 w-full pl-10 pr-10 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-primary-500 focus:ring-[2px] focus:ring-primary-500/15 transition-all"
+            />
+            <X
+              v-if="searchQuery"
+              class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+              @click="searchQuery = ''"
+            />
+          </div>
+        </div>
+
+        <!-- 选项列表 -->
+        <div class="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">
+          <button
+            v-for="region in filteredRegions"
+            :key="region"
+            type="button"
+            class="flex items-center gap-3 h-12 mx-2 px-3 rounded-lg text-sm cursor-pointer transition-colors duration-100 w-[calc(100%-16px)] text-left border-0"
+            :class="[
+              selectedRegion === region
+                ? 'bg-primary-50 text-primary-700 font-medium border-l-[3px] border-primary-500 pl-[9px]'
+                : 'text-neutral-700 active:bg-neutral-100',
+            ]"
+            @click="selectItem(region)"
+          >
+            <MapPin
+              class="w-4 h-4 shrink-0"
+              :class="selectedRegion === region ? 'text-primary-500' : 'text-neutral-400'"
+              :stroke-width="1.5"
+            />
+            <span class="flex-1">{{ region }}</span>
+            <Check
+              v-if="selectedRegion === region"
+              class="w-4 h-4 text-primary-500 shrink-0"
+            />
+          </button>
+
+          <div
+            v-if="filteredRegions.length === 0"
+            class="text-center py-8 text-neutral-400 text-sm"
+          >
+            未找到匹配的地区
+          </div>
+        </div>
+
+        <!-- 底部统计 -->
+        <div class="px-4 py-3 border-t border-neutral-100 text-xs text-neutral-400 text-center">
+          共 {{ filteredRegions.length }} 个地区
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -95,5 +309,45 @@ function handleSelect(region: string) {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-neutral-300);
+}
+
+/* Desktop dropdown animation */
+.dropdown-enter-active {
+  transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dropdown-leave-active {
+  transition: opacity 100ms ease-in, transform 100ms ease-in;
+}
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+
+/* Fade for backdrop */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 200ms ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Mobile sheet animation */
+.sheet-enter-active {
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet-leave-active {
+  transition: transform 200ms ease-in;
+}
+.sheet-enter-from {
+  transform: translateY(100%);
+}
+.sheet-leave-to {
+  transform: translateY(100%);
 }
 </style>

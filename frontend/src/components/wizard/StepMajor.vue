@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import {
   Factory,
   ShoppingBag,
@@ -58,37 +58,40 @@ function handleSelect(major: WizardMajor) {
 <template>
   <div>
     <!-- 骨架屏 -->
-    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
       <div
         v-for="i in 3"
         :key="i"
-        class="card p-3"
+        class="flex items-center gap-3 p-3 rounded-xl bg-neutral-100 animate-pulse"
       >
-        <div class="skeleton w-9 h-9 rounded-full mx-auto mb-2" />
-        <div class="skeleton h-4 w-32 mx-auto mb-2" />
-        <div class="skeleton h-3 w-48 mx-auto" />
+        <div class="shrink-0 w-10 h-10 rounded-xl bg-neutral-200" />
+        <div class="flex-1 space-y-1.5">
+          <div class="skeleton h-4 w-24" />
+          <div class="skeleton h-3 w-36" />
+        </div>
       </div>
     </div>
 
-    <!-- 专业卡片 -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <!-- 专业选项列表 -->
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
       <button
         v-for="major in majors"
         :key="major.id"
         :class="[
-          'card p-3 text-center cursor-pointer',
-          'hover:shadow-lifted hover:-translate-y-0.5',
-          'transition-all duration-200',
+          'flex items-center gap-3 p-3 rounded-xl cursor-pointer',
+          'bg-white border transition-all duration-200',
+          'hover:border-neutral-300 hover:shadow-lifted hover:-translate-y-0.5',
           selectedMajor === major.name
-            ? 'ring-2 ring-primary-500 bg-primary-50/50 shadow-lifted'
-            : '',
+            ? 'bg-primary-50/60 border-primary-400 shadow-lifted'
+            : 'border-neutral-200',
           poppedKey === major.name ? 'animate-select-pop' : '',
         ]"
         @click="handleSelect(major)"
       >
+        <!-- 图标 -->
         <div
           :class="[
-            'w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2 transition-colors duration-200',
+            'shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-200',
             selectedMajor === major.name ? 'bg-primary-100' : 'bg-neutral-100',
           ]"
         >
@@ -101,8 +104,21 @@ function handleSelect(major: WizardMajor) {
             :stroke-width="1.5"
           />
         </div>
-        <div class="text-sm font-semibold text-neutral-900">{{ major.name }}</div>
-        <p class="text-xs mt-1 text-neutral-400">{{ major.description }}</p>
+
+        <!-- 文字 -->
+        <div class="flex-1 min-w-0 text-left">
+          <div
+            :class="[
+              'text-sm font-semibold transition-colors duration-200',
+              selectedMajor === major.name ? 'text-primary-700' : 'text-neutral-900',
+            ]"
+          >
+            {{ major.name }}
+          </div>
+          <p class="text-xs mt-0.5 leading-relaxed text-neutral-400 line-clamp-1">
+            {{ major.description }}
+          </p>
+        </div>
       </button>
     </div>
   </div>
