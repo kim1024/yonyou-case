@@ -192,7 +192,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 {_safe(yonyou_content, 1000)}
 </用友建设内容>
 
-请严格按照以下格式生成 Markdown 方案，用 **粗体** 标注关键动态信息（如企业名、地区、专业、行业、课时、费用等）：
+请严格按照以下格式生成 Markdown 方案，用 **粗体** 标注关键数字和费用信息：
 
 # {_safe(enterprise_name)}案例教学课程方案
 
@@ -201,7 +201,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 ---
 
 ## 一、总体介绍
-本教学案例基于**{_safe(region)}**地区**{_safe(enterprise_name)}**公司的真实业务场景，结合**{_safe(major)}**专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解**{_safe(industry)}**行业与**{_safe(major)}**技术的融合应用，掌握实际项目中的核心技能。
+本教学案例基于{_safe(enterprise_name)}公司的真实业务场景，结合{_safe(industry)}专业技术，设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解{_safe(industry)}与{_safe(major)}技术的融合应用，掌握实际项目中的核心技能。
 
 ## 二、案例课程主要结构
 
@@ -227,7 +227,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ## 三、学习后可以胜任的岗位
 
-结合**{_safe(industry)}**行业与**{_safe(major)}**专业，学员毕业后可胜任以下岗位：
+结合{_safe(industry)}领域与{_safe(major)}专业，学员毕业后可胜任以下岗位：
 
 1. **{_safe(major)}工程师**
    - 负责{_safe(industry)}领域的数据/系统开发
@@ -295,7 +295,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ## 一、总体介绍
 
-本教学案例基于**{region}**地区**{enterprise_name}**公司的真实业务场景，结合**{major}**专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解**{industry}**行业与**{major}**技术的融合应用，掌握实际项目中的核心技能。
+本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解{industry}与{major}技术的融合应用，掌握实际项目中的核心技能。
 
 ## 二、案例课程主要结构
 
@@ -321,7 +321,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ## 三、学习后可以胜任的岗位
 
-结合**{industry}**行业与**{major}**专业，学员毕业后可胜任以下岗位：
+结合{industry}领域与{major}专业，学员毕业后可胜任以下岗位：
 
 1. **{major}工程师**
    - 负责{industry}领域的数据/系统开发
