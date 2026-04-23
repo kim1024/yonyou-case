@@ -290,15 +290,16 @@ async function handleUpload() {
   gap: 8px;
   padding: 40px 24px;
   border: 2px dashed var(--color-neutral-300);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--color-neutral-50);
   cursor: pointer;
-  transition: border-color var(--duration-normal) ease, background-color var(--duration-normal) ease;
+  transition: border-color var(--duration-normal) ease, background-color var(--duration-normal) ease, transform var(--duration-fast) ease;
 }
 
 .id-dropzone:hover {
   border-color: var(--color-primary-400);
   background: var(--color-primary-50);
+  transform: scale(1.005);
 }
 
 .id-dropzone--active {
@@ -347,7 +348,7 @@ async function handleUpload() {
   padding: 12px 16px;
   background: var(--color-neutral-50);
   border: 1px solid var(--color-neutral-200);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .id-file-icon {
@@ -422,7 +423,7 @@ async function handleUpload() {
 .id-progress-fill {
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(90deg, #007AFF, #4DA3FF);
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-primary-400));
   transition: width 300ms ease;
 }
 
@@ -440,7 +441,7 @@ async function handleUpload() {
   font-size: 13px;
   font-weight: 500;
   padding: 12px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .id-result--success {

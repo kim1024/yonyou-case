@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
+import { Plus, Search, Inbox, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import type { Industry, Major } from '@/types'
 
@@ -138,15 +139,21 @@ function handleBackdropClick(e: MouseEvent) {
 </script>
 
 <template>
-  <div>
+  <div class="animate-fade-up">
     <!-- 标题栏 -->
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">行业管理</h1>
-      <button class="btn-primary" @click="handleAdd">新增行业</button>
+    <div class="page-header flex items-center justify-between">
+      <div>
+        <h1>行业管理</h1>
+        <p>管理行业分类及关联专业</p>
+      </div>
+      <button class="btn-primary" @click="handleAdd">
+        <Plus :size="16" />
+        新增行业
+      </button>
     </div>
 
     <!-- 筛选栏 -->
-    <div class="flex gap-4 mb-6 flex-wrap">
+    <div class="flex gap-3 mb-6 flex-wrap">
       <input
         v-model="filterKeyword"
         type="text"
@@ -158,28 +165,31 @@ function handleBackdropClick(e: MouseEvent) {
         <option value="">全部专业</option>
         <option v-for="m in majors" :key="m.id" :value="m.id">{{ m.name }}</option>
       </select>
-      <button class="btn-secondary" @click="handleSearch">搜索</button>
+      <button class="btn-secondary" @click="handleSearch">
+        <Search :size="15" />
+        搜索
+      </button>
     </div>
 
     <!-- 表格 -->
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
       <table class="w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left text-gray-600 w-12">#</th>
-            <th class="px-4 py-3 text-left text-gray-600">行业名称</th>
-            <th class="px-4 py-3 text-left text-gray-600">所属专业</th>
-            <th class="px-4 py-3 text-center text-gray-600">关联企业数</th>
-            <th class="px-4 py-3 text-center text-gray-600">状态</th>
-            <th class="px-4 py-3 text-left text-gray-600">创建时间</th>
-            <th class="px-4 py-3 text-center text-gray-600">操作</th>
+        <thead class="bg-neutral-50">
+          <tr class="border-b border-neutral-200">
+            <th class="px-4 py-3 text-left text-neutral-500 font-medium w-12">#</th>
+            <th class="px-4 py-3 text-left text-neutral-500 font-medium">行业名称</th>
+            <th class="px-4 py-3 text-left text-neutral-500 font-medium">所属专业</th>
+            <th class="px-4 py-3 text-center text-neutral-500 font-medium">关联企业数</th>
+            <th class="px-4 py-3 text-center text-neutral-500 font-medium">状态</th>
+            <th class="px-4 py-3 text-left text-neutral-500 font-medium">创建时间</th>
+            <th class="px-4 py-3 text-center text-neutral-500 font-medium">操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in items" :key="item.id" class="border-t hover:bg-gray-50">
-            <td class="px-4 py-3 text-gray-500">{{ (page - 1) * pageSize + index + 1 }}</td>
-            <td class="px-4 py-3 font-medium">{{ item.name }}</td>
-            <td class="px-4 py-3 text-gray-500">{{ item.major_name || '-' }}</td>
+          <tr v-for="(item, index) in items" :key="item.id" class="border-t border-neutral-100 transition-colors duration-100" :class="index % 2 === 1 ? 'bg-neutral-50/50' : ''">
+            <td class="px-4 py-3 text-neutral-400">{{ (page - 1) * pageSize + index + 1 }}</td>
+            <td class="px-4 py-3 font-medium text-neutral-800">{{ item.name }}</td>
+            <td class="px-4 py-3 text-neutral-500">{{ item.major_name || '-' }}</td>
             <td class="px-4 py-3 text-center">
               <span class="inline-block px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium">
                 {{ item.enterprise_count ?? 0 }}
@@ -197,15 +207,22 @@ function handleBackdropClick(e: MouseEvent) {
                 />
               </button>
             </td>
-            <td class="px-4 py-3 text-gray-500">{{ item.created_at?.slice(0, 10) }}</td>
-            <td class="px-4 py-3 text-center space-x-2">
-              <button class="text-blue-600 hover:text-blue-700 text-xs" @click="handleEdit(item)">编辑</button>
-              <button class="text-red-500 hover:text-red-600 text-xs" @click="handleDelete(item.id)">删除</button>
+            <td class="px-4 py-3 text-neutral-500">{{ item.created_at?.slice(0, 10) }}</td>
+            <td class="px-4 py-3 text-center">
+              <button class="btn-ghost text-primary-500" @click="handleEdit(item)">
+                <Pencil :size="14" />
+              </button>
+              <button class="btn-ghost text-danger" @click="handleDelete(item.id)">
+                <Trash2 :size="14" />
+              </button>
             </td>
           </tr>
           <tr v-if="items.length === 0">
-            <td colspan="7" class="px-4 py-12 text-center text-gray-400">
-              {{ loading ? '加载中...' : '暂无数据' }}
+            <td colspan="7" class="px-4 py-12 text-center">
+              <div class="flex flex-col items-center gap-2 text-neutral-400">
+                <Inbox :size="32" />
+                <span>{{ loading ? '加载中...' : '暂无数据' }}</span>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -213,12 +230,18 @@ function handleBackdropClick(e: MouseEvent) {
     </div>
 
     <!-- 分页 -->
-    <div class="mt-4 flex items-center justify-between text-sm text-gray-600">
-      <span>共 {{ total }} 条</span>
-      <div class="flex gap-2">
-        <button :disabled="page <= 1" class="btn-ghost" @click="page--; loadData()">上一页</button>
-        <span class="px-3 py-1">第 {{ page }} 页</span>
-        <button :disabled="page * pageSize >= total" class="btn-ghost" @click="page++; loadData()">下一页</button>
+    <div class="mt-4 flex items-center justify-between text-sm text-neutral-500">
+      <span>共 <span class="font-medium text-neutral-700">{{ total }}</span> 条</span>
+      <div class="flex items-center gap-1">
+        <button :disabled="page <= 1" class="btn-ghost" @click="page--; loadData()">
+          <ChevronLeft :size="16" />
+          上一页
+        </button>
+        <span class="px-3 py-1 text-neutral-600">第 {{ page }} 页</span>
+        <button :disabled="page * pageSize >= total" class="btn-ghost" @click="page++; loadData()">
+          下一页
+          <ChevronRight :size="16" />
+        </button>
       </div>
     </div>
 

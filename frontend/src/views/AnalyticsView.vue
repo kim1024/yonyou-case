@@ -38,19 +38,60 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-bold text-gray-800 mb-6">统计面板</h1>
+  <div class="animate-fade-up">
+    <div class="page-header">
+      <h1>统计面板</h1>
+      <p>数据概览与可视化分析</p>
+    </div>
 
-    <div v-if="loading" class="text-gray-500">加载中...</div>
+    <!-- Skeleton Loading -->
+    <div v-if="loading" class="space-y-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div v-for="i in 4" :key="i" class="gradient-card p-5 space-y-3">
+          <div class="skeleton h-4 w-20 rounded" />
+          <div class="skeleton h-9 w-28 rounded" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div v-for="i in 4" :key="i" class="gradient-card p-6">
+          <div class="skeleton h-5 w-32 mb-4 rounded" />
+          <div class="skeleton h-48 w-full rounded-lg" />
+        </div>
+      </div>
+    </div>
 
     <template v-else>
       <DashboardStats :summary="summary" />
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <VisitTimeline :data="visitTrends" />
-        <ProvinceBarChart :data="provinces" />
-        <CaseFrequencyChart :data="caseFreq" />
-        <IndustryPieChart :data="industries" />
+        <div
+          :style="{ animationDelay: '0ms' }"
+          style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both"
+          class="gradient-card p-6 relative overflow-hidden"
+        >
+          <VisitTimeline :data="visitTrends" />
+        </div>
+        <div
+          :style="{ animationDelay: '80ms' }"
+          style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both"
+          class="gradient-card p-6 relative overflow-hidden"
+        >
+          <ProvinceBarChart :data="provinces" />
+        </div>
+        <div
+          :style="{ animationDelay: '160ms' }"
+          style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both"
+          class="gradient-card p-6 relative overflow-hidden"
+        >
+          <CaseFrequencyChart :data="caseFreq" />
+        </div>
+        <div
+          :style="{ animationDelay: '240ms' }"
+          style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both"
+          class="gradient-card p-6 relative overflow-hidden"
+        >
+          <IndustryPieChart :data="industries" />
+        </div>
       </div>
     </template>
   </div>
