@@ -293,3 +293,58 @@ function handlePrint() {
   }
 }
 </style>
+
+<style>
+/* ========================================
+   Custom Scrollbar (global — targets viewport
+   and .result-page via non-scoped selectors)
+   ======================================== */
+html,
+.result-page {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.35) transparent;
+}
+
+html::-webkit-scrollbar,
+.result-page::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+html::-webkit-scrollbar-track,
+.result-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+.result-page::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.35);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+  transition: background 0.2s ease;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+.result-page::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.45);
+  background-clip: content-box;
+  border: 1px solid transparent;
+}
+
+html::-webkit-scrollbar-corner,
+.result-page::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Print: hide scrollbar */
+@media print {
+  html,
+  .result-page {
+    scrollbar-width: none !important;
+  }
+  html::-webkit-scrollbar,
+  .result-page::-webkit-scrollbar {
+    display: none !important;
+  }
+}
