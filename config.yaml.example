@@ -12,6 +12,7 @@ database:
 admin:
   username: "admin"
   password: "changeme"  # 首次启动后建议修改
+  jwt_secret: "change-me-in-production"
 
 llm:
   api_key: "sk-xxx"

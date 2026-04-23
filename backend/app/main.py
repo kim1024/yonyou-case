@@ -2,6 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
+from app.routers import admin_auth
+
+# 导入所有模型以确保 create_all 能发现它们
+from app.models import Enterprise, AdminUser, VisitLog  # noqa: F401
 
 app = FastAPI(title="用友案例定制系统 API")
 
@@ -12,6 +16,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 注册路由
+app.include_router(admin_auth.router)
 
 
 @app.on_event("startup")

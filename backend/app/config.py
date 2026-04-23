@@ -17,6 +17,7 @@ DEFAULT_CONFIG = {
     "admin": {
         "username": "admin",
         "password": "changeme",
+        "jwt_secret": "change-me-in-production",
     },
     "llm": {
         "api_key": "sk-xxx",
