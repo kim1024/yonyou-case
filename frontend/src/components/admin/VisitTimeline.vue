@@ -20,17 +20,44 @@ function py(val: number) {
   return H - PAD - (val / maxVal.value) * (H - PAD * 2)
 }
 
-const pathD = computed(() => {
-  return props.data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${px(i)} ${py(d.count)}`).join(' ')
-})
+interface Point { x: number; y: number }
+
+/** Catmull-Rom → Cubic Bezier 平滑路径转换 */
+function smoothPath(points: Point[], closed = false): string {
+  if (points.length < 2) return points.length === 1 ? `M ${points[0].x} ${points[0].y}` : ''
+  const tension = 6
+  const d: string[] = [`M ${points[0].x} ${points[0].y}`]
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[Math.min(points.length - 1, i + 2)]
+
+    const cp1x = p1.x + (p2.x - p0.x) / tension
+    const cp1y = p1.y + (p2.y - p0.y) / tension
+    const cp2x = p2.x - (p3.x - p1.x) / tension
+    const cp2y = p2.y - (p3.y - p1.y) / tension
+
+    d.push(`C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`)
+  }
+
+  if (closed) d.push('Z')
+  return d.join(' ')
+}
+
+const points = computed<Point[]>(() =>
+  props.data.map((d, i) => ({ x: px(i), y: py(d.count) }))
+)
+
+const pathD = computed(() => smoothPath(points.value))
 
 const areaD = computed(() => {
-  if (!props.data.length) return ''
-  const line = props.data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${px(i)} ${py(d.count)}`).join(' ')
-  const lastX = px(props.data.length - 1)
-  const firstX = px(0)
+  if (!points.value.length) return ''
+  const lastX = points.value[points.value.length - 1].x
+  const firstX = points.value[0].x
   const baseY = H - PAD
-  return `${line} L ${lastX} ${baseY} L ${firstX} ${baseY} Z`
+  return `${pathD.value} L ${lastX} ${baseY} L ${firstX} ${baseY} Z`
 })
 
 const gridLines = computed(() => {
