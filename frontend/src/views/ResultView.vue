@@ -348,3 +348,4 @@ html::-webkit-scrollbar-corner,
     display: none !important;
   }
 }
+</style>
