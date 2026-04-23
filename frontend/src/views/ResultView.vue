@@ -140,11 +140,40 @@ marked.use({ renderer })
 // ---------- Sanitized HTML ----------
 
 const html = computed(() => {
-  const raw = DOMPurify.sanitize(marked.parse(content.value) as string)
-  return raw.replace(
-    /<span style="display:block;text-align:center;font-size:48px[^"]*">(.*?)<\/span>/,
-    `<div style="text-align:center;margin:32px 0;padding:28px 32px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(99,102,241,0.03));border-radius:16px;border:1px solid rgba(99,102,241,0.15)"><span style="display:block;font-size:48px;font-weight:800;color:var(--color-primary-600);letter-spacing:-1px">$1</span></div>`
+  let result = DOMPurify.sanitize(marked.parse(content.value) as string)
+
+  // 注入报价卡片标题的 SVG 图标
+  const titleIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`
+
+  // 注入成果物 SVG 图标
+  const iconMap: Record<string, string> = {
+    'PPT': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>`,
+    '视频': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>`,
+    '指导书': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>`,
+    '数据集': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+    '代码包': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+    '实操环境': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  }
+
+  // 将报价标题 span (15px) 和价格 span (56px) 包裹为金色渐变卡片
+  result = result.replace(
+    /<span style="[^"]*font-size:15px[^"]*letter-spacing:2px">(.*?)<\/span>\s*<span style="[^"]*font-size:56px[^"]*letter-spacing:-1px">(.*?)<\/span>\s*(<div[^>]*>.*?<\/div>)/,
+    `<div style="text-align:center;margin:40px 0;padding:36px 32px 28px;background:linear-gradient(135deg,rgba(255,215,0,0.06),rgba(255,193,37,0.03));border-radius:20px;border:1px solid rgba(212,175,55,0.2)">
+      <span style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px;margin-bottom:16px">${titleIcon}$1</span>
+      <span style="display:block;font-size:56px;font-weight:800;color:#C8A84E;letter-spacing:-1px;text-shadow:0 2px 4px rgba(200,168,78,0.15)">$2</span>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(212,175,55,0.12)">$3</div>
+    </div>`
   )
+
+  // 为成果物 div 中的 span 注入 SVG 图标
+  for (const [label, svg] of Object.entries(iconMap)) {
+    result = result.replace(
+      new RegExp(`<span>([^<]*${label}[^<]*)</span>`, 'g'),
+      `<span style="display:inline-flex;align-items:center;gap:5px">${svg} ${label}</span>`
+    )
+  }
+
+  return result
 })
 
 // ---------- Print ----------

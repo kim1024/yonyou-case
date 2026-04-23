@@ -249,24 +249,11 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ---
 
-## 最终提交成果物
+<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">课程最终报价</span>
 
-- 📊 PPT
-- 🎬 视频
-- 📝 指导书
-- 📂 数据集
-- 💻 代码包
-- 🖥️ 实操环境
+<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">¥{total_cost:,}</span>
 
----
-
-## 课程最终报价
-
-计价方式：**线性计费**
-
-> 价格 = 课时数 × 2,000 元 = {hour} × 2,000 = **{total_cost:,}元**
-
-<span style="display:block;text-align:center;font-size:48px;font-weight:800;color:var(--color-primary-600);margin:24px 0;letter-spacing:-1px">{total_cost:,}元</span>
+<div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:14px;color:#666666"><span>📊 PPT</span><span>|</span><span>🎬 视频</span><span>|</span><span>📖 指导书</span><span>|</span><span>📂 数据集</span><span>|</span><span>⌨ 代码包</span><span>|</span><span>🖥 实操环境</span></div>
 
 ---
 
@@ -356,24 +343,11 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ---
 
-## 最终提交成果物
+<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">课程最终报价</span>
 
-- 📊 PPT
-- 🎬 视频
-- 📝 指导书
-- 📂 数据集
-- 💻 代码包
-- 🖥️ 实操环境
+<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">¥{total_cost:,}</span>
 
----
-
-## 课程最终报价
-
-计价方式：**线性计费**
-
-> 价格 = 课时数 × 2,000 元 = {hour} × 2,000 = **{total_cost:,}元**
-
-<span style="display:block;text-align:center;font-size:48px;font-weight:800;color:var(--color-primary-600);margin:24px 0;letter-spacing:-1px">{total_cost:,}元</span>
+<div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:14px;color:#666666"><span>📊 PPT</span><span>|</span><span>🎬 视频</span><span>|</span><span>📖 指导书</span><span>|</span><span>📂 数据集</span><span>|</span><span>⌨ 代码包</span><span>|</span><span>🖥 实操环境</span></div>
 
 ---
 
