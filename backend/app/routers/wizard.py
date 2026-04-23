@@ -73,28 +73,41 @@ def get_regions(request: dict, db: Session = Depends(get_db)):
     """获取地区列表（支持按行业筛选，优先从 Region 表查询）"""
     industry = request.get("industry")
     if industry:
-        # 从 Region 表查询活跃的地区
-        regions = (
+        # 1. 从 Region 表查询所有活跃地区名称
+        region_rows = (
             db.query(Region.name)
             .filter(Region.is_active == True)
             .order_by(Region.sort_order, Region.id)
             .all()
         )
-        if regions:
-            return [r[0] for r in regions]
-        # 如果 Region 表为空，回退到 enterprise 表去重查询
-        results = db.query(Enterprise.province).filter(
-            Enterprise.industry == industry
-        ).distinct().all()
-        return [r[0] for r in results]
-    else:
-        regions = (
-            db.query(Region.name)
-            .filter(Region.is_active == True)
-            .order_by(Region.sort_order, Region.id)
-            .all()
-        )
-        return [r[0] for r in regions]
+        region_names = [r[0] for r in region_rows]
+
+        # 2. 从 Enterprise 表查询该行业下所有去重省份
+        enterprise_provinces = [
+            r[0] for r in (
+                db.query(Enterprise.province)
+                .filter(Enterprise.industry == industry)
+                .distinct()
+                .all()
+            )
+        ]
+
+        if region_names:
+            # 3. 取交集 — 只返回 Region 表中存在且 Enterprise 表中有对应企业记录的地区
+            enterprise_set = set(enterprise_provinces)
+            return [name for name in region_names if name in enterprise_set]
+
+        # 4. 如果 Region 表为空，回退到仅从 Enterprise 表查询
+        return enterprise_provinces
+
+    # 5. 没有 industry 参数，返回所有活跃地区
+    regions = (
+        db.query(Region.name)
+        .filter(Region.is_active == True)
+        .order_by(Region.sort_order, Region.id)
+        .all()
+    )
+    return [r[0] for r in regions]
 
 
 @router.post("/api/enterprises")

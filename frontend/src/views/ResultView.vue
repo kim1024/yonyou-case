@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { marked, type Tokens } from 'marked'
 import DOMPurify from 'dompurify'
-import { ArrowLeft, RotateCcw, Printer } from 'lucide-vue-next'
+import { RotateCcw, Printer } from 'lucide-vue-next'
 
 const router = useRouter()
 
@@ -213,21 +213,6 @@ function handlePrint() {
 
 <template>
   <div class="result-page min-h-screen" style="background:var(--color-neutral-100)">
-    <!-- Top bar -->
-    <header class="top-bar sticky top-0 z-50" style="background:rgba(255,255,255,0.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--color-neutral-200)">
-      <div class="top-bar-inner max-w-4xl mx-auto flex items-center justify-between" style="padding:0 48px;height:56px">
-        <button
-          class="nav-back flex items-center gap-2"
-          style="color:var(--color-neutral-600);font-size:14px;font-weight:500;cursor:pointer;background:none;border:none;padding:6px 0;transition:color 0.15s"
-          @click="router.push('/')"
-        >
-          <ArrowLeft style="width:16px;height:16px" />
-          <span>返回重新定制</span>
-        </button>
-
-      </div>
-    </header>
-
     <main class="main-content" style="padding:48px 48px 72px">
       <!-- Markdown content card (sole content area) -->
       <div
@@ -256,7 +241,6 @@ function handlePrint() {
 <style scoped>
 /* Responsive: tablet */
 @media (max-width: 1023px) and (min-width: 768px) {
-  .top-bar-inner,
   .bottom-bar-inner {
     padding-left: 32px !important;
     padding-right: 32px !important;
@@ -272,7 +256,6 @@ function handlePrint() {
 
 /* Responsive: mobile */
 @media (max-width: 767px) {
-  .top-bar-inner,
   .bottom-bar-inner {
     padding-left: 20px !important;
     padding-right: 20px !important;
@@ -288,7 +271,6 @@ function handlePrint() {
 
 /* Print styles */
 @media print {
-  .top-bar,
   .bottom-bar {
     display: none !important;
   }
