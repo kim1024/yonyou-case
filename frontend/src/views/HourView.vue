@@ -16,16 +16,11 @@ const showModal = ref(false)
 const editItem = ref<Hour | null>(null)
 const form = ref({
   value: 0,
+  unit_price: 2000,
 })
 const saving = ref(false)
 const errors = ref<Record<string, string>>({})
 const valueRef = ref<HTMLInputElement | null>(null)
-
-/* ── 计算约周数 ── */
-function estimateWeeks(h: Hour): string {
-  const weeks = Math.round(h.value / 16)
-  return weeks >= 1 ? `约 ${weeks} 周` : '< 1 周'
-}
 
 /* ── 加载数据 ── */
 async function loadData() {
@@ -45,7 +40,7 @@ async function loadData() {
 /* ── 打开新增弹窗 ── */
 function handleAdd() {
   editItem.value = null
-  form.value = { value: 0 }
+  form.value = { value: 0, unit_price: 2000 }
   errors.value = {}
   showModal.value = true
 }
@@ -54,7 +49,7 @@ function handleAdd() {
 function handleEdit(item: Hour) {
   editItem.value = item
   errors.value = {}
-  form.value = { value: item.value }
+  form.value = { value: item.value, unit_price: item.unit_price }
   showModal.value = true
 }
 
@@ -63,6 +58,9 @@ function validate(): boolean {
   errors.value = {}
   if (!form.value.value || form.value.value <= 0) {
     errors.value.value = '请输入有效的课时数'
+  }
+  if (!form.value.unit_price || form.value.unit_price <= 0) {
+    errors.value.unit_price = '请输入有效的单价（大于0）'
   }
   return Object.keys(errors.value).length === 0
 }
@@ -81,11 +79,13 @@ async function handleSave() {
       await adminApi.updateHour(editItem.value.id, {
         value: form.value.value,
         label,
+        unit_price: form.value.unit_price,
       })
     } else {
       await adminApi.createHour({
         value: form.value.value,
         label,
+        unit_price: form.value.unit_price,
       })
     }
     showModal.value = false
@@ -130,7 +130,7 @@ function handleBackdropClick(e: MouseEvent) {
     <div class="page-header flex items-center justify-between">
       <div>
         <h1>课时管理</h1>
-        <p>配置课时及换算周数</p>
+        <p>配置课时及单价</p>
       </div>
       <button class="btn-primary" @click="handleAdd">
         <Plus :size="16" />
@@ -145,7 +145,7 @@ function handleBackdropClick(e: MouseEvent) {
           <tr class="border-b border-neutral-200">
             <th class="px-4 py-3 text-left text-neutral-500 font-medium w-12">#</th>
             <th class="px-4 py-3 text-left text-neutral-500 font-medium">课时数</th>
-            <th class="px-4 py-3 text-left text-neutral-500 font-medium">约周数</th>
+            <th class="px-4 py-3 text-left text-neutral-500 font-medium">课时单价（元）</th>
             <th class="px-4 py-3 text-center text-neutral-500 font-medium">状态</th>
             <th class="px-4 py-3 text-left text-neutral-500 font-medium">创建时间</th>
             <th class="px-4 py-3 text-center text-neutral-500 font-medium">操作</th>
@@ -155,7 +155,7 @@ function handleBackdropClick(e: MouseEvent) {
           <tr v-for="(item, index) in items" :key="item.id" class="border-t border-neutral-100 transition-colors duration-100" :class="index % 2 === 1 ? 'bg-neutral-50/50' : ''">
             <td class="px-4 py-3 text-neutral-400">{{ (page - 1) * pageSize + index + 1 }}</td>
             <td class="px-4 py-3 font-medium text-neutral-800">{{ item.value }} 课时</td>
-            <td class="px-4 py-3 text-neutral-500">{{ estimateWeeks(item) }}</td>
+            <td class="px-4 py-3 text-neutral-500">¥{{ (item.unit_price ?? 0).toLocaleString() }}</td>
             <td class="px-4 py-3 text-center">
               <button
                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200"
@@ -232,6 +232,19 @@ function handleBackdropClick(e: MouseEvent) {
                 @input="delete errors.value"
               />
               <span v-if="errors.value" class="ef-error-text">{{ errors.value }}</span>
+            </div>
+
+            <div class="ef-field ef-field--full">
+              <label class="ef-label">课时单价（元）<span class="ef-required">*</span></label>
+              <input
+                v-model.number="form.unit_price"
+                type="number"
+                min="1"
+                class="input-macos"
+                :class="{ 'ef-input-error': errors.unit_price }"
+                @input="delete errors.unit_price"
+              />
+              <span v-if="errors.unit_price" class="ef-error-text">{{ errors.unit_price }}</span>
             </div>
           </form>
 

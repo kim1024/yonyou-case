@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Clock } from 'lucide-vue-next'
+import type { WizardHour } from '@/types'
 
-defineProps<{ hours: number[]; selectedHour: number | string | null; loading: boolean }>()
+defineProps<{ hours: WizardHour[]; selectedHour: number | string | null; loading: boolean }>()
 const emit = defineEmits<{ select: [hour: number] }>()
 </script>
 
@@ -24,40 +25,40 @@ const emit = defineEmits<{ select: [hour: number] }>()
     <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-2">
       <button
         v-for="hour in hours"
-        :key="hour"
+        :key="hour.value"
         class="group relative h-24 rounded-xl text-center transition-all duration-150 cursor-pointer border"
         :class="
-          selectedHour == hour
+          selectedHour == hour.value
             ? 'bg-primary-50 border-primary-400'
             : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
         "
-        @click="emit('select', hour)"
+        @click="emit('select', hour.value)"
       >
         <!-- 选中态底部指示条 -->
         <span
-          v-if="selectedHour == hour"
+          v-if="selectedHour == hour.value"
           class="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-primary-500"
         />
 
         <!-- 图标 -->
         <Clock
           class="w-4 h-4 mx-auto mt-3 mb-1"
-          :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-300 group-hover:text-neutral-400'"
+          :class="selectedHour == hour.value ? 'text-primary-500' : 'text-neutral-300 group-hover:text-neutral-400'"
           :stroke-width="1.5"
         />
 
         <!-- 数字 -->
         <div
           class="text-xl font-bold tracking-tight leading-none"
-          :class="selectedHour == hour ? 'text-primary-600' : 'text-neutral-500 group-hover:text-neutral-600'"
+          :class="selectedHour == hour.value ? 'text-primary-600' : 'text-neutral-500 group-hover:text-neutral-600'"
         >
-          {{ hour }}
+          {{ hour.value }}
         </div>
 
         <!-- 单位 -->
         <div
           class="text-[11px] font-medium mt-1"
-          :class="selectedHour == hour ? 'text-primary-500' : 'text-neutral-400'"
+          :class="selectedHour == hour.value ? 'text-primary-500' : 'text-neutral-400'"
         >
           课时
         </div>

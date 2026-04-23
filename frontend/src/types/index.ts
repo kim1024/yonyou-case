@@ -11,6 +11,13 @@ export interface Enterprise {
   updated_at?: string
 }
 
+// 向导用课时（API 返回）
+export interface WizardHour {
+  value: number
+  label: string
+  unit_price: number
+}
+
 // 向导状态（单页渐进式解锁）
 export interface WizardState {
   major: string | null
@@ -27,7 +34,7 @@ export interface CascadeData {
   industries: string[]
   regions: string[]
   enterprises: string[]
-  hours: number[]
+  hours: WizardHour[]
   enterpriseInfo: MajorEnterpriseInfo | null
 }
 
@@ -138,6 +145,7 @@ export interface Region {
   name: string
   is_active: boolean
   sort_order: number
+  enterprise_count?: number
   created_at: string
   updated_at: string
 }
@@ -147,6 +155,7 @@ export interface Hour {
   id: number
   value: number
   label: string
+  unit_price: number
   is_active: boolean
   sort_order: number
   created_at: string

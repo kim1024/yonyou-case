@@ -87,10 +87,10 @@ export const adminApi = {
   getHours(params: HourListParams) {
     return http.get('/api/admin/hours', { params })
   },
-  createHour(data: { value: number; label?: string; sort_order?: number }) {
+  createHour(data: { value: number; label?: string; unit_price?: number; sort_order?: number }) {
     return http.post('/api/admin/hours', data)
   },
-  updateHour(id: number, data: { value?: number; label?: string; is_active?: boolean; sort_order?: number }) {
+  updateHour(id: number, data: { value?: number; label?: string; unit_price?: number; is_active?: boolean; sort_order?: number }) {
     return http.put(`/api/admin/hours/${id}`, data)
   },
   deleteHour(id: number) {

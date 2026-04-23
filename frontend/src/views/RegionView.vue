@@ -152,6 +152,7 @@ function handleBackdropClick(e: MouseEvent) {
           <tr class="border-b border-neutral-200">
             <th class="px-4 py-3 text-left text-neutral-500 font-medium w-12">#</th>
             <th class="px-4 py-3 text-left text-neutral-500 font-medium">省份名称</th>
+            <th class="px-4 py-3 text-center text-neutral-500 font-medium">企业数量</th>
             <th class="px-4 py-3 text-center text-neutral-500 font-medium">状态</th>
             <th class="px-4 py-3 text-left text-neutral-500 font-medium">排序</th>
             <th class="px-4 py-3 text-left text-neutral-500 font-medium">创建时间</th>
@@ -162,6 +163,11 @@ function handleBackdropClick(e: MouseEvent) {
           <tr v-for="(item, index) in items" :key="item.id" class="border-t border-neutral-100 transition-colors duration-100" :class="index % 2 === 1 ? 'bg-neutral-50/50' : ''">
             <td class="px-4 py-3 text-neutral-400">{{ (page - 1) * pageSize + index + 1 }}</td>
             <td class="px-4 py-3 font-medium text-neutral-800">{{ item.name }}</td>
+            <td class="px-4 py-3 text-center">
+              <span class="inline-block px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium">
+                {{ item.enterprise_count ?? 0 }}
+              </span>
+            </td>
             <td class="px-4 py-3 text-center">
               <button
                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200"
@@ -186,7 +192,7 @@ function handleBackdropClick(e: MouseEvent) {
             </td>
           </tr>
           <tr v-if="items.length === 0">
-            <td colspan="6" class="px-4 py-12 text-center">
+            <td colspan="7" class="px-4 py-12 text-center">
               <div class="flex flex-col items-center gap-2 text-neutral-400">
                 <Inbox :size="32" />
                 <span>{{ loading ? '加载中...' : '暂无数据' }}</span>
