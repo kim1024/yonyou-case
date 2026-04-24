@@ -13,7 +13,7 @@ const emit = defineEmits<{ select: [hour: number] }>()
       <div
         v-for="i in 4"
         :key="i"
-        class="h-24 rounded-xl bg-neutral-100 animate-pulse flex flex-col items-center justify-center gap-1.5"
+        class="h-20 md:h-24 rounded-xl bg-neutral-100 animate-pulse flex flex-col items-center justify-center gap-1.5"
       >
         <div class="w-5 h-5 bg-neutral-200 rounded" />
         <div class="w-10 h-6 bg-neutral-200 rounded" />
@@ -26,7 +26,7 @@ const emit = defineEmits<{ select: [hour: number] }>()
       <button
         v-for="hour in hours"
         :key="hour.value"
-        class="group relative h-24 rounded-xl text-center transition-all duration-150 cursor-pointer border"
+        class="group relative h-20 md:h-24 rounded-xl text-center transition-all duration-150 cursor-pointer border"
         :class="
           selectedHour == hour.value
             ? 'bg-primary-50 border-primary-400'
@@ -42,14 +42,14 @@ const emit = defineEmits<{ select: [hour: number] }>()
 
         <!-- 图标 -->
         <Clock
-          class="w-4 h-4 mx-auto mt-3 mb-1"
+          class="w-4 h-4 mx-auto mt-2 mb-0.5 md:mt-3 md:mb-1"
           :class="selectedHour == hour.value ? 'text-primary-500' : 'text-neutral-300 group-hover:text-neutral-400'"
           :stroke-width="1.5"
         />
 
         <!-- 数字 -->
         <div
-          class="text-xl font-bold tracking-tight leading-none"
+          class="text-lg md:text-xl font-bold tracking-tight leading-none"
           :class="selectedHour == hour.value ? 'text-primary-600' : 'text-neutral-500 group-hover:text-neutral-600'"
         >
           {{ hour.value }}
@@ -57,7 +57,7 @@ const emit = defineEmits<{ select: [hour: number] }>()
 
         <!-- 单位 -->
         <div
-          class="text-[11px] font-medium mt-1"
+          class="text-[10px] md:text-[11px] font-medium mt-0.5 md:mt-1"
           :class="selectedHour == hour.value ? 'text-primary-500' : 'text-neutral-400'"
         >
           课时
