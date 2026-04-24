@@ -60,12 +60,12 @@ const formattedPrice = computed(() => {
 // ---------- Deliverable icons (inline SVG) ----------
 
 const deliverableIcons: Record<string, string> = {
-  'PPT': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>',
-  '视频': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>',
-  '指导书': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>',
-  '数据集': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
-  '代码包': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-  '实操环境': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  'PPT': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>',
+  '视频': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>',
+  '指导书': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>',
+  '数据集': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  '代码包': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+  '实操环境': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
 }
 
 // ---------- Print ----------
@@ -76,8 +76,8 @@ function handlePrint() {
 </script>
 
 <template>
-  <div class="result-page min-h-screen" style="background:var(--color-neutral-100)">
-    <main class="main-content" style="padding:48px 48px 72px">
+  <div class="result-page" style="min-height:100vh;background:#F8F7F4">
+    <main class="main-content" style="padding:48px 48px 80px">
       <!-- LLM fallback warning -->
       <div
         v-if="isTemplateFallback && plan"
@@ -91,42 +91,40 @@ function handlePrint() {
       <div
         v-if="!plan"
         class="content-card"
-        style="background:var(--color-neutral-0);border-radius:16px;padding:80px 56px;margin:0 auto;box-shadow:var(--shadow-float);max-width:960px;text-align:center"
+        style="background:#FFFFFF;border-radius:16px;padding:80px 56px;margin:0 auto;max-width:1080px;text-align:center"
       >
-        <p style="font-size:16px;color:var(--color-neutral-400)">暂无方案数据，请重新定制</p>
+        <p style="font-size:16px;color:#888">暂无方案数据，请重新定制</p>
       </div>
 
       <!-- Course plan content -->
-      <div v-else class="content-card" style="background:var(--color-neutral-0);border-radius:16px;padding:56px;margin:0 auto;box-shadow:var(--shadow-float);max-width:960px">
+      <div v-else class="content-card" style="background:#FFFFFF;border-radius:16px;padding:56px;margin:0 auto;max-width:1080px">
 
         <!-- ===== Title area ===== -->
-        <div style="text-align:center;padding-bottom:20px;border-bottom:2px solid var(--color-primary-300);margin-bottom:4px">
-          <h1 style="font-size:38px;font-weight:800;color:#DC2626;margin:0 0 8px;line-height:1.3;letter-spacing:0.5px">{{ plan.title }}</h1>
-          <p style="font-size:24px;font-weight:800;color:#DC2626;margin:0;padding-bottom:16px;border-bottom:2px solid var(--color-primary-300);line-height:1.3;letter-spacing:0.5px">{{ plan.subtitle }}</p>
+        <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #E8E5DF;margin-bottom:0">
+          <h1 class="plan-title">{{ plan.title }}</h1>
+          <p class="plan-subtitle">{{ plan.subtitle }}</p>
+          <p class="plan-pricing-info">{{ plan.pricing.hour }}课时  ·  课程报价 ¥{{ formattedPrice }}元</p>
         </div>
 
         <!-- ===== Introduction ===== -->
-        <div style="margin:36px 0;padding:20px 24px;border-left:3px solid var(--color-primary-500);background:rgba(99,102,241,0.04);border-radius:0 8px 8px 0">
-          <p style="font-size:15px;color:var(--color-neutral-700);line-height:1.75;margin:0">{{ plan.introduction }}</p>
+        <div v-if="plan.introduction" class="section-block">
+          <h2 class="section-heading"><span class="section-heading-bar" />一、总体介绍</h2>
+          <div class="introduction-content" v-html="plan.introduction" />
         </div>
 
         <!-- ===== Course modules ===== -->
-        <div v-if="plan.modules.length" style="position:relative;margin:36px 0 0">
-          <div class="modules-decor-circle" />
-          <h2 style="font-size:22px;font-weight:700;color:var(--color-neutral-900);margin-bottom:20px;padding:10px 18px;border-left:3px solid var(--color-primary-500);background:rgba(99,102,241,0.05);border-radius:0 6px 6px 0;line-height:1.4">课程模块</h2>
-          <div class="modules-grid">
+        <div v-if="plan.modules.length" class="section-block">
+          <h2 class="section-heading"><span class="section-heading-bar" />二、案例课程主要结构</h2>
+          <div class="modules-list">
             <div
               v-for="(mod, i) in plan.modules"
               :key="i"
               class="module-card"
             >
-              <div class="module-card-header">
-                <h3 class="module-card-title">{{ mod.name }}</h3>
-                <span class="module-card-hours">{{ mod.hours }} 课时</span>
-              </div>
+              <h3 class="module-card-title">{{ mod.name }}</h3>
               <ul class="module-items">
                 <li v-for="(item, j) in mod.items" :key="j" class="module-item">
-                  <span class="module-item-dot" />
+                  <span class="module-item-dot">·</span>
                   <span>{{ item }}</span>
                 </li>
               </ul>
@@ -135,22 +133,22 @@ function handlePrint() {
         </div>
 
         <!-- ===== Positions ===== -->
-        <div v-if="plan.positions.length" style="margin:40px 0 0">
-          <h2 style="font-size:22px;font-weight:700;color:var(--color-neutral-900);margin-bottom:20px;padding:10px 18px;border-left:3px solid var(--color-primary-500);background:rgba(99,102,241,0.05);border-radius:0 6px 6px 0;line-height:1.4">可胜任岗位</h2>
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+        <div v-if="plan.positions.length" class="section-block">
+          <h2 class="section-heading"><span class="section-heading-bar" />三、学习后胜任的岗位</h2>
+          <p class="position-intro">结合相关行业与专业，学员毕业后可胜任以下岗位：</p>
+          <div class="positions-list">
             <div
               v-for="(pos, i) in plan.positions"
               :key="i"
-              style="background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:12px;padding:20px 22px;transition:border-color 0.2s,box-shadow 0.2s"
               class="position-card"
             >
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-                <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:var(--color-primary-50);color:var(--color-primary-600);font-size:12px;font-weight:700;flex-shrink:0">{{ i + 1 }}</span>
-                <span style="font-weight:600;color:var(--color-neutral-800);font-size:15px">{{ pos.title }}</span>
+              <div class="position-card-header">
+                <span class="position-color-block" />
+                <span class="position-name">{{ pos.title }}</span>
               </div>
-              <ul style="list-style:none;padding:0;margin:0">
-                <li v-for="(desc, j) in pos.description" :key="j" style="display:flex;align-items:flex-start;gap:8px;padding:3px 0;font-size:14px;color:var(--color-neutral-600);line-height:1.7">
-                  <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--color-neutral-300);margin-top:8px;flex-shrink:0" />
+              <ul v-if="pos.description.length" class="position-items">
+                <li v-for="(desc, j) in pos.description" :key="j" class="position-item">
+                  <span class="position-item-dot">·</span>
                   <span>{{ desc }}</span>
                 </li>
               </ul>
@@ -160,17 +158,17 @@ function handlePrint() {
 
         <!-- ===== Pricing card ===== -->
         <div class="pricing-card">
-          <div class="pricing-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-            课程最终报价
-          </div>
+          <div class="pricing-card-label">课程报价</div>
           <div class="pricing-card-price">¥{{ formattedPrice }}</div>
           <div class="pricing-card-info">
-            {{ plan.pricing.hour }} 课时 × {{ plan.pricing.unit_price.toLocaleString('zh-CN') }} 元/课时
+            {{ plan.pricing.hour }}课时 × {{ plan.pricing.unit_price.toLocaleString('zh-CN') }}元/课时
           </div>
+        </div>
 
-          <!-- Deliverables -->
-          <div v-if="plan.deliverables.length" class="deliverables-grid">
+        <!-- ===== Deliverables ===== -->
+        <div v-if="plan.deliverables.length" class="section-block">
+          <h2 class="section-heading"><span class="section-heading-bar" />四、课程成果物</h2>
+          <div class="deliverables-grid">
             <div v-for="(item, i) in plan.deliverables" :key="i" class="deliverable-chip">
               <span v-html="deliverableIcons[item] || ''" />
               <span>{{ item }}</span>
@@ -188,7 +186,7 @@ function handlePrint() {
     </main>
 
     <!-- Bottom action bar -->
-    <footer class="bottom-bar" style="position:sticky;bottom:0;z-40;background:rgba(255,255,255,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--color-neutral-200)">
+    <footer class="bottom-bar" style="position:sticky;bottom:0;z-40;background:rgba(255,255,255,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid #E8E5DF">
       <div class="bottom-bar-inner max-w-4xl mx-auto flex items-center justify-center gap-3" style="padding:16px 48px">
         <button class="btn-secondary flex items-center gap-2" style="padding:10px 24px" @click="router.push('/')">
           <RotateCcw style="width:15px;height:15px" />
@@ -205,66 +203,97 @@ function handlePrint() {
 
 <style scoped>
 /* ========================================
-   Modules
+   Title area
    ======================================== */
-.modules-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
-}
-
-.module-card {
-  background: var(--color-neutral-0);
-  border: 1px solid var(--color-neutral-200);
-  border-left: 3px solid var(--color-primary-500);
-  border-radius: 12px;
-  padding: 20px 22px 18px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.module-card:hover {
-  border-color: var(--color-primary-300);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-}
-
-.modules-decor-circle {
-  position: absolute;
-  top: 36px;
-  right: -44px;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.05), transparent 70%);
-  pointer-events: none;
-}
-
-.module-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.module-card-title {
-  font-size: 16px;
+.plan-title {
+  font-size: 32px;
   font-weight: 700;
-  color: var(--color-neutral-800);
+  color: #C0392B;
+  margin: 0 0 6px;
+  line-height: 1.4;
+  letter-spacing: 2px;
+}
+
+.plan-subtitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: #C0392B;
   margin: 0;
+  line-height: 1.4;
+  letter-spacing: 1px;
+}
+
+.plan-pricing-info {
+  font-size: 15px;
+  color: #999;
+  margin: 12px 0 0;
+  letter-spacing: 0.5px;
+}
+
+/* ========================================
+   Section blocks
+   ======================================== */
+.section-block {
+  margin: 40px 0 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2D2D2D;
+  margin: 0 0 20px;
   line-height: 1.5;
 }
 
-.module-card-hours {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  background: rgba(99, 102, 241, 0.08);
-  color: var(--color-primary-600);
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
+.section-heading-bar {
+  display: inline-block;
+  width: 4px;
+  height: 22px;
+  background: #C0392B;
+  border-radius: 2px;
   flex-shrink: 0;
+}
+
+/* ========================================
+   Introduction
+   ======================================== */
+.introduction-content {
+  font-size: 16px;
+  color: #444444;
+  line-height: 1.8;
+}
+
+.introduction-content :deep(.highlight) {
+  font-weight: 700;
+  color: #C0392B;
+}
+
+/* ========================================
+   Modules – single column
+   ======================================== */
+.modules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.module-card {
+  background: #FAFAF8;
+  border: 1px solid #EDEBE7;
+  border-left: 3px solid #C0392B;
+  border-radius: 8px;
+  padding: 20px 24px 18px;
+}
+
+.module-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #2D2D2D;
+  margin: 0 0 12px;
+  line-height: 1.5;
 }
 
 .module-items {
@@ -276,70 +305,124 @@ function handlePrint() {
 .module-item {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 5px 0;
-  font-size: 14px;
-  color: var(--color-neutral-700);
+  gap: 8px;
+  padding: 4px 0 4px 24px;
+  font-size: 15px;
+  color: #444;
   line-height: 1.7;
 }
 
 .module-item-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #818cf8;
-  margin-top: 9px;
+  color: #C0392B;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.7;
   flex-shrink: 0;
 }
 
 /* ========================================
-   Position cards
+   Positions – single column
    ======================================== */
-.position-card:hover {
-  border-color: var(--color-primary-300);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+.position-intro {
+  font-size: 15px;
+  color: #666;
+  margin: 0 0 16px;
+  line-height: 1.7;
+}
+
+.positions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.position-card {
+  background: #FFFFFF;
+  border: 1px solid #EDEBE7;
+  border-radius: 8px;
+  padding: 20px 24px 18px;
+}
+
+.position-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.position-color-block {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #C0392B;
+  flex-shrink: 0;
+}
+
+.position-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2D2D2D;
+}
+
+.position-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.position-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0 3px 24px;
+  font-size: 15px;
+  color: #444;
+  line-height: 1.7;
+}
+
+.position-item-dot {
+  color: #C0392B;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.7;
+  flex-shrink: 0;
 }
 
 /* ========================================
-   Pricing card
+   Pricing card – dark theme
    ======================================== */
 .pricing-card {
   text-align: center;
-  margin: 40px 0 0;
-  padding: 36px 32px 28px;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.06), rgba(255, 193, 37, 0.03));
-  border-radius: 20px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  margin: 44px auto 0;
+  padding: 40px 32px 32px;
+  background: linear-gradient(135deg, #2D2D2D, #3D3D3D);
+  border-radius: 12px;
+  max-width: 480px;
 }
 
-.pricing-card-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #888;
-  letter-spacing: 2px;
-  margin-bottom: 16px;
+.pricing-card-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #AAAAAA;
+  letter-spacing: 3px;
+  margin-bottom: 12px;
 }
 
 .pricing-card-price {
-  font-size: 56px;
+  font-size: 42px;
   font-weight: 800;
-  color: #D4A017;
+  color: #FFFFFF;
   letter-spacing: -1px;
-  text-shadow: 0 2px 4px rgba(212, 160, 23, 0.15);
   line-height: 1.1;
 }
 
 .pricing-card-info {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(212, 175, 55, 0.12);
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 15px;
-  color: var(--color-neutral-600);
+  color: #999999;
 }
 
 /* ========================================
@@ -348,11 +431,7 @@ function handlePrint() {
 .deliverables-grid {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 10px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(212, 175, 55, 0.12);
 }
 
 .deliverable-chip {
@@ -360,17 +439,11 @@ function handlePrint() {
   align-items: center;
   gap: 6px;
   padding: 7px 15px;
-  background: var(--color-neutral-0);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: 24px;
+  background: #F5F3EF;
+  border: 1px solid #DDD8D0;
+  border-radius: 20px;
   font-size: 13px;
-  color: var(--color-neutral-700);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.deliverable-chip:hover {
-  border-color: var(--color-primary-300);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
+  color: #444;
 }
 
 /* ========================================
@@ -380,7 +453,7 @@ function handlePrint() {
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto 20px;
   padding: 14px 20px;
   background: linear-gradient(135deg, rgba(254, 243, 199, 0.9), rgba(254, 240, 138, 0.5));
@@ -403,57 +476,68 @@ function handlePrint() {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 28px;
+  margin-top: 32px;
   padding: 0;
   font-size: 12px;
   color: #999;
 }
 
 /* ========================================
-   Responsive: tablet
-   ======================================== */
-@media (max-width: 1023px) and (min-width: 768px) {
-  .bottom-bar-inner {
-    padding-left: 32px !important;
-    padding-right: 32px !important;
-  }
-  .main-content {
-    padding-left: 32px !important;
-    padding-right: 32px !important;
-  }
-  .content-card {
-    padding: 40px 36px !important;
-  }
-}
-
-/* ========================================
-   Responsive: mobile
+   Responsive: mobile (<768px)
    ======================================== */
 @media (max-width: 767px) {
-  .bottom-bar-inner {
-    padding-left: 20px !important;
-    padding-right: 20px !important;
-  }
   .main-content {
-    padding: 20px !important;
+    padding: 20px 20px 60px !important;
   }
+
   .content-card {
     padding: 28px 20px !important;
     border-radius: 12px !important;
   }
 
-  .modules-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
+  .plan-title {
+    font-size: 24px;
+  }
+
+  .plan-subtitle {
+    font-size: 18px;
+  }
+
+  .plan-pricing-info {
+    font-size: 14px;
+  }
+
+  .section-heading {
+    font-size: 17px;
+  }
+
+  .introduction-content {
+    font-size: 15px;
+  }
+
+  .module-card-title {
+    font-size: 15px;
+  }
+
+  .module-item {
+    font-size: 14px;
+  }
+
+  .position-item {
+    font-size: 14px;
   }
 
   .pricing-card-price {
-    font-size: 42px;
+    font-size: 32px;
   }
 
-  .module-card-header {
-    flex-direction: column;
-    gap: 6px;
+  .pricing-card {
+    padding: 32px 20px 24px;
+  }
+
+  .bottom-bar-inner {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
   }
 }
 
@@ -470,7 +554,7 @@ function handlePrint() {
   }
   .content-card {
     box-shadow: none !important;
-    border: 1px solid #e5e5ea !important;
+    border: none !important;
     max-width: 100% !important;
     padding: 40px !important;
     break-inside: avoid;

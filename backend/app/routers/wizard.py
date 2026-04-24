@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import re
@@ -200,12 +201,16 @@ def _build_fallback_json(
 ) -> dict:
     """构建兜底 JSON 模板。"""
     return {
-        "title": f"{enterprise_name}案例教学课程方案",
-        "subtitle": enterprise_name,
+        "title": f"{enterprise_name}案例",
+        "subtitle": "教学课程方案",
         "introduction": (
-            f"本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，"
-            f"设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解"
-            f"{industry}与{major}技术的融合应用，掌握实际项目中的核心技能。"
+            f'本教学案例基于<b class="highlight">{html.escape(enterprise_name)}</b>公司的真实业务场景，'
+            f'结合<b class="highlight">{html.escape(industry)}</b>专业技术，'
+            f'设计了一套完整的<b class="highlight">{hour}</b>课时教学方案。'
+            f'通过本案例的学习，学员将深入理解'
+            f'<b class="highlight">{html.escape(industry)}</b>行业与'
+            f'<b class="highlight">{html.escape(major)}</b>技术的融合应用，'
+            f'掌握实际项目中的核心技能。'
         ),
         "modules": [
             {
@@ -403,9 +408,9 @@ def generate(request: dict, db: Session = Depends(get_db)):
 请严格按照以下 JSON 结构输出（仅输出 JSON，不要输出其他内容）：
 
 {{
-  "title": "{_safe(enterprise_name)}案例教学课程方案",
-  "subtitle": "{_safe(enterprise_name)}",
-  "introduction": "总体介绍文本，说明本教学案例基于该公司的真实业务场景...",
+  "title": "{_safe(enterprise_name)}案例",
+  "subtitle": "教学课程方案",
+  "introduction": "本教学案例基于<b class=\\"highlight\\">{_safe(enterprise_name)}</b>公司的真实业务场景，结合<b class=\\"highlight\\">{_safe(industry)}</b>专业技术，设计了一套完整的<b class=\\"highlight\\">{hour}</b>课时教学方案。通过本案例的学习，学员将深入理解<b class=\\"highlight\\">{_safe(industry)}</b>行业与<b class=\\"highlight\\">{_safe(major)}</b>技术的融合应用，掌握实际项目中的核心技能。",
   "modules": [
     {{
       "name": "模块一：行业背景与需求分析",
@@ -458,7 +463,8 @@ def generate(request: dict, db: Session = Depends(get_db)):
 1. 请根据实际信息丰富 introduction 的内容，使其不少于 100 字。
 2. modules 中每个模块的 items 不少于 3 条。
 3. positions 中岗位和描述需结合 {industry} 领域与 {major} 专业。
-4. 仅输出 JSON，不要输出其他内容。"""
+4. 仅输出 JSON，不要输出其他内容。
+5. introduction 中需要强调的动态内容（企业名、行业名、专业名、课时数等），请用 HTML 标签包裹：<b class="highlight">xxx</b>，使其加粗并使用特殊颜色显示。"""
 
     try:
         if api_key and api_key != "sk-xxx":
