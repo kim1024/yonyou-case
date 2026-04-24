@@ -41,6 +41,8 @@ interface Point { x: number; y: number }
 function smoothPath(points: Point[], closed = false): string {
   if (points.length < 2) return points.length === 1 ? `M ${points[0].x} ${points[0].y}` : ''
   const tension = 6
+  const minY = PAD
+  const maxY = H - PAD
   const d: string[] = [`M ${points[0].x} ${points[0].y}`]
 
   for (let i = 0; i < points.length - 1; i++) {
@@ -50,9 +52,9 @@ function smoothPath(points: Point[], closed = false): string {
     const p3 = points[Math.min(points.length - 1, i + 2)]
 
     const cp1x = p1.x + (p2.x - p0.x) / tension
-    const cp1y = p1.y + (p2.y - p0.y) / tension
+    const cp1y = Math.max(minY, Math.min(maxY, p1.y + (p2.y - p0.y) / tension))
     const cp2x = p2.x - (p3.x - p1.x) / tension
-    const cp2y = p2.y - (p3.y - p1.y) / tension
+    const cp2y = Math.max(minY, Math.min(maxY, p2.y - (p3.y - p1.y) / tension))
 
     d.push(`C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`)
   }
@@ -98,7 +100,7 @@ function hideTooltip() {
 </script>
 
 <template>
-  <div ref="containerEl">
+  <div ref="containerEl" class="relative">
     <h3 class="text-base font-semibold text-neutral-800 mb-4">访问趋势</h3>
     <svg :viewBox="`0 0 ${W} ${H}`" class="w-full">
       <defs>
@@ -145,7 +147,7 @@ function hideTooltip() {
         class="cursor-pointer"
         style="transition: r 0.15s ease"
         @mouseenter="hoverPointIdx = i; showTooltip($event, d, i)"
-        @mouseleave="hoverPointIdx = -1; hideTooltip"
+        @mouseleave="hoverPointIdx = -1; hideTooltip()"
       />
 
       <!-- X轴标签 -->

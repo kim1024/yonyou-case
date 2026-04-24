@@ -287,6 +287,8 @@ interface SvgPoint { x: number; y: number }
 function smoothPath(points: SvgPoint[]): string {
   if (points.length < 2) return points.length === 1 ? `M ${points[0].x} ${points[0].y}` : ''
   const tension = 6
+  const minY = LINE_PAD
+  const maxY = LINE_H - LINE_PAD
   const d: string[] = [`M ${points[0].x} ${points[0].y}`]
   for (let i = 0; i < points.length - 1; i++) {
     const p0 = points[Math.max(0, i - 1)]
@@ -294,9 +296,9 @@ function smoothPath(points: SvgPoint[]): string {
     const p2 = points[i + 1]
     const p3 = points[Math.min(points.length - 1, i + 2)]
     const cp1x = p1.x + (p2.x - p0.x) / tension
-    const cp1y = p1.y + (p2.y - p0.y) / tension
+    const cp1y = Math.max(minY, Math.min(maxY, p1.y + (p2.y - p0.y) / tension))
     const cp2x = p2.x - (p3.x - p1.x) / tension
-    const cp2y = p2.y - (p3.y - p1.y) / tension
+    const cp2y = Math.max(minY, Math.min(maxY, p2.y - (p3.y - p1.y) / tension))
     d.push(`C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`)
   }
   return d.join(' ')
@@ -1008,7 +1010,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             class="gradient-card p-6 relative overflow-hidden"
             style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 320ms both"
           >
-            <div ref="trendContainerEl">
+            <div ref="trendContainerEl" class="relative">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-base font-semibold text-neutral-800">Token 消耗趋势</h3>
                 <div class="flex gap-1 p-0.5 bg-neutral-100 rounded-lg">
@@ -1061,7 +1063,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             class="gradient-card p-6 relative overflow-hidden"
             style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 400ms both"
           >
-            <div ref="pieContainerEl">
+            <div ref="pieContainerEl" class="relative">
               <h3 class="text-base font-semibold text-neutral-800 mb-4">模型消耗分布</h3>
               <template v-if="pieSlices.length > 0">
                 <svg viewBox="0 0 400 400" class="w-full max-w-sm mx-auto">
