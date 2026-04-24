@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, X, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw, Briefcase } from 'lucide-vue-next'
+import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, X, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw, Briefcase, CalendarDays } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import type { GeneratedPlanListItem, GeneratedPlan, CoursePlan, PlanListParams } from '@/types'
 
@@ -16,6 +16,9 @@ const filterSource = ref<'' | 'ai' | 'template'>('')
 const filterKeyword = ref('')
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
+const dateFromInput = ref<HTMLInputElement | null>(null)
+const dateToInput = ref<HTMLInputElement | null>(null)
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 /* ── 专业/行业/省份过滤 ── */
@@ -235,6 +238,12 @@ function handleDeleteBackdrop(e: MouseEvent) {
 }
 
 /* ── 日期格式化 ── */
+function fmtDateShort(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso + 'T00:00:00')
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+}
+
 function fmtDate(iso: string): string {
   if (!iso) return '-'
   const d = new Date(iso)
@@ -428,9 +437,47 @@ onUnmounted(() => {
 
       <!-- 日期范围 -->
       <div class="flex items-center gap-1.5">
-        <input v-model="filterDateFrom" type="date" class="input-macos w-[140px] text-[13px]" placeholder="开始日期" @change="resetToFirst" />
-        <span class="text-neutral-300 text-xs">—</span>
-        <input v-model="filterDateTo" type="date" class="input-macos w-[140px] text-[13px]" placeholder="结束日期" @change="resetToFirst" />
+        <!-- 开始日期 -->
+        <div class="relative">
+          <input
+            ref="dateFromInput"
+            v-model="filterDateFrom"
+            type="date"
+            class="absolute inset-0 opacity-0 cursor-pointer"
+            style="z-index: -1;"
+            @change="resetToFirst"
+          />
+          <div
+            class="date-picker-trigger"
+            @click="($refs.dateFromInput as HTMLInputElement).showPicker()"
+          >
+            <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
+            <span :class="filterDateFrom ? 'text-neutral-700' : 'text-neutral-400'">
+              {{ filterDateFrom ? fmtDateShort(filterDateFrom) : '开始日期' }}
+            </span>
+          </div>
+        </div>
+        <span class="text-neutral-300 text-xs select-none">—</span>
+        <!-- 结束日期 -->
+        <div class="relative">
+          <input
+            ref="dateToInput"
+            v-model="filterDateTo"
+            type="date"
+            class="absolute inset-0 opacity-0 cursor-pointer"
+            style="z-index: -1;"
+            @change="resetToFirst"
+          />
+          <div
+            class="date-picker-trigger"
+            @click="($refs.dateToInput as HTMLInputElement).showPicker()"
+          >
+            <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
+            <span :class="filterDateTo ? 'text-neutral-700' : 'text-neutral-400'">
+              {{ filterDateTo ? fmtDateShort(filterDateTo) : '结束日期' }}
+            </span>
+          </div>
+        </div>
       </div>
 
       <!-- 分隔线 -->
@@ -947,18 +994,32 @@ onUnmounted(() => {
   color: var(--color-neutral-800);
 }
 
-/* ── 日期选择器美化 ── */
-input[type="date"].input-macos {
-  color-scheme: light;
-}
-
-input[type="date"].input-macos::-webkit-calendar-picker-indicator {
-  opacity: 0.4;
+/* ── 日期选择器 ── */
+.date-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.4;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  user-select: none;
+  min-width: 130px;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
 }
 
-input[type="date"].input-macos::-webkit-calendar-picker-indicator:hover {
-  opacity: 0.7;
+.date-picker-trigger:hover {
+  border-color: var(--color-neutral-300);
+}
+
+.date-picker-trigger:focus-within,
+.date-picker-trigger.active {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 </style>
