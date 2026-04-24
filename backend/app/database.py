@@ -1,7 +1,12 @@
 from pathlib import Path
 import sqlite3
-from sqlalchemy import create_engine
+import json
+import logging
+from datetime import datetime
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+_logger = logging.getLogger(__name__)
 
 # 数据库文件目录：项目根目录下的 backend/data/
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -14,6 +19,15 @@ engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},  # SQLite 特有
 )
+
+
+@event.listens_for(engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA busy_timeout=5000")
+    cursor.close()
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -154,3 +168,61 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+JSONL_PATH = DATA_DIR / "visit_logs.jsonl"
+
+
+def recover_visit_logs():
+    """从 JSONL 备份文件恢复 visit_logs 表数据（仅在表为空时执行）。"""
+    try:
+        from app.models.analytics import VisitLog
+
+        db = SessionLocal()
+        try:
+            if db.query(VisitLog).first() is not None:
+                return  # 表已有数据，无需恢复
+
+            if not JSONL_PATH.exists():
+                return
+
+            lines = [line.strip() for line in JSONL_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
+            if not lines:
+                return
+
+            logs = []
+            for line in lines:
+                try:
+                    data = json.loads(line)
+                    timestamp_str = data.get("timestamp", "")
+                    request_ts = None
+                    if timestamp_str:
+                        try:
+                            request_ts = datetime.fromisoformat(timestamp_str)
+                        except (ValueError, TypeError):
+                            pass
+
+                    log = VisitLog(
+                        endpoint=data.get("endpoint", ""),
+                        method=data.get("method", ""),
+                        ip_address=data.get("ip_address", ""),
+                        user_agent=data.get("user_agent", ""),
+                        industry=data.get("industry", ""),
+                        region=data.get("region", ""),
+                        enterprise=data.get("enterprise", ""),
+                        major=data.get("major", ""),
+                        hour=data.get("hour", ""),
+                        request_timestamp=request_ts,
+                    )
+                    logs.append(log)
+                except (json.JSONDecodeError, KeyError):
+                    continue
+
+            if logs:
+                db.add_all(logs)
+                db.commit()
+                _logger.info("Recovered %d visit_logs records from JSONL backup.", len(logs))
+        finally:
+            db.close()
+    except Exception:
+        _logger.exception("Failed to recover visit_logs from JSONL backup")

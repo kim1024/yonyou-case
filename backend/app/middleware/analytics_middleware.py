@@ -1,8 +1,14 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 import json
+import logging
+from datetime import datetime
+from pathlib import Path
 from app.database import SessionLocal
 from app.models.analytics import VisitLog
+
+_logger = logging.getLogger(__name__)
+_JSONL_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "visit_logs.jsonl"
 
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
@@ -45,6 +51,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 
             import asyncio
             def write_log():
+                # 写入 SQLite（带重试）
                 db = SessionLocal()
                 try:
                     log = VisitLog(**log_data)
@@ -52,8 +59,30 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                     db.commit()
                 except Exception:
                     db.rollback()
+                    # 重试一次
+                    try:
+                        db2 = SessionLocal()
+                        log2 = VisitLog(**log_data)
+                        db2.add(log2)
+                        db2.commit()
+                        db2.close()
+                    except Exception:
+                        _logger.warning("visit_log SQLite write failed after retry")
                 finally:
                     db.close()
+
+                # 追加 JSONL 备份
+                try:
+                    _JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
+                    backup_data = {
+                        "timestamp": datetime.now().isoformat(),
+                        **log_data,
+                    }
+                    with open(_JSONL_PATH, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(backup_data, ensure_ascii=False) + "\n")
+                except Exception:
+                    _logger.warning("visit_log JSONL backup write failed")
+
             asyncio.create_task(asyncio.to_thread(write_log))
         except Exception:
             pass
