@@ -287,6 +287,13 @@ def _build_fallback_json(
                     "协调团队与客户资源",
                 ],
             },
+            {
+                "title": "数字化运营专员",
+                "description": [
+                    f"负责{industry}领域数字化运营与持续优化",
+                    "监控系统运行指标，推动业务流程改进",
+                ],
+            },
         ],
         "deliverables": ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"],
         "notes": "以上内容由 AI 生成，请结合实际教学需求进行调整。",
@@ -453,6 +460,10 @@ def generate(request: dict, db: Session = Depends(get_db)):
     {{
       "title": "技术项目经理",
       "description": ["管理{industry}领域IT项目", "协调团队与客户资源"]
+    }},
+    {{
+      "title": "数字化运营专员",
+      "description": ["负责{industry}领域数字化运营与持续优化", "监控系统运行指标，推动业务流程改进"]
     }}
   ],
   "deliverables": ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"],
