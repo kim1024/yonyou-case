@@ -85,7 +85,7 @@ async function handleSubmit() {
     />
 
     <!-- 主体内容 -->
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-6">
       <!-- Section 01: 专业方向（始终激活） -->
       <WizardSection
         number="01"
