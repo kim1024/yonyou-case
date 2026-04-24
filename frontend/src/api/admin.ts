@@ -162,7 +162,7 @@ export const adminApi = {
   getPromptTemplate(id: number) {
     return http.get(`/api/admin/prompts/${id}`)
   },
-  updatePromptTemplate(id: number, data: { name?: string; description?: string; scene?: string }) {
+  updatePromptTemplate(id: number, data: { name?: string; description?: string }) {
     return http.put(`/api/admin/prompts/${id}`, data)
   },
   deletePromptTemplate(id: number) {

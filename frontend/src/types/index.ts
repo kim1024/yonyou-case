@@ -291,7 +291,6 @@ export interface PromptTemplate {
   id: number
   name: string
   description: string | null
-  scene: string | null
   is_active: boolean
   current_version_id: number | null
   current_version_number: number | null
@@ -304,7 +303,6 @@ export interface PromptTemplateDetail {
   id: number
   name: string
   description: string | null
-  scene: string | null
   is_active: boolean
   current_version_id: number | null
   created_at: string | null
@@ -326,7 +324,6 @@ export interface PromptVersion {
 export interface PromptTemplateCreate {
   name: string
   description?: string
-  scene?: string
   content: string
   variables?: string
   remark?: string
@@ -347,7 +344,6 @@ export interface LlmListParams {
 export interface PromptListParams {
   page: number
   page_size: number
-  scene?: string
   keyword?: string
 }
 

@@ -24,7 +24,6 @@ class PromptTemplateCreate(BaseModel):
     """新建模板请求体。"""
     name: str
     description: Optional[str] = None
-    scene: Optional[str] = None
     content: str
     variables: Optional[str] = None
     remark: Optional[str] = None
@@ -34,7 +33,6 @@ class PromptTemplateUpdate(BaseModel):
     """更新模板基本信息请求体。"""
     name: Optional[str] = None
     description: Optional[str] = None
-    scene: Optional[str] = None
 
 
 class PromptVersionCreate(BaseModel):
@@ -52,7 +50,6 @@ class PromptVersionCreate(BaseModel):
 def list_templates(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    scene: Optional[str] = None,
     keyword: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -60,8 +57,6 @@ def list_templates(
     """获取模板列表（分页）。"""
     query = db.query(PromptTemplate)
 
-    if scene:
-        query = query.filter(PromptTemplate.scene == scene)
     if keyword:
         query = query.filter(PromptTemplate.name.contains(keyword))
 
@@ -85,7 +80,6 @@ def list_templates(
             "id": t.id,
             "name": t.name,
             "description": t.description,
-            "scene": t.scene,
             "is_active": t.is_active,
             "current_version_id": t.current_version_id,
             "current_version_number": current_version_number,
@@ -113,7 +107,6 @@ def create_template(
     template = PromptTemplate(
         name=data.name,
         description=data.description,
-        scene=data.scene,
     )
     db.add(template)
     db.flush()  # 获取 template.id
@@ -161,7 +154,6 @@ def get_template(
         "id": template.id,
         "name": template.name,
         "description": template.description,
-        "scene": template.scene,
         "is_active": template.is_active,
         "current_version_id": template.current_version_id,
         "created_at": template.created_at.isoformat() if template.created_at else None,

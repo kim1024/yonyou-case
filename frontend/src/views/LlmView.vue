@@ -348,7 +348,6 @@ const promptPage = ref(1)
 const promptPageSize = 20
 const promptLoading = ref(false)
 const promptKeyword = ref('')
-const promptScene = ref('')
 const showPromptList = ref(true)
 
 /* ── 模板 CRUD 弹窗 ── */
@@ -356,7 +355,7 @@ const showPromptModal = ref(false)
 const editPromptItem = ref<PromptTemplate | null>(null)
 const promptSaving = ref(false)
 const promptErrors = ref<Record<string, string>>({})
-const promptForm = ref({ name: '', description: '', scene: '', content: '', remark: '' })
+const promptForm = ref({ name: '', description: '', content: '', remark: '' })
 
 /* ── 版本详情 ── */
 const currentTemplateId = ref<number | null>(null)
@@ -386,9 +385,6 @@ const promptVariables = [
   { name: '{yonyou_content}', desc: '用友产品内容' },
   { name: '{total_cost}', desc: '总费用' },
 ]
-
-/* ── 场景预设下拉 ── */
-const scenePresets = ['课程方案生成', '简历生成', '职业规划', '其他']
 
 /* ── 编辑器 ref ── */
 const promptModalTextareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -470,16 +466,12 @@ function togglePreview() {
   }
 }
 
-/* ── 场景筛选也改为下拉 ── */
-const promptSceneFilter = ref('')
-
 async function loadPromptTemplates() {
   promptLoading.value = true
   try {
     const res = await adminApi.getPromptTemplates({
       page: promptPage.value, page_size: promptPageSize,
       keyword: promptKeyword.value || undefined,
-      scene: promptScene.value || undefined,
     })
     promptItems.value = res.data.items
     promptTotal.value = res.data.total
@@ -491,7 +483,7 @@ async function loadPromptTemplates() {
 function handleAddPrompt() {
   editPromptItem.value = null
   promptErrors.value = {}
-  promptForm.value = { name: '', description: '', scene: '', content: '', remark: '' }
+  promptForm.value = { name: '', description: '', content: '', remark: '' }
   showPromptModal.value = true
 }
 
@@ -501,7 +493,6 @@ function handleEditPrompt(item: PromptTemplate) {
   promptForm.value = {
     name: item.name,
     description: item.description ?? '',
-    scene: item.scene ?? '',
     content: '',
     remark: '',
   }
@@ -523,13 +514,11 @@ async function handleSavePrompt() {
       await adminApi.updatePromptTemplate(editPromptItem.value.id, {
         name: promptForm.value.name,
         description: promptForm.value.description || undefined,
-        scene: promptForm.value.scene || undefined,
       })
     } else {
       await adminApi.createPromptTemplate({
         name: promptForm.value.name,
         description: promptForm.value.description || undefined,
-        scene: promptForm.value.scene || undefined,
         content: promptForm.value.content,
         remark: promptForm.value.remark || undefined,
       } as PromptTemplateCreate)
@@ -655,7 +644,6 @@ function handleRollbackBackdropClick(e: MouseEvent) {
 
 function handlePromptSearch() {
   promptPage.value = 1
-  promptScene.value = promptSceneFilter.value === '其他' ? '' : promptSceneFilter.value
   loadPromptTemplates()
 }
 
@@ -1042,14 +1030,6 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 type="text" placeholder="搜索模板名称" class="input-macos w-56"
                 @keyup.enter="handlePromptSearch"
               />
-              <select
-                v-model="promptSceneFilter"
-                class="input-macos w-44"
-                @change="handlePromptSearch"
-              >
-                <option value="">全部场景</option>
-                <option v-for="s in scenePresets" :key="s" :value="s">{{ s }}</option>
-              </select>
               <button class="btn-secondary" @click="handlePromptSearch">
                 <Search :size="15" />
                 搜索
@@ -1068,7 +1048,6 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 <tr class="border-b border-neutral-200">
                   <th class="px-4 py-3 text-left text-neutral-500 font-medium w-12">#</th>
                   <th class="px-4 py-3 text-left text-neutral-500 font-medium">模板名称</th>
-                  <th class="px-4 py-3 text-left text-neutral-500 font-medium">关联场景</th>
                   <th class="px-4 py-3 text-center text-neutral-500 font-medium">当前版本</th>
                   <th class="px-4 py-3 text-left text-neutral-500 font-medium">更新时间</th>
                   <th class="px-4 py-3 text-center text-neutral-500 font-medium">操作</th>
@@ -1083,12 +1062,6 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 >
                   <td class="px-4 py-3 text-neutral-400">{{ (promptPage - 1) * promptPageSize + index + 1 }}</td>
                   <td class="px-4 py-3 font-medium text-neutral-800">{{ item.name }}</td>
-                  <td class="px-4 py-3">
-                    <span v-if="item.scene" class="inline-block px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 text-xs font-medium">
-                      {{ item.scene }}
-                    </span>
-                    <span v-else class="text-neutral-400 text-xs">-</span>
-                  </td>
                   <td class="px-4 py-3 text-center">
                     <span v-if="item.current_version_number" class="inline-block px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium">
                       v{{ item.current_version_number }}
@@ -1114,7 +1087,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                   </td>
                 </tr>
                 <tr v-if="promptItems.length === 0">
-                  <td colspan="6" class="px-4 py-16 text-center">
+                  <td colspan="5" class="px-4 py-16 text-center">
                     <div class="flex flex-col items-center gap-2 text-neutral-400">
                       <Inbox :size="36" />
                       <span>暂无提示词模板</span>
@@ -1410,13 +1383,6 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
               <label class="ef-label">模板名称<span class="ef-required">*</span></label>
               <input ref="promptNameRef" v-model="promptForm.name" type="text" class="input-macos" :class="{ 'ef-input-error': promptErrors.name }" @input="delete promptErrors.name" />
               <span v-if="promptErrors.name" class="ef-error-text">{{ promptErrors.name }}</span>
-            </div>
-            <div class="ef-field">
-              <label class="ef-label">关联场景</label>
-              <select v-model="promptForm.scene" class="input-macos">
-                <option value="">请选择场景</option>
-                <option v-for="s in scenePresets" :key="s" :value="s">{{ s }}</option>
-              </select>
             </div>
             <div class="ef-field">
               <label class="ef-label">描述</label>
