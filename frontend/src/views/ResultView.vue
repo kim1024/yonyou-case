@@ -183,16 +183,6 @@ function handlePrint() {
           </div>
         </div>
 
-        <!-- ===== Pricing card ===== -->
-        <div class="pricing-card">
-          <div class="pricing-card-bar" />
-          <div class="pricing-card-label">课程报价</div>
-          <div class="pricing-card-price">
-            <span class="pricing-card-symbol">¥</span>
-            <span class="pricing-card-number">{{ formattedPrice }}</span>
-          </div>
-        </div>
-
         <!-- ===== Deliverables ===== -->
         <div v-if="plan.deliverables.length" class="section-block">
           <h2 class="section-heading"><span class="section-heading-bar" />四、课程成果物</h2>
@@ -201,6 +191,16 @@ function handlePrint() {
               <span v-html="deliverableIcons[item] || ''" />
               <span>{{ item }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- ===== Pricing card ===== -->
+        <div class="pricing-card">
+          <div class="pricing-card-bar" />
+          <div class="pricing-card-label">课程报价</div>
+          <div class="pricing-card-price">
+            <span class="pricing-card-symbol">¥</span>
+            <span class="pricing-card-number">{{ formattedPrice }}</span>
           </div>
         </div>
 
