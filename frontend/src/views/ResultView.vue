@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { RotateCcw, Printer, AlertTriangle } from 'lucide-vue-next'
+import DOMPurify from 'dompurify'
 
 // ---------- Types ----------
 
@@ -32,6 +33,10 @@ interface CoursePlan {
   notes: string
   pricing: CoursePlanPricing
 }
+
+// ---------- Sanitize ----------
+
+const sanitize = (html: string): string => DOMPurify.sanitize(html)
 
 // ---------- Router ----------
 
@@ -128,7 +133,7 @@ function handlePrint() {
         <!-- ===== Introduction ===== -->
         <div v-if="plan.introduction" class="section-block">
           <h2 class="section-heading"><span class="section-heading-bar" />一、总体介绍</h2>
-          <div class="introduction-content" v-html="plan.introduction" />
+          <div class="introduction-content" v-html="sanitize(plan.introduction)" />
         </div>
 
         <!-- ===== Course modules ===== -->
@@ -146,7 +151,7 @@ function handlePrint() {
               </h3>
               <ul class="module-items">
                 <li v-for="(item, j) in mod.items" :key="j" class="module-item">
-                  <span v-html="item" />
+                  <span v-html="sanitize(item)" />
                 </li>
               </ul>
             </div>
@@ -169,7 +174,7 @@ function handlePrint() {
               </div>
               <ul v-if="pos.description.length" class="position-items">
                 <li v-for="(desc, j) in pos.description" :key="j" class="position-item">
-                  <span v-html="desc" />
+                  <span v-html="sanitize(desc)" />
                 </li>
               </ul>
             </div>
