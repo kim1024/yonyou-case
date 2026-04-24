@@ -462,8 +462,12 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
     try:
         if api_key and api_key != "sk-xxx":
+            # 自动补全 /v1 路径：兼容用户填写域名或完整 URL 两种情况
+            base = api_base_url.rstrip("/")
+            if not base.endswith("/v1"):
+                base = f"{base}/v1"
             response = httpx.post(
-                f"{api_base_url}/chat/completions",
+                f"{base}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
                     "model": model,

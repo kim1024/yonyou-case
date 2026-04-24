@@ -1334,7 +1334,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             </div>
             <div class="ef-field">
               <label class="ef-label">Base URL<span class="ef-required">*</span></label>
-              <input v-model="llmForm.api_base_url" type="text" class="input-macos" :class="{ 'ef-input-error': llmErrors.api_base_url }" @input="delete llmErrors.api_base_url" placeholder="如：https://api.openai.com/v1" />
+              <input v-model="llmForm.api_base_url" type="text" class="input-macos" :class="{ 'ef-input-error': llmErrors.api_base_url }" @input="delete llmErrors.api_base_url" placeholder="如：https://api.openai.com（系统自动补全 /v1 路径）" />
               <span v-if="llmErrors.api_base_url" class="ef-error-text">{{ llmErrors.api_base_url }}</span>
             </div>
             <div class="ef-field">
