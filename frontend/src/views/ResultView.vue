@@ -68,6 +68,21 @@ const deliverableIcons: Record<string, string> = {
   '实操环境': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
 }
 
+const positionIcons: string[] = [
+  // 0: 专业工程师（代码/终端）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg>',
+  // 1: 行业解决方案架构师（架构蓝图）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="8.5" y="14" width="7" height="7" rx="1"/><line x1="6.5" y1="10" x2="12" y2="14"/><line x1="17.5" y1="10" x2="12" y2="14"/></svg>',
+  // 2: 项目实施顾问（部署/上线）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/><path d="M5 19h14"/></svg>',
+  // 3: 业务分析师（分析/图表）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8" rx="0.5"/><rect x="14" y="6" width="3" height="12" rx="0.5"/><rect x="10" y="14" width="3" height="4" rx="0.5"/></svg>',
+  // 4: 技术项目经理（任务板/看板）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="9" y2="9"/><line x1="3" y1="15" x2="9" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="15" y1="8" x2="21" y2="8"/><line x1="15" y1="16" x2="21" y2="16"/></svg>',
+  // 5: 数字化运营专员（循环/监控）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10"/><polyline points="22 4 22 12 14 12"/><path d="M12 22a10 10 0 0 1-10-10"/><polyline points="2 20 2 12 10 12"/><circle cx="12" cy="12" r="3"/></svg>',
+]
+
 // ---------- Print ----------
 
 function handlePrint() {
@@ -141,7 +156,10 @@ function handlePrint() {
               :key="i"
               class="position-card"
             >
-              <div class="position-name">{{ pos.title }}</div>
+              <div class="position-name">
+                <span v-if="positionIcons[i]" class="position-icon" v-html="positionIcons[i]" />
+                {{ pos.title }}
+              </div>
               <ul v-if="pos.description.length" class="position-items">
                 <li v-for="(desc, j) in pos.description" :key="j" class="position-item">
                   <span>{{ desc }}</span>
@@ -365,10 +383,12 @@ function handlePrint() {
   gap: 6px;
 }
 
-.position-name::before {
-  content: "◆";
-  color: #C0392B;
-  font-size: 8px;
+.position-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
@@ -381,8 +401,21 @@ function handlePrint() {
 .position-item {
   font-size: 12px;
   color: #666666;
-  line-height: 1.5;
-  margin-bottom: 3px;
+  line-height: 1.6;
+  margin-bottom: 4px;
+  padding-left: 12px;
+  position: relative;
+}
+
+.position-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #D4A06A;
 }
 
 /* ========================================
