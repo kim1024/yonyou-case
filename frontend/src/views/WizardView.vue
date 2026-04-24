@@ -37,6 +37,7 @@ async function handleSubmit() {
   const result = await generate()
   if (result) {
     sessionStorage.setItem('resultContent', JSON.stringify(result.data))
+    sessionStorage.setItem('resultSource', result.source)
     sessionStorage.setItem('resultSelections', JSON.stringify({
       major: state.major,
       industry: state.industry,

@@ -498,6 +498,11 @@ def generate(request: dict, db: Session = Depends(get_db)):
                         "total_cost": total_cost,
                     }
                     return {"data": plan_json, "source": "ai"}
+                else:
+                    _logger.warning("LLM 返回 JSON 解析失败，回退到模板")
+            else:
+                _logger.warning("LLM API 返回非 200 状态码: %d, body: %s",
+                                response.status_code, response.text[:500])
     except Exception as e:
         _logger.error("AI API call failed: %s", e)
 
@@ -506,4 +511,4 @@ def generate(request: dict, db: Session = Depends(get_db)):
                                     hour, hour_block1, hour_block2,
                                     hour_block3, hour_block4,
                                     rate, total_cost)
-    return {"data": fallback, "source": "template"}
+    return {"data": fallback, "source": "template", "llm_error": "大模型调用失败，已使用模板生成方案。请检查大模型配置（API Key、Base URL）是否正确。"}

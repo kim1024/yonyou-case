@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { RotateCcw, Printer } from 'lucide-vue-next'
+import { useRouter, useRoute } from 'vue-router'
+import { RotateCcw, Printer, AlertTriangle } from 'lucide-vue-next'
 
 // ---------- Types ----------
 
@@ -36,8 +36,13 @@ interface CoursePlan {
 // ---------- Router ----------
 
 const router = useRouter()
+const route = useRoute()
 
 // ---------- Data ----------
+
+const source = computed(() => (route.query.source as string) || sessionStorage.getItem('resultSource') || 'template')
+
+const isTemplateFallback = computed(() => source.value === 'template')
 
 const plan = computed<CoursePlan | null>(() => {
   try {
@@ -73,6 +78,15 @@ function handlePrint() {
 <template>
   <div class="result-page min-h-screen" style="background:var(--color-neutral-100)">
     <main class="main-content" style="padding:48px 48px 72px">
+      <!-- LLM fallback warning -->
+      <div
+        v-if="isTemplateFallback && plan"
+        class="llm-warning-banner"
+      >
+        <AlertTriangle :size="16" :stroke-width="2" />
+        <span>当前方案由模板生成（大模型不可用）。如需 AI 生成的方案，请在后台检查大模型配置（API Key、Base URL）。</span>
+      </div>
+
       <!-- Empty state -->
       <div
         v-if="!plan"
@@ -357,6 +371,29 @@ function handlePrint() {
 .deliverable-chip:hover {
   border-color: var(--color-primary-300);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
+}
+
+/* ========================================
+   LLM warning banner
+   ======================================== */
+.llm-warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 960px;
+  margin: 0 auto 20px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.9), rgba(254, 240, 138, 0.5));
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 12px;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.llm-warning-banner svg {
+  flex-shrink: 0;
+  color: #d97706;
 }
 
 /* ========================================

@@ -176,7 +176,7 @@ export function useWizard() {
   }
 
   // 生成课程方案
-  async function generate(): Promise<{ data: CoursePlan; source: string } | null> {
+  async function generate(): Promise<{ data: CoursePlan; source: string; llm_error?: string } | null> {
     if (!canSubmit.value) return null
 
     loading.generating = true
