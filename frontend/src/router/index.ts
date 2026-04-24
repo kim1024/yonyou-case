@@ -64,6 +64,11 @@ const router = createRouter({
           component: () => import('@/views/PlanView.vue'),
         },
         {
+          path: 'themes',
+          name: 'themes',
+          component: () => import('@/views/ThemeView.vue'),
+        },
+        {
           path: '',
           redirect: '/admin/enterprises',
         },

@@ -1,5 +1,6 @@
 """seed.py - 从 Excel 导入企业数据，自动创建管理员账号，初始化基础数据。"""
 
+import json
 import logging
 import sys
 from pathlib import Path
@@ -25,6 +26,8 @@ from app.models.llm_config import LLMConfig
 from app.models.prompt_template import PromptTemplate
 from app.models.prompt_version import PromptVersion
 from app.models.province_city import Province, City
+from app.models.plan_theme import PlanTheme
+from app.models.plan_theme_version import PlanThemeVersion
 from app.services.auth_service import get_password_hash
 
 # ---------- 路径 ----------
@@ -140,6 +143,50 @@ def seed_provinces_cities(db):
                  db.query(City).count())
 
 
+def seed_default_theme(db):
+    """初始化方案样式默认主题（仅在表为空时执行）。"""
+    if db.query(PlanTheme).first() is not None:
+        _logger.info("plan_themes table already has data, skipping.")
+        return
+
+    default_style_config = {
+        "accentColor": "#C0392B",
+        "highlightColor": "#C0392B",
+        "dotColor": "#D4A06A",
+        "pricingCardBg": "linear-gradient(135deg, #B83227 0%, #C0392B 35%, #D94A3F 100%)",
+        "pricingNumberGradient": "linear-gradient(180deg, #FFE066 0%, #FFD700 40%, #DAA520 100%)",
+        "pageBg": "#F8F7F4",
+        "cardBg": "#FFFFFF",
+        "textColor": "#444444",
+        "subtitleColor": "#2D2D2D",
+    }
+
+    theme = PlanTheme(
+        name="经典红色",
+        description="系统默认主题，红色主色调",
+        is_active=True,
+    )
+    db.add(theme)
+    db.flush()
+
+    version = PlanThemeVersion(
+        theme_id=theme.id,
+        version_number=1,
+        style_config=json.dumps(default_style_config, ensure_ascii=False),
+        remark="默认版本（系统初始化）",
+        created_by="system",
+    )
+    db.add(version)
+    db.flush()
+
+    theme.current_version_id = version.id
+    db.commit()
+    _logger.info(
+        "Created default plan theme '%s' (id=%d, version_id=%d).",
+        theme.name, theme.id, version.id,
+    )
+
+
 def seed_database():
     """主入口：建表 + 导入数据。"""
     Base.metadata.create_all(bind=engine)
@@ -154,6 +201,7 @@ def seed_database():
         seed_llm_config(db)
         seed_prompt_templates(db)
         seed_provinces_cities(db)
+        seed_default_theme(db)
     finally:
         db.close()
     _logger.info("Seed completed.")

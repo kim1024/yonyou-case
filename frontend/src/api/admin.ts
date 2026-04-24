@@ -5,6 +5,7 @@ import type {
   LlmConfigCreate, LlmConfigUpdate, LlmListParams,
   PromptTemplateCreate, PromptVersionCreate, PromptListParams,
   PlanListParams,
+  PlanThemeListParams, PlanThemeCreate, PlanThemeVersionCreate,
 } from '@/types'
 
 export const adminApi = {
@@ -192,5 +193,40 @@ export const adminApi = {
   },
   deletePlan(id: number) {
     return http.delete(`/api/admin/plans/${id}`)
+  },
+
+  // ── 方案样式主题 ──
+  getThemes(params: PlanThemeListParams) {
+    return http.get('/api/admin/themes', { params })
+  },
+  createTheme(data: PlanThemeCreate) {
+    return http.post('/api/admin/themes', data)
+  },
+  getThemeDetail(id: number) {
+    return http.get(`/api/admin/themes/${id}`)
+  },
+  updateTheme(id: number, data: { name?: string; description?: string }) {
+    return http.put(`/api/admin/themes/${id}`, data)
+  },
+  deleteTheme(id: number) {
+    return http.delete(`/api/admin/themes/${id}`)
+  },
+  activateTheme(id: number) {
+    return http.post(`/api/admin/themes/${id}/activate`)
+  },
+  getThemeVersions(themeId: number) {
+    return http.get(`/api/admin/themes/${themeId}/versions`)
+  },
+  createThemeVersion(themeId: number, data: PlanThemeVersionCreate) {
+    return http.post(`/api/admin/themes/${themeId}/versions`, data)
+  },
+  getThemeVersion(themeId: number, versionId: number) {
+    return http.get(`/api/admin/themes/${themeId}/versions/${versionId}`)
+  },
+  rollbackThemeVersion(themeId: number, versionId: number) {
+    return http.post(`/api/admin/themes/${themeId}/versions/${versionId}/rollback`)
+  },
+  getActiveTheme() {
+    return http.get('/api/themes/active')
   },
 }

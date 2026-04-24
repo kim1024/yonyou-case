@@ -1,8 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { RotateCcw, Printer, AlertTriangle } from 'lucide-vue-next'
 import DOMPurify from 'dompurify'
+import http from '@/api/http'
+import type { PlanThemeStyleConfig } from '@/types'
+
+// ---------- Theme ----------
+
+const defaultStyle: PlanThemeStyleConfig = {
+  accentColor: '#C0392B',
+  highlightColor: '#C0392B',
+  dotColor: '#D4A06A',
+  pricingCardBg: 'linear-gradient(135deg, #B83227 0%, #C0392B 35%, #D94A3F 100%)',
+  pricingNumberGradient: 'linear-gradient(180deg, #FFE066 0%, #FFD700 40%, #DAA520 100%)',
+  pageBg: '#F8F7F4',
+  cardBg: '#FFFFFF',
+  textColor: '#444444',
+  subtitleColor: '#2D2D2D',
+}
+
+const activeTheme = ref<PlanThemeStyleConfig | null>(null)
+const themeStyle = computed(() => activeTheme.value || defaultStyle)
 
 // ---------- Types ----------
 
@@ -101,6 +120,19 @@ const moduleIcons: string[] = [
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
 ]
 
+// ---------- Fetch active theme ----------
+
+onMounted(async () => {
+  try {
+    const { data } = await http.get('/api/themes/active')
+    if (data?.style_config) {
+      activeTheme.value = data.style_config
+    }
+  } catch {
+    // 静默失败，使用默认样式
+  }
+})
+
 // ---------- Print ----------
 
 function handlePrint() {
@@ -109,19 +141,33 @@ function handlePrint() {
 </script>
 
 <template>
-  <div class="result-page" style="min-height:100vh;background:#F8F7F4">
+  <div
+    class="result-page"
+    :style="{
+      'min-height': '100vh',
+      background: themeStyle.pageBg,
+      '--theme-accent': themeStyle.accentColor,
+      '--theme-highlight': themeStyle.highlightColor,
+      '--theme-dot': themeStyle.dotColor,
+      '--theme-text': themeStyle.textColor,
+      '--theme-subtitle': themeStyle.subtitleColor,
+      '--theme-card-bg': themeStyle.cardBg,
+      '--theme-pricing-bg': themeStyle.pricingCardBg,
+      '--theme-pricing-number': themeStyle.pricingNumberGradient,
+    }"
+  >
     <main class="main-content" style="padding:24px 40px 60px">
       <!-- Empty state -->
       <div
         v-if="!plan"
         class="content-card"
-        style="background:#FFFFFF;border-radius:16px;padding:80px 56px;margin:0 auto;max-width:1320px;text-align:center"
+        style="background:var(--theme-card-bg);border-radius:16px;padding:80px 56px;margin:0 auto;max-width:1320px;text-align:center"
       >
         <p style="font-size:16px;color:#888">暂无方案数据，请重新定制</p>
       </div>
 
       <!-- Course plan content -->
-      <div v-else class="content-card" style="background:#FFFFFF;border-radius:16px;padding:48px;margin:0 auto;max-width:1320px">
+      <div v-else class="content-card" style="background:var(--theme-card-bg);border-radius:16px;padding:48px;margin:0 auto;max-width:1320px">
 
         <!-- ===== Title area ===== -->
         <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #E8E5DF;margin-bottom:0">
@@ -238,7 +284,7 @@ function handlePrint() {
 .plan-title {
   font-size: 38px;
   font-weight: 700;
-  color: #C0392B;
+  color: var(--theme-accent);
   margin: 0 0 6px;
   line-height: 1.4;
   letter-spacing: 2px;
@@ -247,7 +293,7 @@ function handlePrint() {
 .plan-subtitle {
   font-size: 26px;
   font-weight: 600;
-  color: #C0392B;
+  color: var(--theme-accent);
   margin: 0;
   line-height: 1.4;
   letter-spacing: 1px;
@@ -273,7 +319,7 @@ function handlePrint() {
   gap: 10px;
   font-size: 22px;
   font-weight: 700;
-  color: #2D2D2D;
+  color: var(--theme-subtitle);
   margin: 0 0 20px;
   line-height: 1.4;
 }
@@ -282,7 +328,7 @@ function handlePrint() {
   display: inline-block;
   width: 4px;
   height: 22px;
-  background: #C0392B;
+  background: var(--theme-accent);
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -292,13 +338,13 @@ function handlePrint() {
    ======================================== */
 .introduction-content {
   font-size: 17px;
-  color: #444444;
+  color: var(--theme-text);
   line-height: 1.75;
 }
 
 .introduction-content :deep(.highlight) {
   font-weight: 700;
-  color: #C0392B;
+  color: var(--theme-highlight);
 }
 
 /* ========================================
@@ -311,9 +357,9 @@ function handlePrint() {
 }
 
 .module-card {
-  background: #FFFFFF;
+  background: var(--theme-card-bg);
   border: 1px solid #EDEBE7;
-  border-left: 3px solid #C0392B;
+  border-left: 3px solid var(--theme-accent);
   border-radius: 6px;
   padding: 14px 16px;
   transition: box-shadow 0.2s ease, transform 0.15s ease;
@@ -327,7 +373,7 @@ function handlePrint() {
 .module-card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #2D2D2D;
+  color: var(--theme-subtitle);
   line-height: 1.4;
   margin: 0 0 8px;
   display: flex;
@@ -367,12 +413,12 @@ function handlePrint() {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #D4A06A;
+  background: var(--theme-dot);
 }
 
 .module-item :deep(.highlight) {
   font-weight: 700;
-  color: #C0392B;
+  color: var(--theme-highlight);
 }
 
 /* ========================================
@@ -392,9 +438,9 @@ function handlePrint() {
 }
 
 .position-card {
-  background: #FFFFFF;
+  background: var(--theme-card-bg);
   border: 1px solid #EDEBE7;
-  border-top: 2.5px solid #C0392B;
+  border-top: 2.5px solid var(--theme-accent);
   border-radius: 6px;
   padding: 14px 16px;
   transition: box-shadow 0.2s ease, transform 0.15s ease;
@@ -408,7 +454,7 @@ function handlePrint() {
 .position-name {
   font-size: 15px;
   font-weight: 600;
-  color: #2D2D2D;
+  color: var(--theme-subtitle);
   line-height: 1.4;
   margin-bottom: 6px;
   display: flex;
@@ -448,12 +494,12 @@ function handlePrint() {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #D4A06A;
+  background: var(--theme-dot);
 }
 
 .position-item :deep(.highlight) {
   font-weight: 700;
-  color: #C0392B;
+  color: var(--theme-highlight);
 }
 
 /* ========================================
@@ -464,12 +510,12 @@ function handlePrint() {
   margin: 44px auto 0;
   max-width: 360px;
   width: 100%;
-  background: linear-gradient(135deg, #B83227 0%, #C0392B 35%, #D94A3F 100%);
+  background: var(--theme-pricing-bg);
   border-radius: 8px;
   padding: 24px 28px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(192, 57, 43, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .pricing-card::before {
@@ -533,7 +579,7 @@ function handlePrint() {
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
-  background: linear-gradient(180deg, #FFE066 0%, #FFD700 40%, #DAA520 100%);
+  background: var(--theme-pricing-number);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

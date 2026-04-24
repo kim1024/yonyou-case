@@ -405,3 +405,58 @@ export interface PlanListParams {
   date_from?: string
   date_to?: string
 }
+
+// ── 方案样式主题 ──
+export interface PlanThemeStyleConfig {
+  accentColor: string
+  highlightColor: string
+  dotColor: string
+  pricingCardBg: string
+  pricingNumberGradient: string
+  pageBg: string
+  cardBg: string
+  textColor: string
+  subtitleColor: string
+}
+
+export interface PlanTheme {
+  id: number
+  name: string
+  description: string | null
+  is_active: boolean
+  current_version_id: number | null
+  current_version_number: number | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface PlanThemeDetail extends PlanTheme {
+  current_version: PlanThemeVersion | null
+}
+
+export interface PlanThemeVersion {
+  id: number
+  version_number: number
+  style_config: PlanThemeStyleConfig | null
+  remark: string | null
+  created_by: string | null
+  created_at: string | null
+  is_current?: boolean
+}
+
+export interface PlanThemeCreate {
+  name: string
+  description?: string
+  style_config?: PlanThemeStyleConfig
+}
+
+export interface PlanThemeVersionCreate {
+  style_config: PlanThemeStyleConfig
+  remark?: string
+}
+
+export interface PlanThemeListParams {
+  page: number
+  page_size: number
+  keyword?: string
+}

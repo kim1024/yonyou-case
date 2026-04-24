@@ -8,10 +8,13 @@ from app.models.prompt_template import PromptTemplate
 from app.models.prompt_version import PromptVersion
 from app.models.province_city import Province, City
 from app.models.generated_plan import GeneratedPlan
+from app.models.plan_theme import PlanTheme
+from app.models.plan_theme_version import PlanThemeVersion
 
 __all__ = [
     "Enterprise", "AdminUser", "VisitLog",
     "Major", "Industry", "MajorIndustry", "Region", "Hour",
     "LLMConfig", "TokenUsageLog", "PromptTemplate", "PromptVersion",
     "Province", "City", "GeneratedPlan",
+    "PlanTheme", "PlanThemeVersion",
 ]
