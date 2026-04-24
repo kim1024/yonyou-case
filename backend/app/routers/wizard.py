@@ -175,7 +175,7 @@ def _parse_llm_json(content: str) -> dict | None:
         parsed = json.loads(content)
 
         # 校验必填字段
-        required_fields = ("title", "introduction", "modules")
+        required_fields = ("title", "introduction", "modules", "positions", "deliverables")
         for field in required_fields:
             if field not in parsed:
                 _logger.warning("LLM JSON 缺少必填字段: %s，回退模板", field)
@@ -316,7 +316,8 @@ def generate(request: dict, db: Session = Depends(get_db)):
     # 查找企业信息
     enterprise = db.query(Enterprise).filter(
         Enterprise.customer_name == enterprise_name,
-        Enterprise.industry == industry
+        Enterprise.industry == industry,
+        Enterprise.province == region
     ).first()
 
     company_intro = enterprise.company_intro if enterprise else "暂无企业简介"
