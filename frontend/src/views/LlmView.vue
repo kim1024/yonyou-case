@@ -330,7 +330,7 @@ const trendVisibleLabelIndices = computed(() => {
 const trendTooltip = ref({ visible: false, x: 0, y: 0, content: '' })
 
 function showTrendTooltip(e: MouseEvent, d: { date: string; tokens: number; calls: number }) {
-  const rect = (e.target as SVGElement).closest('svg')!.getBoundingClientRect()
+  const rect = trendContainerEl.value!.getBoundingClientRect()
   trendTooltip.value = {
     visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top,
     content: `${d.date}: ${d.tokens.toLocaleString()} Token`,
@@ -390,7 +390,7 @@ const pieSlices = computed<PieSlice[]>(() => {
 })
 
 function showPieTooltip(e: MouseEvent, s: PieSlice) {
-  const rect = (e.target as SVGElement).closest('svg')!.getBoundingClientRect()
+  const rect = pieContainerEl.value!.getBoundingClientRect()
   pieTooltip.value = { visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top, content: `${s.model}: ${s.tokens.toLocaleString()} Token (${s.pct}%)` }
 }
 

@@ -92,7 +92,7 @@ const visibleLabelIndices = computed(() => {
 })
 
 function showTooltip(e: MouseEvent, d: VisitTrend, _i: number) {
-  const rect = (e.target as SVGElement).closest('svg')!.getBoundingClientRect()
+  const rect = containerEl.value!.getBoundingClientRect()
   tooltip.value = {
     visible: true,
     x: e.clientX - rect.left,

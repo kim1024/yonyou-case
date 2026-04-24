@@ -61,13 +61,13 @@ const gridLines = computed(() => {
 })
 
 function showTooltip(e: MouseEvent, d: ProvinceCount) {
-  const rect = (e.target as SVGElement).closest('svg')!.getBoundingClientRect()
+  const rect = containerEl.value!.getBoundingClientRect()
   tooltip.value = { visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top, content: `${d.province}: ${d.count} 次` }
 }
 </script>
 
 <template>
-  <div ref="containerEl">
+  <div ref="containerEl" class="relative">
     <h3 class="text-base font-semibold text-neutral-800 mb-4">省份分布</h3>
     <svg :viewBox="`0 0 ${W} ${H}`" class="w-full">
       <defs>

@@ -78,13 +78,13 @@ const tooltip = ref({ visible: false, x: 0, y: 0, content: '' })
 const hoverIdx = ref(-1)
 
 function showTooltip(e: MouseEvent, s: { industry: string; count: number; pct: string }) {
-  const rect = (e.target as SVGElement).closest('svg')!.getBoundingClientRect()
+  const rect = containerEl.value!.getBoundingClientRect()
   tooltip.value = { visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top, content: `${s.industry}: ${s.count} 次 (${s.pct}%)` }
 }
 </script>
 
 <template>
-  <div ref="containerEl">
+  <div ref="containerEl" class="relative">
     <h3 class="text-base font-semibold text-neutral-800 mb-4">行业分布</h3>
     <svg viewBox="0 0 400 400" class="w-full max-w-sm mx-auto">
       <defs>
