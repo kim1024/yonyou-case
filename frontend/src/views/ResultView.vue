@@ -146,7 +146,7 @@ function handlePrint() {
               </h3>
               <ul class="module-items">
                 <li v-for="(item, j) in mod.items" :key="j" class="module-item">
-                  <span>{{ item }}</span>
+                  <span v-html="item" />
                 </li>
               </ul>
             </div>
@@ -169,7 +169,7 @@ function handlePrint() {
               </div>
               <ul v-if="pos.description.length" class="position-items">
                 <li v-for="(desc, j) in pos.description" :key="j" class="position-item">
-                  <span>{{ desc }}</span>
+                  <span v-html="desc" />
                 </li>
               </ul>
             </div>
@@ -365,6 +365,11 @@ function handlePrint() {
   background: #D4A06A;
 }
 
+.module-item :deep(.highlight) {
+  font-weight: 700;
+  color: #C0392B;
+}
+
 /* ========================================
    Positions – 2-column grid
    ======================================== */
@@ -439,6 +444,11 @@ function handlePrint() {
   height: 4px;
   border-radius: 50%;
   background: #D4A06A;
+}
+
+.position-item :deep(.highlight) {
+  font-weight: 700;
+  color: #C0392B;
 }
 
 /* ========================================
