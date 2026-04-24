@@ -443,12 +443,11 @@ onUnmounted(() => {
             ref="dateFromInput"
             v-model="filterDateFrom"
             type="date"
-            class="absolute inset-0 opacity-0 cursor-pointer"
-            style="z-index: -1;"
+            class="absolute inset-0 opacity-0 pointer-events-none"
             @change="resetToFirst"
           />
           <div
-            class="date-picker-trigger"
+            class="date-picker-trigger relative z-1"
             @click="($refs.dateFromInput as HTMLInputElement).showPicker()"
           >
             <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
@@ -464,12 +463,11 @@ onUnmounted(() => {
             ref="dateToInput"
             v-model="filterDateTo"
             type="date"
-            class="absolute inset-0 opacity-0 cursor-pointer"
-            style="z-index: -1;"
+            class="absolute inset-0 opacity-0 pointer-events-none"
             @change="resetToFirst"
           />
           <div
-            class="date-picker-trigger"
+            class="date-picker-trigger relative z-1"
             @click="($refs.dateToInput as HTMLInputElement).showPicker()"
           >
             <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
