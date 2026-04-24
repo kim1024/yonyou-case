@@ -15,7 +15,7 @@ export const wizardApi = {
   },
   getHours() { return http.get('/api/hours') },
   getConfig() { return http.get('/api/config') },
-  generate(data: { major: string; industry: string; enterprise: string; hour: number }) {
+  generate(data: { major: string; industry: string; enterprise: string; region: string; hour: number }) {
     return http.post('/api/generate', data)
   },
 }

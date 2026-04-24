@@ -185,6 +185,7 @@ export function useWizard() {
         major: state.major!,
         industry: state.industry!,
         enterprise: state.enterprise!,
+        region: state.region!,
         hour: state.hour!,
       })
       return res.data
