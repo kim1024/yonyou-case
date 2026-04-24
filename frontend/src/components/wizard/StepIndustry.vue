@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, type Component } from 'vue'
 import {
   Factory,
   ShoppingBag,
@@ -11,7 +11,6 @@ import {
   Cpu,
   Leaf,
   Building2,
-  type Component,
 } from 'lucide-vue-next'
 
 const props = defineProps<{

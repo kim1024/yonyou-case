@@ -681,6 +681,9 @@ function switchTab(tab: 'llm' | 'token' | 'prompt') {
 
 const llmFormRef = ref<HTMLFormElement | null>(null)
 const promptNameRef = ref<HTMLInputElement | null>(null)
+// Template refs: used via ref="llmFormRef" / ref="promptNameRef" in template
+void llmFormRef
+void promptNameRef
 </script>
 
 <template>

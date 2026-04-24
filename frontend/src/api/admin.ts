@@ -1,6 +1,5 @@
 import http from './http'
 import type {
-  Major, Industry, Region, Hour, Province, City,
   MajorListParams, IndustryListParams, RegionListParams, HourListParams,
   ProvinceListParams, CityListParams,
   LlmConfigCreate, LlmConfigUpdate, LlmListParams,

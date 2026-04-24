@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, type Component } from 'vue'
 import {
   Factory,
   ShoppingBag,
@@ -13,7 +13,6 @@ import {
   Building2,
   BarChart3,
   Brain,
-  type Component,
 } from 'lucide-vue-next'
 import type { WizardMajor } from '@/types'
 

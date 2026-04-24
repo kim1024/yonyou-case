@@ -57,7 +57,7 @@ function formatNumber(val: number | null | undefined): string {
 
         <!-- 数字 -->
         <div class="text-[28px] font-bold text-neutral-900 leading-none tracking-tight tabular-nums">
-          {{ formatNumber(summary ? (summary as Record<string, number>)[card.key] : null) }}
+          {{ formatNumber(summary ? (summary as unknown as Record<string, number>)[card.key] : null) }}
         </div>
       </div>
     </div>

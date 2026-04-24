@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw, Briefcase, CalendarDays } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
-import type { GeneratedPlanListItem, GeneratedPlan, CoursePlan, PlanListParams } from '@/types'
+import type { GeneratedPlanListItem, GeneratedPlan, PlanListParams } from '@/types'
 
 /* ── 列表数据 ── */
 const items = ref<GeneratedPlanListItem[]>([])

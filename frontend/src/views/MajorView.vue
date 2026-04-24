@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { Plus, Search, Inbox, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import type { Major, Industry } from '@/types'
