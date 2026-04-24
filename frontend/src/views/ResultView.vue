@@ -106,15 +106,6 @@ function handlePrint() {
 <template>
   <div class="result-page" style="min-height:100vh;background:#F8F7F4">
     <main class="main-content" style="padding:48px 48px 80px">
-      <!-- LLM fallback warning -->
-      <div
-        v-if="isTemplateFallback && plan"
-        class="llm-warning-banner"
-      >
-        <AlertTriangle :size="16" :stroke-width="2" />
-        <span>{{ llmError || '当前方案由模板生成（大模型不可用）。如需 AI 生成的方案，请在后台检查大模型配置（API Key、Base URL）。' }}</span>
-      </div>
-
       <!-- Empty state -->
       <div
         v-if="!plan"
@@ -206,8 +197,12 @@ function handlePrint() {
           </div>
         </div>
 
-        <!-- ===== AI note ===== -->
-        <div class="ai-note">
+        <!-- ===== Footer note ===== -->
+        <div v-if="isTemplateFallback" class="llm-warning-banner" style="margin-top:32px;max-width:100%">
+          <AlertTriangle :size="16" :stroke-width="2" />
+          <span>{{ llmError || '当前方案由模板生成（大模型不可用）。如需 AI 生成的方案，请在后台检查大模型配置（API Key、Base URL）。' }}</span>
+        </div>
+        <div v-else class="ai-note">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14h.01"/><path d="M8 14h.01"/><path d="M12 18v4"/><path d="M9 22h6"/></svg>
           <span>{{ plan.notes }}</span>
         </div>
@@ -216,7 +211,7 @@ function handlePrint() {
     </main>
 
     <!-- Bottom action bar -->
-    <footer class="bottom-bar" style="position:sticky;bottom:0;z-40;background:rgba(255,255,255,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid #E8E5DF">
+    <footer class="bottom-bar" style="position:sticky;bottom:0;z-50;background:rgba(255,255,255,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid #E8E5DF">
       <div class="bottom-bar-inner max-w-4xl mx-auto flex items-center justify-center gap-3" style="padding:16px 48px">
         <button class="btn-secondary flex items-center gap-2" style="padding:10px 24px" @click="router.push('/')">
           <RotateCcw style="width:15px;height:15px" />
@@ -508,8 +503,6 @@ function handlePrint() {
   align-items: baseline;
   justify-content: center;
   gap: 2px;
-  position: relative;
-  z-index: 1;
 }
 
 .pricing-card-symbol {
@@ -559,8 +552,7 @@ function handlePrint() {
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 1080px;
-  margin: 0 auto 20px;
+  margin: 32px 0 0;
   padding: 14px 20px;
   background: linear-gradient(135deg, rgba(254, 243, 199, 0.9), rgba(254, 240, 138, 0.5));
   border: 1px solid rgba(234, 179, 8, 0.3);
