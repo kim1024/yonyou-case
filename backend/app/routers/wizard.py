@@ -16,6 +16,8 @@ from app.models.prompt_version import PromptVersion
 from app.models.token_usage_log import TokenUsageLog
 from app.models.generated_plan import GeneratedPlan
 
+DELIVERABLES = ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"]
+
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["wizard"])
@@ -188,6 +190,15 @@ def _parse_llm_json(content: str) -> dict | None:
         return None
 
 
+def _normalize_title_subtitle(plan_json: dict, enterprise_name: str) -> None:
+    """强制规范 title/subtitle 格式，不依赖 LLM 输出。
+
+    目标格式：title = "{enterprise_name}案例"，subtitle = "教学课程方案"
+    """
+    plan_json["title"] = f"{enterprise_name}案例"
+    plan_json["subtitle"] = "教学课程方案"
+
+
 def _build_fallback_json(
     enterprise_name: str,
     major: str,
@@ -296,7 +307,7 @@ def _build_fallback_json(
                 ],
             },
         ],
-        "deliverables": ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"],
+        "deliverables": DELIVERABLES,
         "notes": "以上内容由 AI 生成，请结合实际教学需求进行调整。",
         "pricing": {
             "hour": hour,
@@ -472,7 +483,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
       "description": ["负责{industry}领域数字化运营与持续优化", "监控系统运行指标，推动业务流程改进"]
     }}
   ],
-  "deliverables": ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"],
+  "deliverables": {json.dumps(DELIVERABLES, ensure_ascii=False)},
   "notes": "以上内容由 AI 生成，请结合实际教学需求进行调整。"
 }}
 
@@ -518,6 +529,8 @@ def generate(request: dict, db: Session = Depends(get_db)):
                 # 解析 LLM 返回的 JSON
                 plan_json = _parse_llm_json(content)
                 if plan_json is not None:
+                    _normalize_title_subtitle(plan_json, enterprise_name)
+                    plan_json["deliverables"] = DELIVERABLES
                     plan_json["pricing"] = {
                         "hour": hour,
                         "unit_price": rate,
