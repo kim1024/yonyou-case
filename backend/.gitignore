@@ -1,27 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-*.egg
-
-# 虚拟环境
-venv/
-.venv/
-env/
-
-# 环境变量
-.env
-
-# 数据库
+# 后端特有（根目录 .gitignore 已覆盖通用规则，此处仅补充）
 data/*.db
 data/*.db-journal
-
-# IDE
-.vscode/
-.idea/
-
-# 系统文件
-.DS_Store
-Thumbs.db
+data/*.db-wal
+data/*.db-shm

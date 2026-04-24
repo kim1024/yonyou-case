@@ -18,7 +18,7 @@ class VisitLog(Base):
     request_timestamp = Column(DateTime, server_default=func.now())
 
     __table_args__ = (
-        Index("idx_timestamp", "request_timestamp"),
-        Index("idx_industry", "industry"),
-        Index("idx_region", "region"),
+        Index("idx_visit_logs_timestamp", "request_timestamp"),
+        Index("idx_visit_logs_industry", "industry"),
+        Index("idx_visit_logs_region", "region"),
     )

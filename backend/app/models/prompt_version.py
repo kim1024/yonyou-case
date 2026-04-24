@@ -18,6 +18,6 @@ class PromptVersion(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (
-        Index("idx_template_id", "template_id"),
+        Index("idx_prompt_versions_template_id", "template_id"),
         UniqueConstraint("template_id", "version_number", name="uq_template_version"),
     )

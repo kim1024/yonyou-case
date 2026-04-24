@@ -16,7 +16,7 @@ class Enterprise(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
-        Index("idx_industry", "industry"),
-        Index("idx_province", "province"),
-        Index("idx_industry_province_name", "industry", "province", "customer_name"),
+        Index("idx_enterprises_industry", "industry"),
+        Index("idx_enterprises_province", "province"),
+        Index("idx_enterprises_industry_province_name", "industry", "province", "customer_name"),
     )

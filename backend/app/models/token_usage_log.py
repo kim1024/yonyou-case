@@ -17,7 +17,7 @@ class TokenUsageLog(Base):
     request_timestamp = Column(DateTime, server_default=func.now())  # 请求时间
 
     __table_args__ = (
-        Index("idx_timestamp", "request_timestamp"),
-        Index("idx_model", "model"),
-        Index("idx_llm_config_id", "llm_config_id"),
+        Index("idx_token_usage_logs_timestamp", "request_timestamp"),
+        Index("idx_token_usage_logs_model", "model"),
+        Index("idx_token_usage_logs_llm_config_id", "llm_config_id"),
     )
