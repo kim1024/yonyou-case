@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import {
   Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight,
   Inbox, Cpu, ArrowLeft, RotateCcw, Sparkles, X, Search,
@@ -721,18 +721,23 @@ onMounted(() => {
   loadLlmConfigs()
   loadTokenStats()
   loadPromptTemplates()
+})
 
-  /* 趋势图 ResizeObserver */
-  if (trendContainerEl.value) {
-    trendContainerWidth.value = trendContainerEl.value.offsetWidth
+/* ResizeObserver: 用 watch 而非 onMounted，处理 v-if 隐藏的 tab 切换后元素才挂载的情况 */
+watch(trendContainerEl, (el) => {
+  trendResizeObs?.disconnect()
+  if (el) {
+    trendContainerWidth.value = el.offsetWidth
     trendResizeObs = new ResizeObserver(([entry]) => { trendContainerWidth.value = entry.contentRect.width })
-    trendResizeObs.observe(trendContainerEl.value)
+    trendResizeObs.observe(el)
   }
-  /* 环形图 ResizeObserver */
-  if (pieContainerEl.value) {
-    pieContainerWidth.value = pieContainerEl.value.offsetWidth
+})
+watch(pieContainerEl, (el) => {
+  pieResizeObs?.disconnect()
+  if (el) {
+    pieContainerWidth.value = el.offsetWidth
     pieResizeObs = new ResizeObserver(([entry]) => { pieContainerWidth.value = entry.contentRect.width })
-    pieResizeObs.observe(pieContainerEl.value)
+    pieResizeObs.observe(el)
   }
 })
 
