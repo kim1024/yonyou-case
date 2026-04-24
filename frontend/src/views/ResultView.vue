@@ -83,6 +83,17 @@ const positionIcons: string[] = [
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10"/><polyline points="22 4 22 12 14 12"/><path d="M12 22a10 10 0 0 1-10-10"/><polyline points="2 20 2 12 10 12"/><circle cx="12" cy="12" r="3"/></svg>',
 ]
 
+const moduleIcons: string[] = [
+  // 0: 模块一 - 行业背景与需求分析（趋势/行业）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/></svg>',
+  // 1: 模块二 - 技术基础与工具介绍（工具/齿轮）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+  // 2: 模块三 - 案例实战与项目实施（动手/代码运行）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+  // 3: 模块四 - 总结与拓展（书签/总结）
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+]
+
 // ---------- Print ----------
 
 function handlePrint() {
@@ -136,7 +147,10 @@ function handlePrint() {
               :key="i"
               class="module-card"
             >
-              <h3 class="module-card-title">{{ mod.name }}</h3>
+              <h3 class="module-card-title">
+                <span v-if="moduleIcons[i]" class="module-icon" v-html="moduleIcons[i]" />
+                {{ mod.name }}
+              </h3>
               <ul class="module-items">
                 <li v-for="(item, j) in mod.items" :key="j" class="module-item">
                   <span>{{ item }}</span>
@@ -314,6 +328,18 @@ function handlePrint() {
   color: #2D2D2D;
   line-height: 1.4;
   margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.module-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .module-items {
