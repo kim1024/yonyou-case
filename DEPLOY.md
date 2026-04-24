@@ -60,8 +60,8 @@ cp config.yaml.example config.yaml
 
 # 进入后端目录，安装依赖
 cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+conda create -n yonyou-case python=3.12 -y
+conda activate yonyou-case
 pip install -r requirements.txt
 
 # 初始化数据库（首次运行）
@@ -162,10 +162,9 @@ scp -r yonyou-case/ user@server:/opt/yonyou-case/
 # 2. SSH 登录服务器
 ssh user@server
 
-# 3. 创建虚拟环境并安装依赖
-cd /opt/yonyou-case/backend
-python3.12 -m venv venv
-source venv/bin/activate
+# 3. 创建 conda 环境并安装依赖
+conda create -n yonyou-case python=3.12 -y
+conda activate yonyou-case
 pip install -r requirements.txt
 
 # 4. 配置
@@ -190,8 +189,8 @@ python seed.py
 # 8. 创建必要目录
 mkdir -p logs data
 
-# 9. 测试启动
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+# 9. 测试启动（多 worker 高并发）
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
 # Ctrl+C 停止，确认无报错后继续配置 systemd
 ```
 
@@ -211,9 +210,10 @@ npm run build
 创建 Nginx 配置文件 `/etc/nginx/sites-available/yonyou-case`：
 
 ```nginx
+# 主站（端口 80）
 server {
     listen 80;
-    server_name your-domain.com;  # 替换为实际域名或 IP
+    server_name yonyou-caseedu.hongyaa.com.cn;
 
     # 前端静态文件
     root /opt/yonyou-case/frontend/dist;
@@ -242,6 +242,13 @@ server {
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
+}
+
+# 旧端口 5000 → 重定向到主站（端口 80）
+server {
+    listen 5000;
+    server_name yonyou-caseedu.hongyaa.com.cn;
+    return 301 http://yonyou-caseedu.hongyaa.com.cn$request_uri;
 }
 ```
 
@@ -272,8 +279,8 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/yonyou-case/backend
-Environment="PATH=/opt/yonyou-case/backend/venv/bin"
-ExecStart=/opt/yonyou-case/backend/venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Environment="PATH=/home/www-data/miniforge3/envs/yonyou-case/bin"
+ExecStart=/home/www-data/miniforge3/envs/yonyou-case/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
 Restart=always
 RestartSec=5
 
@@ -311,7 +318,7 @@ sudo journalctl -u yonyou-case -f
 
 ```bash
 cd /opt/yonyou-case/backend
-source venv/bin/activate
+conda activate yonyou-case
 
 python seed.py
 ```
@@ -326,7 +333,7 @@ python seed.py
 
 ```bash
 cd /opt/yonyou-case/backend
-source venv/bin/activate
+conda activate yonyou-case
 
 # 进入 Python 交互环境
 python
@@ -354,7 +361,7 @@ python seed.py
 
 ```bash
 cd /opt/yonyou-case/backend
-source venv/bin/activate
+conda activate yonyou-case
 
 python
 ```
@@ -433,7 +440,7 @@ git pull
 
 # 3. 更新后端依赖（如有新增）
 cd backend
-source venv/bin/activate
+conda activate yonyou-case
 pip install -r requirements.txt
 
 # 4. 重启后端
