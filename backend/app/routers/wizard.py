@@ -207,6 +207,17 @@ def generate(request: dict, db: Session = Depends(get_db)):
     def _safe(text: str, max_len: int = 500) -> str:
         return str(text)[:max_len].replace("{", "{{").replace("}", "}}")
 
+    # 预计算报价，用于模板
+    hour_record = db.query(Hour).filter(Hour.value == hour, Hour.is_active == True).first()
+    rate = hour_record.unit_price if hour_record and hour_record.unit_price else 2000
+    total_cost = rate * hour
+
+    # 预计算课时分块
+    hour_block1 = max(1, hour // 8)
+    hour_block2 = max(1, hour // 8)
+    hour_block3 = hour // 2
+    hour_block4 = hour - hour_block1 - hour_block2 - hour_block3
+
     # 优先从数据库读取活跃提示词模板
     db_prompt_content = None
     try:
@@ -223,11 +234,6 @@ def generate(request: dict, db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    # 预计算报价，用于模板
-    hour_record = db.query(Hour).filter(Hour.value == hour, Hour.is_active == True).first()
-    rate = hour_record.unit_price if hour_record and hour_record.unit_price else 2000
-    total_cost = rate * hour
-
     if db_prompt_content:
         prompt = db_prompt_content.format(
             major=_safe(major),
@@ -238,6 +244,10 @@ def generate(request: dict, db: Session = Depends(get_db)):
             company_intro=_safe(company_intro, 1000),
             yonyou_content=_safe(yonyou_content, 1000),
             total_cost=f"{total_cost:,}",
+            hour_block1=hour_block1,
+            hour_block2=hour_block2,
+            hour_block3=hour_block3,
+            hour_block4=hour_block4,
         )
     else:
         prompt = f"""请根据以下信息，生成一份产业案例教学课程设计方案。
@@ -268,22 +278,22 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ## 二、案例课程主要结构
 
-### 模块一：行业背景与需求分析（{max(1, hour // 8)}课时）
+### 模块一：行业背景与需求分析（{hour_block1}课时）
 - {_safe(industry)}行业现状与发展趋势
 - {_safe(enterprise_name)}业务模式与技术需求分析
 - 数字化转型痛点与机遇
 
-### 模块二：技术基础与工具介绍（{max(1, hour // 8)}课时）
+### 模块二：技术基础与工具介绍（{hour_block2}课时）
 - {_safe(major)}核心技术原理与架构
 - 用友产品体系与解决方案概览
 - 开发环境搭建与工具链配置
 
-### 模块三：案例实战与项目实施（{hour // 2}课时）
+### 模块三：案例实战与项目实施（{hour_block3}课时）
 - {_safe(enterprise_name)}真实业务场景解析
 - 基于用友平台的功能开发与集成
 - 项目方案设计、实施与优化
 
-### 模块四：总结与拓展（{hour - max(1, hour // 8) - max(1, hour // 8) - hour // 2}课时）
+### 模块四：总结与拓展（{hour_block4}课时）
 - 项目成果展示与答辩
 - {_safe(industry)}领域最佳实践总结
 - 职业发展路径与学习资源推荐
@@ -390,22 +400,22 @@ def generate(request: dict, db: Session = Depends(get_db)):
 
 ## 二、案例课程主要结构
 
-### 模块一：行业背景与需求分析（{max(1, hour // 8)}课时）
+### 模块一：行业背景与需求分析（{hour_block1}课时）
 - {industry}行业现状与发展趋势
 - {enterprise_name}业务模式与技术需求分析
 - 数字化转型痛点与机遇
 
-### 模块二：技术基础与工具介绍（{max(1, hour // 8)}课时）
+### 模块二：技术基础与工具介绍（{hour_block2}课时）
 - {major}核心技术原理与架构
 - 用友产品体系与解决方案概览
 - 开发环境搭建与工具链配置
 
-### 模块三：案例实战与项目实施（{hour // 2}课时）
+### 模块三：案例实战与项目实施（{hour_block3}课时）
 - {enterprise_name}真实业务场景解析
 - 基于用友平台的功能开发与集成
 - 项目方案设计、实施与优化
 
-### 模块四：总结与拓展（{hour - max(1, hour // 8) - max(1, hour // 8) - hour // 2}课时）
+### 模块四：总结与拓展（{hour_block4}课时）
 - 项目成果展示与答辩
 - {industry}领域最佳实践总结
 - 职业发展路径与学习资源推荐
