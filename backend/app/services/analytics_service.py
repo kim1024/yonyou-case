@@ -40,11 +40,15 @@ def get_visit_trends(db: Session, days: int = 30):
     return [{"date": str(r.date), "count": r.count} for r in results]
 
 
-def get_province_distribution(db: Session):
+def get_province_distribution(db: Session, days: int = 30):
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start = today - timedelta(days=days)
+
     results = db.query(
         VisitLog.region,
         func.count(VisitLog.id).label("count")
     ).filter(
+        VisitLog.request_timestamp >= start,
         VisitLog.region.isnot(None),
         VisitLog.region != ""
     ).group_by(VisitLog.region).order_by(func.count(VisitLog.id).desc()).limit(20).all()
@@ -52,12 +56,16 @@ def get_province_distribution(db: Session):
     return [{"province": r.region, "count": r.count} for r in results]
 
 
-def get_case_frequency(db: Session):
+def get_case_frequency(db: Session, days: int = 30):
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start = today - timedelta(days=days)
+
     results = db.query(
         VisitLog.enterprise,
         VisitLog.industry,
         func.count(VisitLog.id).label("count")
     ).filter(
+        VisitLog.request_timestamp >= start,
         VisitLog.enterprise.isnot(None),
         VisitLog.enterprise != ""
     ).group_by(
@@ -67,11 +75,15 @@ def get_case_frequency(db: Session):
     return [{"enterprise": r.enterprise, "industry": r.industry or "", "count": r.count} for r in results]
 
 
-def get_industry_distribution(db: Session):
+def get_industry_distribution(db: Session, days: int = 30):
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start = today - timedelta(days=days)
+
     results = db.query(
         VisitLog.industry,
         func.count(VisitLog.id).label("count")
     ).filter(
+        VisitLog.request_timestamp >= start,
         VisitLog.industry.isnot(None),
         VisitLog.industry != ""
     ).group_by(VisitLog.industry).order_by(func.count(VisitLog.id).desc()).all()

@@ -18,23 +18,23 @@ function formatNumber(val: number | null | undefined): string {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
     <div
       v-for="(card, idx) in cards"
       :key="card.key"
-      class="gradient-card p-5 relative overflow-hidden"
+      class="gradient-card p-3 relative overflow-hidden"
       :style="{ animationDelay: `${idx * 100}ms` }"
       style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both"
     >
       <!-- 渐变装饰条 -->
       <div
-        class="absolute top-0 left-0 right-0 h-[3px]"
+        class="absolute top-0 left-0 right-0 h-[2px]"
         :style="{ background: card.gradient }"
       />
 
       <!-- 装饰性渐变光晕 -->
       <div
-        class="absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-10 blur-xl"
+        class="absolute -top-4 -right-4 w-12 h-12 rounded-full opacity-10 blur-lg"
         :style="{ background: card.gradient }"
       />
 
@@ -42,21 +42,21 @@ function formatNumber(val: number | null | undefined): string {
       <div class="flex flex-col items-center">
         <!-- 图标 -->
         <div
-          class="flex items-center justify-center w-10 h-10 rounded-xl mb-3"
+          class="flex items-center justify-center w-7 h-7 rounded-lg mb-1.5"
           :style="{ background: card.gradient.replace('linear-gradient(90deg', 'linear-gradient(135deg') + ', rgba(255,255,255,0.18))' }"
         >
           <component
             :is="card.icon"
-            :size="18"
+            :size="14"
             class="text-white"
           />
         </div>
 
         <!-- 指标名称 -->
-        <span class="text-xs font-medium text-neutral-500 tracking-wide uppercase mb-2">{{ card.label }}</span>
+        <span class="text-sm font-medium text-neutral-500 tracking-wide uppercase mb-1">{{ card.label }}</span>
 
         <!-- 数字 -->
-        <div class="text-[40px] font-bold text-neutral-900 leading-none tracking-tight tabular-nums">
+        <div class="text-[28px] font-bold text-neutral-900 leading-none tracking-tight tabular-nums">
           {{ formatNumber(summary ? (summary as Record<string, number>)[card.key] : null) }}
         </div>
       </div>
