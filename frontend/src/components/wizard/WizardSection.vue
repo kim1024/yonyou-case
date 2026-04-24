@@ -1,19 +1,25 @@
 <script setup lang="ts">
-import { Lock } from 'lucide-vue-next'
+import { Lock, Loader2 } from 'lucide-vue-next'
 
-defineProps<{
-  number: string
-  title: string
-  description?: string
-  unlocked: boolean
-}>()
+withDefaults(
+  defineProps<{
+    number: string
+    title: string
+    description?: string
+    unlocked: boolean
+    generating?: boolean
+  }>(),
+  {
+    generating: false,
+  },
+)
 </script>
 
 <template>
   <section
     :class="[
       'relative py-3 transition-all duration-500',
-      unlocked ? 'opacity-100' : 'opacity-40 pointer-events-none',
+      unlocked && !generating ? 'opacity-100' : 'opacity-40 pointer-events-none',
     ]"
   >
     <!-- 区域头部 -->
@@ -54,6 +60,21 @@ defineProps<{
         >
           <Lock class="w-4 h-4" :stroke-width="1.5" />
           <span>请先完成上方选择</span>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 生成中遮罩 -->
+    <Transition name="fade">
+      <div
+        v-if="generating"
+        class="absolute inset-0 flex items-center justify-center z-10"
+      >
+        <div
+          class="glass px-6 py-3 rounded-xl flex items-center gap-2.5 text-neutral-500 text-sm font-medium shadow-sm"
+        >
+          <Loader2 class="w-4 h-4 animate-spin" :stroke-width="1.5" />
+          <span>正在生成课程方案…</span>
         </div>
       </div>
     </Transition>

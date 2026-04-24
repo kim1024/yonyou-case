@@ -10,6 +10,7 @@ import StepIndustry from '@/components/wizard/StepIndustry.vue'
 import StepRegion from '@/components/wizard/StepRegion.vue'
 import StepEnterprise from '@/components/wizard/StepEnterprise.vue'
 import StepHour from '@/components/wizard/StepHour.vue'
+import GeneratingOverlay from '@/components/wizard/GeneratingOverlay.vue'
 
 const router = useRouter()
 const {
@@ -83,6 +84,7 @@ async function handleSubmit() {
         title="专业方向"
         description="请选择您的教学专业，我们将为您定制专属课程方案"
         :unlocked="true"
+        :generating="loading.generating"
       >
         <StepMajor
           :majors="cascade.majors"
@@ -98,6 +100,7 @@ async function handleSubmit() {
         title="行业选择"
         description="选择案例所属行业，系统将匹配该行业的标杆企业"
         :unlocked="unlocked.industry"
+        :generating="loading.generating"
       >
         <StepIndustry
           :industries="cascade.industries"
@@ -113,6 +116,7 @@ async function handleSubmit() {
         title="地区选择"
         description="选择企业所在省份，缩小企业匹配范围"
         :unlocked="unlocked.region"
+        :generating="loading.generating"
       >
         <StepRegion
           :regions="cascade.regions"
@@ -128,6 +132,7 @@ async function handleSubmit() {
         title="企业选择"
         description="选择一家企业，查看其详细信息和用友可提供的内容"
         :unlocked="unlocked.enterprise"
+        :generating="loading.generating"
       >
         <StepEnterprise
           :enterprises="cascade.enterprises"
@@ -145,6 +150,7 @@ async function handleSubmit() {
         title="课时安排"
         description="选择课程总课时数，不同课时数对应不同的教学深度"
         :unlocked="unlocked.hour"
+        :generating="loading.generating"
       >
         <StepHour
           :hours="cascade.hours"
@@ -183,6 +189,9 @@ async function handleSubmit() {
         </div>
       </div>
     </main>
+
+    <!-- 全屏生成中遮罩 -->
+    <GeneratingOverlay :visible="loading.generating" />
 
     <!-- 移动端固定底部 CTA -->
     <div class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/90 backdrop-blur-md border-t border-neutral-200 p-4 z-30">
