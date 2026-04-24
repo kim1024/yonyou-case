@@ -112,22 +112,23 @@ function handleLogout() {
         </router-link>
       </nav>
 
-      <!-- 收缩按钮 -->
-      <div class="px-3 py-2 border-t" style="border-color: var(--sidebar-dark-border);">
-        <button
-          class="sidebar-toggle-btn flex items-center justify-center w-full rounded-lg"
-          :class="collapsed ? 'py-2' : 'py-2'"
-          style="color: var(--sidebar-dark-text);"
-          :title="collapsed ? '展开导航' : '收缩导航'"
-          @click="collapsed = !collapsed"
-        >
-          <ChevronLeft v-if="!collapsed" :size="18" :stroke-width="1.8" />
-          <ChevronRight v-else :size="18" :stroke-width="1.8" />
-          <span v-show="!collapsed" class="sidebar-text ml-2 text-xs font-medium whitespace-nowrap">
-            {{ collapsed ? '展开' : '收缩' }}
-          </span>
-        </button>
-      </div>
+      <!-- 浮动收缩/展开按钮 -->
+      <button
+        class="sidebar-toggle-handle absolute right-0 top-1/2 z-40 flex items-center justify-center
+               w-6 h-6 rounded-md border cursor-pointer
+               transition-all duration-200 ease-out"
+        :style="{
+          transform: 'translateY(-50%) translateX(50%)',
+          background: '#0F0F1A',
+          borderColor: 'rgba(255,255,255,0.10)',
+          color: 'rgba(255,255,255,0.50)'
+        }"
+        :title="collapsed ? '展开导航' : '收缩导航'"
+        @click="collapsed = !collapsed"
+      >
+        <ChevronLeft v-if="!collapsed" :size="14" :stroke-width="2" />
+        <ChevronRight v-else :size="14" :stroke-width="2" />
+      </button>
 
       <!-- 底部用户区 -->
       <div class="px-4 py-4 border-t" style="border-color: var(--sidebar-dark-border);">
@@ -189,13 +190,18 @@ function handleLogout() {
   left: -4px;
 }
 
-.sidebar-toggle-btn {
-  transition: background-color 0.15s ease, color 0.15s ease;
+.sidebar-toggle-handle:hover {
+  background-color: rgba(99, 102, 241, 0.30) !important;
+  color: rgba(255, 255, 255, 0.90) !important;
+  border-color: rgba(99, 102, 241, 0.40) !important;
+  transform: translateY(-50%) translateX(50%) scale(1.1);
 }
 
-.sidebar-toggle-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.7);
+.sidebar-toggle-handle:active {
+  background-color: rgba(99, 102, 241, 0.45) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(99, 102, 241, 0.50) !important;
+  transform: translateY(-50%) translateX(50%) scale(0.95);
 }
 
 .logout-btn {

@@ -30,10 +30,10 @@ export const adminApi = {
 
   // ── 统计 ──
   getAnalyticsSummary() { return http.get('/api/admin/analytics/summary') },
-  getVisitTrends() { return http.get('/api/admin/analytics/visits') },
-  getProvinceDistribution() { return http.get('/api/admin/analytics/provinces') },
-  getCaseFrequency() { return http.get('/api/admin/analytics/case-frequency') },
-  getIndustryDistribution() { return http.get('/api/admin/analytics/industries') },
+  getVisitTrends(days: number = 7) { return http.get('/api/admin/analytics/visits', { params: { days } }) },
+  getProvinceDistribution(days: number = 7) { return http.get('/api/admin/analytics/provinces', { params: { days } }) },
+  getCaseFrequency(days: number = 7) { return http.get('/api/admin/analytics/case-frequency', { params: { days } }) },
+  getIndustryDistribution(days: number = 7) { return http.get('/api/admin/analytics/industries', { params: { days } }) },
 
   // ── 专业管理 ──
   getMajors(params: MajorListParams) {
