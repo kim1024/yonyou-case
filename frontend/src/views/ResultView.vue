@@ -115,7 +115,7 @@ function handlePrint() {
         <!-- ===== Course modules ===== -->
         <div v-if="plan.modules.length" class="section-block">
           <h2 class="section-heading"><span class="section-heading-bar" />二、案例课程主要结构</h2>
-          <div class="modules-list">
+          <div class="modules-grid">
             <div
               v-for="(mod, i) in plan.modules"
               :key="i"
@@ -124,7 +124,6 @@ function handlePrint() {
               <h3 class="module-card-title">{{ mod.name }}</h3>
               <ul class="module-items">
                 <li v-for="(item, j) in mod.items" :key="j" class="module-item">
-                  <span class="module-item-dot">·</span>
                   <span>{{ item }}</span>
                 </li>
               </ul>
@@ -136,19 +135,15 @@ function handlePrint() {
         <div v-if="plan.positions.length" class="section-block">
           <h2 class="section-heading"><span class="section-heading-bar" />三、学习后胜任的岗位</h2>
           <p class="position-intro">结合相关行业与专业，学员毕业后可胜任以下岗位：</p>
-          <div class="positions-list">
+          <div class="positions-grid">
             <div
               v-for="(pos, i) in plan.positions"
               :key="i"
               class="position-card"
             >
-              <div class="position-card-header">
-                <span class="position-color-block" />
-                <span class="position-name">{{ pos.title }}</span>
-              </div>
+              <div class="position-name">{{ pos.title }}</div>
               <ul v-if="pos.description.length" class="position-items">
                 <li v-for="(desc, j) in pos.description" :key="j" class="position-item">
-                  <span class="position-item-dot">·</span>
                   <span>{{ desc }}</span>
                 </li>
               </ul>
@@ -158,10 +153,11 @@ function handlePrint() {
 
         <!-- ===== Pricing card ===== -->
         <div class="pricing-card">
+          <div class="pricing-card-bar" />
           <div class="pricing-card-label">课程报价</div>
-          <div class="pricing-card-price">¥{{ formattedPrice }}</div>
-          <div class="pricing-card-info">
-            {{ plan.pricing.hour }}课时 × {{ plan.pricing.unit_price.toLocaleString('zh-CN') }}元/课时
+          <div class="pricing-card-price">
+            <span class="pricing-card-symbol">¥</span>
+            <span class="pricing-card-number">{{ formattedPrice }}</span>
           </div>
         </div>
 
@@ -272,28 +268,34 @@ function handlePrint() {
 }
 
 /* ========================================
-   Modules – single column
+   Modules – 2-column grid
    ======================================== */
-.modules-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .module-card {
-  background: #FAFAF8;
+  background: #FFFFFF;
   border: 1px solid #EDEBE7;
   border-left: 3px solid #C0392B;
-  border-radius: 8px;
-  padding: 20px 24px 18px;
+  border-radius: 6px;
+  padding: 14px 16px;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.module-card:hover {
+  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.08);
+  transform: translateY(-1px);
 }
 
 .module-card-title {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: #2D2D2D;
-  margin: 0 0 12px;
-  line-height: 1.5;
+  line-height: 1.4;
+  margin: 0 0 8px;
 }
 
 .module-items {
@@ -303,25 +305,27 @@ function handlePrint() {
 }
 
 .module-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 4px 0 4px 24px;
-  font-size: 15px;
-  color: #444;
-  line-height: 1.7;
+  font-size: 12px;
+  color: #666666;
+  line-height: 1.6;
+  padding-left: 12px;
+  margin-bottom: 4px;
+  position: relative;
 }
 
-.module-item-dot {
-  color: #C0392B;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 1.7;
-  flex-shrink: 0;
+.module-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #D4A06A;
 }
 
 /* ========================================
-   Positions – single column
+   Positions – 2-column grid
    ======================================== */
 .position-intro {
   font-size: 15px;
@@ -330,39 +334,42 @@ function handlePrint() {
   line-height: 1.7;
 }
 
-.positions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.positions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .position-card {
   background: #FFFFFF;
   border: 1px solid #EDEBE7;
-  border-radius: 8px;
-  padding: 20px 24px 18px;
+  border-top: 2.5px solid #C0392B;
+  border-radius: 6px;
+  padding: 14px 16px;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
 }
 
-.position-card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.position-color-block {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background: #C0392B;
-  flex-shrink: 0;
+.position-card:hover {
+  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.08);
+  transform: translateY(-1px);
 }
 
 .position-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #2D2D2D;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.position-name::before {
+  content: "◆";
+  color: #C0392B;
+  font-size: 8px;
+  flex-shrink: 0;
 }
 
 .position-items {
@@ -372,57 +379,95 @@ function handlePrint() {
 }
 
 .position-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 3px 0 3px 24px;
-  font-size: 15px;
-  color: #444;
-  line-height: 1.7;
-}
-
-.position-item-dot {
-  color: #C0392B;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 1.7;
-  flex-shrink: 0;
+  font-size: 12px;
+  color: #666666;
+  line-height: 1.5;
+  margin-bottom: 3px;
 }
 
 /* ========================================
-   Pricing card – dark theme
+   Pricing card – red background + gold digits
    ======================================== */
 .pricing-card {
   text-align: center;
   margin: 44px auto 0;
-  padding: 40px 32px 32px;
-  background: linear-gradient(135deg, #2D2D2D, #3D3D3D);
-  border-radius: 12px;
-  max-width: 480px;
+  max-width: 360px;
+  width: 100%;
+  background: linear-gradient(135deg, #B83227 0%, #C0392B 35%, #D94A3F 100%);
+  border-radius: 8px;
+  padding: 24px 28px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(192, 57, 43, 0.25);
+}
+
+.pricing-card::before {
+  content: "";
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.pricing-card::after {
+  content: "";
+  position: absolute;
+  left: -20px;
+  bottom: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.pricing-card-bar {
+  width: 40px;
+  height: 2px;
+  background: #FFD700;
+  border-radius: 1px;
+  margin: 0 auto 12px;
+  opacity: 0.7;
 }
 
 .pricing-card-label {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
-  color: #AAAAAA;
-  letter-spacing: 3px;
-  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.18em;
+  margin-bottom: 10px;
 }
 
 .pricing-card-price {
-  font-size: 42px;
-  font-weight: 800;
-  color: #FFFFFF;
-  letter-spacing: -1px;
-  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
 }
 
-.pricing-card-info {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 15px;
-  color: #999999;
+.pricing-card-symbol {
+  font-size: 22px;
+  font-weight: 500;
+  color: #FFD700;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.pricing-card-number {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  background: linear-gradient(180deg, #FFE066 0%, #FFD700 40%, #DAA520 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ========================================
@@ -515,24 +560,43 @@ function handlePrint() {
     font-size: 15px;
   }
 
+  .modules-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .module-card {
+    padding: 12px 14px;
+  }
+
   .module-card-title {
-    font-size: 15px;
+    font-size: 13px;
   }
 
-  .module-item {
-    font-size: 14px;
+  .positions-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
-  .position-item {
-    font-size: 14px;
-  }
-
-  .pricing-card-price {
-    font-size: 32px;
+  .position-card {
+    padding: 12px 14px;
   }
 
   .pricing-card {
-    padding: 32px 20px 24px;
+    max-width: 100%;
+    padding: 20px 22px;
+  }
+
+  .pricing-card-number {
+    font-size: 34px;
+  }
+
+  .pricing-card-symbol {
+    font-size: 18px;
+  }
+
+  .pricing-card-label {
+    font-size: 10px;
   }
 
   .bottom-bar-inner {
