@@ -3,7 +3,7 @@ import { ref, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import {
   Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight,
   Inbox, Cpu, ArrowLeft, RotateCcw, Sparkles, X, Search,
-  Layers, Activity, Zap, Hash, Copy, Info,
+  Layers, Activity, Zap, Hash, Copy, Info, Maximize2, Minimize2, Eye,
 } from 'lucide-vue-next'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import { adminApi } from '@/api/admin'
@@ -385,6 +385,92 @@ const promptVariables = [
   { name: '{total_cost}', desc: '总费用' },
 ]
 
+/* ── 场景预设下拉 ── */
+const scenePresets = ['课程方案生成', '简历生成', '职业规划', '其他']
+
+/* ── 编辑器 ref ── */
+const promptModalTextareaRef = ref<HTMLTextAreaElement | null>(null)
+const versionModalTextareaRef = ref<HTMLTextAreaElement | null>(null)
+
+/* ── 全屏模式 ── */
+const versionFullscreen = ref(false)
+
+/* ── 预览模式 ── */
+const showPreview = ref(false)
+const previewContent = ref('')
+const previewVersionId = ref<number | null>(null)
+
+/* 变量示例值映射 */
+const variableExamples: Record<string, string> = {
+  '{major}': '大数据技术',
+  '{industry}': '制造行业',
+  '{enterprise_name}': '示例企业有限公司',
+  '{region}': '华东地区',
+  '{hour}': '32',
+  '{company_intro}': '该企业是一家专注于智能制造的高新技术企业，成立于2010年，拥有员工500余人。',
+  '{yonyou_content}': '用友U8 cloud 云端ERP系统，提供财务、供应链、生产制造一体化解决方案。',
+  '{total_cost}': '158,000',
+}
+
+/** 在指定 textarea 的光标位置插入文本 */
+function insertVariableAtCursor(textareaRef: HTMLTextAreaElement | null, variableName: string) {
+  if (!textareaRef) return
+  const el = textareaRef
+  const start = el.selectionStart
+  const end = el.selectionEnd
+  const current = el.value
+  el.value = current.substring(0, start) + variableName + current.substring(end)
+  el.selectionStart = el.selectionEnd = start + variableName.length
+  el.focus()
+  // 触发 v-model 更新
+  el.dispatchEvent(new Event('input'))
+}
+
+/** 处理 prompt 模板弹窗中的变量插入 */
+function insertVariableToPromptModal(variableName: string) {
+  insertVariableAtCursor(promptModalTextareaRef.value, variableName)
+}
+
+/** 处理版本弹窗中的变量插入 */
+function insertVariableToVersionModal(variableName: string) {
+  insertVariableAtCursor(versionModalTextareaRef.value, variableName)
+}
+
+/** 计算 textarea 字符数 */
+function computeCharCount(text: string): number {
+  return text.length
+}
+
+/** 切换全屏模式 */
+function toggleVersionFullscreen() {
+  versionFullscreen.value = !versionFullscreen.value
+}
+
+/** 生成预览内容（替换变量占位符为示例值） */
+function generatePreview(content: string): string {
+  let result = content
+  for (const [key, value] of Object.entries(variableExamples)) {
+    result = result.replaceAll(key, value)
+  }
+  return result
+}
+
+/** 显示/隐藏预览 */
+function togglePreview() {
+  if (showPreview.value) {
+    showPreview.value = false
+    return
+  }
+  if (selectedVersion.value) {
+    previewContent.value = generatePreview(selectedVersion.value.content)
+    previewVersionId.value = selectedVersion.value.id
+    showPreview.value = true
+  }
+}
+
+/* ── 场景筛选也改为下拉 ── */
+const promptSceneFilter = ref('')
+
 async function loadPromptTemplates() {
   promptLoading.value = true
   try {
@@ -567,6 +653,7 @@ function handleRollbackBackdropClick(e: MouseEvent) {
 
 function handlePromptSearch() {
   promptPage.value = 1
+  promptScene.value = promptSceneFilter.value === '其他' ? '' : promptSceneFilter.value
   loadPromptTemplates()
 }
 
@@ -995,11 +1082,14 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 type="text" placeholder="搜索模板名称" class="input-macos w-56"
                 @keyup.enter="handlePromptSearch"
               />
-              <input
-                v-model="promptScene"
-                type="text" placeholder="按场景筛选" class="input-macos w-44"
-                @keyup.enter="handlePromptSearch"
-              />
+              <select
+                v-model="promptSceneFilter"
+                class="input-macos w-44"
+                @change="handlePromptSearch"
+              >
+                <option value="">全部场景</option>
+                <option v-for="s in scenePresets" :key="s" :value="s">{{ s }}</option>
+              </select>
               <button class="btn-secondary" @click="handlePromptSearch">
                 <Search :size="15" />
                 搜索
@@ -1171,13 +1261,42 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                   <h3 class="text-sm font-semibold text-neutral-800">版本 v{{ selectedVersion.version_number }} 内容</h3>
                   <p v-if="selectedVersion.remark" class="text-xs text-neutral-500 mt-1">{{ selectedVersion.remark }}</p>
                 </div>
-                <button class="btn-primary text-xs px-3 py-1.5" @click="handleCreateVersion">
-                  <Plus :size="13" />
-                  新版本
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="btn-secondary text-xs px-3 py-1.5"
+                    :class="{ 'btn-preview-active': showPreview && previewVersionId === selectedVersion.id }"
+                    @click="togglePreview"
+                    :title="showPreview ? '退出预览' : '预览模板效果'"
+                  >
+                    <Eye :size="13" />
+                    {{ showPreview && previewVersionId === selectedVersion.id ? '退出预览' : '预览' }}
+                  </button>
+                  <button class="btn-primary text-xs px-3 py-1.5" @click="handleCreateVersion">
+                    <Plus :size="13" />
+                    新版本
+                  </button>
+                </div>
               </div>
               <div class="p-5">
-                <pre class="text-sm text-neutral-700 whitespace-pre-wrap font-mono leading-relaxed bg-neutral-50 rounded-lg p-4 max-h-[500px] overflow-y-auto">{{ selectedVersion.content }}</pre>
+                <!-- 正常内容显示 -->
+                <pre v-if="!showPreview || previewVersionId !== selectedVersion.id" class="version-content-display text-sm text-neutral-700 whitespace-pre-wrap font-mono leading-relaxed bg-neutral-50 rounded-lg p-4 max-h-[500px] overflow-y-auto">{{ selectedVersion.content }}</pre>
+                <!-- 预览内容显示 -->
+                <div v-else class="version-preview-display">
+                  <div class="version-preview-banner">
+                    <Eye :size="14" :stroke-width="2" />
+                    <span>预览模式 - 变量已替换为示例值</span>
+                  </div>
+                  <pre class="text-sm text-neutral-700 whitespace-pre-wrap font-mono leading-relaxed bg-indigo-50/40 rounded-lg p-4 max-h-[500px] overflow-y-auto border border-indigo-100">{{ previewContent }}</pre>
+                  <!-- 变量示例值说明 -->
+                  <div class="mt-3 p-3 bg-blue-50/60 rounded-lg border border-blue-100">
+                    <p class="text-[11px] text-blue-600 font-medium mb-2">示例值映射：</p>
+                    <div class="flex flex-wrap gap-x-3 gap-y-1">
+                      <span v-for="(val, key) in variableExamples" :key="key" class="text-[10px] text-blue-500">
+                        <code class="font-mono font-semibold">{{ key }}</code> → {{ val }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div v-else class="bg-white rounded-xl shadow-sm p-12 text-center text-neutral-400 text-sm">
@@ -1291,7 +1410,10 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             </div>
             <div class="ef-field">
               <label class="ef-label">关联场景</label>
-              <input v-model="promptForm.scene" type="text" class="input-macos" placeholder="如：职业规划、简历生成" />
+              <select v-model="promptForm.scene" class="input-macos">
+                <option value="">请选择场景</option>
+                <option v-for="s in scenePresets" :key="s" :value="s">{{ s }}</option>
+              </select>
             </div>
             <div class="ef-field">
               <label class="ef-label">描述</label>
@@ -1299,28 +1421,43 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             </div>
             <div v-if="!editPromptItem" class="ef-field">
               <label class="ef-label">提示词内容<span class="ef-required">*</span></label>
-              <textarea
-                v-model="promptForm.content"
-                rows="8"
-                class="input-macos"
-                :class="{ 'ef-input-error': promptErrors.content }"
-                @input="delete promptErrors.content"
-                placeholder="输入提示词内容..."
-                style="resize: vertical; font-family: var(--font-mono); font-size: 12px; line-height: 1.6;"
-              />
-              <span v-if="promptErrors.content" class="ef-error-text">{{ promptErrors.content }}</span>
+              <div class="editor-wrapper">
+                <div class="editor-gutter">
+                  <span v-for="n in Math.max(12, promptForm.content.split('\n').length)" :key="n" class="editor-line-num">{{ n }}</span>
+                </div>
+                <textarea
+                  ref="promptModalTextareaRef"
+                  v-model="promptForm.content"
+                  rows="12"
+                  class="input-macos editor-textarea"
+                  :class="{ 'ef-input-error': promptErrors.content }"
+                  @input="delete promptErrors.content"
+                  placeholder="输入提示词内容..."
+                />
+              </div>
+              <div class="editor-footer-bar">
+                <span v-if="promptErrors.content" class="ef-error-text">{{ promptErrors.content }}</span>
+                <span class="editor-char-count">{{ computeCharCount(promptForm.content) }} 字符</span>
+              </div>
             </div>
-            <!-- 变量占位符说明 -->
+            <!-- 变量占位符说明 & 一键插入 -->
             <div class="variable-hint-box">
               <div class="variable-hint-title">
                 <Info :size="13" :stroke-width="2" />
                 支持的变量占位符
+                <span class="variable-insert-hint">（点击插入到编辑器）</span>
               </div>
               <div class="variable-hint-grid">
-                <span v-for="v in promptVariables" :key="v.name" class="variable-tag" :title="v.desc">
+                <button
+                  v-for="v in promptVariables" :key="v.name"
+                  class="variable-tag variable-tag--clickable"
+                  :title="`点击插入 ${v.name} 到编辑器`"
+                  type="button"
+                  @click="insertVariableToPromptModal(v.name)"
+                >
                   <code>{{ v.name }}</code>
                   <span class="variable-tag-desc">{{ v.desc }}</span>
-                </span>
+                </button>
               </div>
             </div>
           </form>
@@ -1339,37 +1476,63 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
          ═══════════════════════════════════════════ -->
     <Teleport to="body">
       <div v-if="showVersionModal" class="ef-overlay" @click="handleVersionBackdropClick">
-        <div class="ef-dialog" style="max-width: 640px;">
+        <div class="ef-dialog ef-dialog--version" :class="{ 'ef-dialog--fullscreen': versionFullscreen }" :style="versionFullscreen ? {} : { maxWidth: '640px' }">
           <div class="ef-header">
             <h2 class="ef-title">创建新版本</h2>
-            <button class="ef-close-btn" @click="showVersionModal = false" type="button">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="fullscreen-toggle-btn"
+                :title="versionFullscreen ? '退出全屏' : '全屏编辑'"
+                @click="toggleVersionFullscreen"
+              >
+                <Minimize2 v-if="versionFullscreen" :size="15" :stroke-width="1.8" />
+                <Maximize2 v-else :size="15" :stroke-width="1.8" />
+              </button>
+              <button class="ef-close-btn" @click="showVersionModal = false; versionFullscreen = false" type="button">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
-          <form @submit.prevent="handleSaveVersion" class="ef-body" novalidate>
+          <form @submit.prevent="handleSaveVersion" class="ef-body" :class="{ 'ef-body--fullscreen': versionFullscreen }" novalidate>
             <div class="ef-field">
               <label class="ef-label">提示词内容<span class="ef-required">*</span></label>
-              <textarea
-                v-model="versionForm.content"
-                rows="12"
-                class="input-macos"
-                placeholder="输入提示词内容..."
-                style="resize: vertical; font-family: var(--font-mono); font-size: 12px; line-height: 1.6;"
-              />
+              <div class="editor-wrapper" :class="{ 'editor-wrapper--fullscreen': versionFullscreen }">
+                <div class="editor-gutter">
+                  <span v-for="n in Math.max(16, versionForm.content.split('\n').length)" :key="n" class="editor-line-num">{{ n }}</span>
+                </div>
+                <textarea
+                  ref="versionModalTextareaRef"
+                  v-model="versionForm.content"
+                  :rows="versionFullscreen ? 28 : 16"
+                  class="input-macos editor-textarea"
+                  placeholder="输入提示词内容..."
+                />
+              </div>
+              <div class="editor-footer-bar">
+                <span class="editor-char-count">{{ computeCharCount(versionForm.content) }} 字符</span>
+              </div>
             </div>
-            <!-- 变量占位符说明 -->
+            <!-- 变量占位符说明 & 一键插入 -->
             <div class="variable-hint-box">
               <div class="variable-hint-title">
                 <Info :size="13" :stroke-width="2" />
                 支持的变量占位符
+                <span class="variable-insert-hint">（点击插入到编辑器）</span>
               </div>
               <div class="variable-hint-grid">
-                <span v-for="v in promptVariables" :key="v.name" class="variable-tag" :title="v.desc">
+                <button
+                  v-for="v in promptVariables" :key="v.name"
+                  class="variable-tag variable-tag--clickable"
+                  :title="`点击插入 ${v.name} 到编辑器`"
+                  type="button"
+                  @click="insertVariableToVersionModal(v.name)"
+                >
                   <code>{{ v.name }}</code>
                   <span class="variable-tag-desc">{{ v.desc }}</span>
-                </span>
+                </button>
               </div>
             </div>
             <div class="ef-field">
@@ -1378,7 +1541,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             </div>
           </form>
           <div class="ef-footer">
-            <button type="button" class="btn-secondary" @click="showVersionModal = false">取消</button>
+            <button type="button" class="btn-secondary" @click="showVersionModal = false; versionFullscreen = false">取消</button>
             <button type="button" class="btn-primary" :disabled="versionSaving || !versionForm.content.trim()" @click="handleSaveVersion">
               {{ versionSaving ? '保存中...' : '保存版本' }}
             </button>
@@ -1561,6 +1724,12 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
   margin-bottom: 8px;
 }
 
+.variable-insert-hint {
+  font-weight: 400;
+  color: var(--color-neutral-400);
+  font-size: 11px;
+}
+
 .variable-hint-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1585,6 +1754,17 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
 .variable-tag:hover {
   border-color: var(--color-primary-300);
   background-color: var(--color-primary-50);
+}
+
+.variable-tag--clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.variable-tag--clickable:active {
+  transform: scale(0.96);
+  background-color: var(--color-primary-100);
+  border-color: var(--color-primary-400);
 }
 
 .variable-tag code {
@@ -1822,5 +2002,172 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
   stroke-dasharray: 2000;
   stroke-dashoffset: 2000;
   animation: tokenLineDrawIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+
+/* ══════════════════════════════════════════════════
+   编辑器增强：行号 + 等宽字体 + 字数统计
+   ══════════════════════════════════════════════════ */
+.editor-wrapper {
+  display: flex;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-0);
+  overflow: hidden;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.editor-wrapper:focus-within {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.editor-gutter {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+  min-width: 36px;
+  background: var(--color-neutral-50);
+  border-right: 1px solid var(--color-neutral-200);
+  user-select: none;
+  overflow: hidden;
+}
+
+.editor-line-num {
+  display: block;
+  height: 19.2px;
+  line-height: 19.2px;
+  text-align: right;
+  padding: 0 8px 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-neutral-350, #a3a3a3);
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-textarea {
+  flex: 1;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 19.2px;
+  padding: 10px 12px;
+  min-height: 228px;
+  background: transparent;
+}
+
+.editor-textarea::placeholder {
+  color: var(--color-neutral-400);
+}
+
+.editor-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 22px;
+}
+
+.editor-char-count {
+  font-size: 11px;
+  color: var(--color-neutral-400);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* ══════════════════════════════════════════════════
+   全屏编辑模式
+   ══════════════════════════════════════════════════ */
+.fullscreen-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--color-neutral-200);
+  color: var(--color-neutral-500);
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--duration-fast) ease;
+}
+
+.fullscreen-toggle-btn:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+  border-color: var(--color-neutral-300);
+}
+
+.ef-dialog--fullscreen {
+  max-width: 100vw !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  animation: ef-fullscreen-in 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ef-body--fullscreen {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ef-body--fullscreen .editor-wrapper {
+  flex: 1;
+}
+
+.ef-body--fullscreen .editor-wrapper--fullscreen {
+  min-height: 0;
+  flex: 1;
+}
+
+.ef-body--fullscreen .editor-wrapper--fullscreen .editor-textarea {
+  min-height: 0;
+  flex: 1;
+}
+
+@keyframes ef-fullscreen-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   版本预览
+   ══════════════════════════════════════════════════ */
+.btn-preview-active {
+  background: var(--color-primary-50) !important;
+  border-color: var(--color-primary-400) !important;
+  color: var(--color-primary-600) !important;
+}
+
+.version-preview-display {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.version-preview-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary-600);
+}
+
+.version-content-display {
+  transition: opacity 0.2s ease;
 }
 </style>

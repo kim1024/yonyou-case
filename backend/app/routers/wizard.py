@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 import httpx
@@ -162,6 +163,136 @@ def get_hours(db: Session = Depends(get_db)):
     return [{"value": v, "label": f"{v}课时", "unit_price": 2000} for v in [8, 16, 24, 32]]
 
 
+def _parse_llm_json(content: str) -> dict | None:
+    """解析 LLM 返回的 JSON，失败则返回 None。"""
+    try:
+        # 如果包含 markdown 代码块标记，先提取 JSON 部分
+        match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', content, re.DOTALL)
+        if match:
+            content = match.group(1).strip()
+
+        parsed = json.loads(content)
+
+        # 校验必填字段
+        required_fields = ("title", "introduction", "modules")
+        for field in required_fields:
+            if field not in parsed:
+                _logger.warning("LLM JSON 缺少必填字段: %s，回退模板", field)
+                return None
+
+        return parsed
+    except (json.JSONDecodeError, TypeError) as e:
+        _logger.warning("LLM 返回内容 JSON 解析失败: %s，回退模板", e)
+        return None
+
+
+def _build_fallback_json(
+    enterprise_name: str,
+    major: str,
+    industry: str,
+    hour: int,
+    hour_block1: int,
+    hour_block2: int,
+    hour_block3: int,
+    hour_block4: int,
+    rate: int,
+    total_cost: int,
+) -> dict:
+    """构建兜底 JSON 模板。"""
+    return {
+        "title": f"{enterprise_name}案例教学课程方案",
+        "subtitle": enterprise_name,
+        "introduction": (
+            f"本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，"
+            f"设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解"
+            f"{industry}与{major}技术的融合应用，掌握实际项目中的核心技能。"
+        ),
+        "modules": [
+            {
+                "name": "模块一：行业背景与需求分析",
+                "hours": hour_block1,
+                "items": [
+                    f"{industry}行业现状与发展趋势",
+                    f"{enterprise_name}业务模式与技术需求分析",
+                    "数字化转型痛点与机遇",
+                ],
+            },
+            {
+                "name": "模块二：技术基础与工具介绍",
+                "hours": hour_block2,
+                "items": [
+                    f"{major}核心技术原理与架构",
+                    "用友产品体系与解决方案概览",
+                    "开发环境搭建与工具链配置",
+                ],
+            },
+            {
+                "name": "模块三：案例实战与项目实施",
+                "hours": hour_block3,
+                "items": [
+                    f"{enterprise_name}真实业务场景解析",
+                    "基于用友平台的功能开发与集成",
+                    "项目方案设计、实施与优化",
+                ],
+            },
+            {
+                "name": "模块四：总结与拓展",
+                "hours": hour_block4,
+                "items": [
+                    "项目成果展示与答辩",
+                    f"{industry}领域最佳实践总结",
+                    "职业发展路径与学习资源推荐",
+                ],
+            },
+        ],
+        "positions": [
+            {
+                "title": f"{major}工程师",
+                "description": [
+                    f"负责{industry}领域的数据/系统开发",
+                    "参与企业数字化转型项目",
+                    "熟练使用用友产品体系",
+                ],
+            },
+            {
+                "title": f"{industry}解决方案架构师",
+                "description": [
+                    "设计行业数字化解决方案",
+                    "对接客户需求与技术实现",
+                ],
+            },
+            {
+                "title": "项目实施顾问",
+                "description": [
+                    "负责用友产品在企业的落地实施",
+                    "提供客户培训与技术支持",
+                ],
+            },
+            {
+                "title": "业务分析师",
+                "description": [
+                    f"分析{industry}业务流程与需求",
+                    "设计数字化优化方案",
+                ],
+            },
+            {
+                "title": "技术项目经理",
+                "description": [
+                    f"管理{industry}领域IT项目",
+                    "协调团队与客户资源",
+                ],
+            },
+        ],
+        "deliverables": ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"],
+        "notes": "以上内容由 AI 生成，请结合实际教学需求进行调整。",
+        "pricing": {
+            "hour": hour,
+            "unit_price": rate,
+            "total_cost": total_cost,
+        },
+    }
+
+
 @router.post("/api/generate")
 def generate(request: dict, db: Session = Depends(get_db)):
     major = request.get("major", "")
@@ -235,21 +366,25 @@ def generate(request: dict, db: Session = Depends(get_db)):
         pass
 
     if db_prompt_content:
-        prompt = db_prompt_content.format(
-            major=_safe(major),
-            industry=_safe(industry),
-            enterprise_name=_safe(enterprise_name),
-            region=_safe(region),
-            hour=hour,
-            company_intro=_safe(company_intro, 1000),
-            yonyou_content=_safe(yonyou_content, 1000),
-            total_cost=f"{total_cost:,}",
-            hour_block1=hour_block1,
-            hour_block2=hour_block2,
-            hour_block3=hour_block3,
-            hour_block4=hour_block4,
-        )
-    else:
+        try:
+            prompt = db_prompt_content.format(
+                major=_safe(major),
+                industry=_safe(industry),
+                enterprise_name=_safe(enterprise_name),
+                region=_safe(region),
+                hour=hour,
+                company_intro=_safe(company_intro, 1000),
+                yonyou_content=_safe(yonyou_content, 1000),
+                hour_block1=hour_block1,
+                hour_block2=hour_block2,
+                hour_block3=hour_block3,
+                hour_block4=hour_block4,
+            )
+        except KeyError as e:
+            _logger.warning("提示词模板变量替换失败: %s，使用默认 prompt", e)
+            db_prompt_content = None
+
+    if not db_prompt_content:
         prompt = f"""请根据以下信息，生成一份产业案例教学课程设计方案。
 
 专业方向：{_safe(major)}
@@ -265,77 +400,65 @@ def generate(request: dict, db: Session = Depends(get_db)):
 {_safe(yonyou_content, 1000)}
 </用友建设内容>
 
-请严格按照以下格式生成 Markdown 方案，用 **粗体** 标注关键数字和费用信息：
+请严格按照以下 JSON 结构输出（仅输出 JSON，不要输出其他内容）：
 
-# {_safe(enterprise_name)}案例教学课程方案
+{{
+  "title": "{_safe(enterprise_name)}案例教学课程方案",
+  "subtitle": "{_safe(enterprise_name)}",
+  "introduction": "总体介绍文本，说明本教学案例基于该公司的真实业务场景...",
+  "modules": [
+    {{
+      "name": "模块一：行业背景与需求分析",
+      "hours": {hour_block1},
+      "items": ["{industry}行业现状与发展趋势", "{enterprise_name}业务模式与技术需求分析", "数字化转型痛点与机遇"]
+    }},
+    {{
+      "name": "模块二：技术基础与工具介绍",
+      "hours": {hour_block2},
+      "items": ["{major}核心技术原理与架构", "用友产品体系与解决方案概览", "开发环境搭建与工具链配置"]
+    }},
+    {{
+      "name": "模块三：案例实战与项目实施",
+      "hours": {hour_block3},
+      "items": ["{enterprise_name}真实业务场景解析", "基于用友平台的功能开发与集成", "项目方案设计、实施与优化"]
+    }},
+    {{
+      "name": "模块四：总结与拓展",
+      "hours": {hour_block4},
+      "items": ["项目成果展示与答辩", "{industry}领域最佳实践总结", "职业发展路径与学习资源推荐"]
+    }}
+  ],
+  "positions": [
+    {{
+      "title": "{major}工程师",
+      "description": ["负责{industry}领域的数据/系统开发", "参与企业数字化转型项目", "熟练使用用友产品体系"]
+    }},
+    {{
+      "title": "{industry}解决方案架构师",
+      "description": ["设计行业数字化解决方案", "对接客户需求与技术实现"]
+    }},
+    {{
+      "title": "项目实施顾问",
+      "description": ["负责用友产品在企业的落地实施", "提供客户培训与技术支持"]
+    }},
+    {{
+      "title": "业务分析师",
+      "description": ["分析{industry}业务流程与需求", "设计数字化优化方案"]
+    }},
+    {{
+      "title": "技术项目经理",
+      "description": ["管理{industry}领域IT项目", "协调团队与客户资源"]
+    }}
+  ],
+  "deliverables": ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"],
+  "notes": "以上内容由 AI 生成，请结合实际教学需求进行调整。"
+}}
 
-## {_safe(enterprise_name)}
-
----
-
-## 一、总体介绍
-本教学案例基于{_safe(enterprise_name)}公司的真实业务场景，结合{_safe(industry)}专业技术，设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解{_safe(industry)}与{_safe(major)}技术的融合应用，掌握实际项目中的核心技能。
-
-## 二、案例课程主要结构
-
-### 模块一：行业背景与需求分析（{hour_block1}课时）
-- {_safe(industry)}行业现状与发展趋势
-- {_safe(enterprise_name)}业务模式与技术需求分析
-- 数字化转型痛点与机遇
-
-### 模块二：技术基础与工具介绍（{hour_block2}课时）
-- {_safe(major)}核心技术原理与架构
-- 用友产品体系与解决方案概览
-- 开发环境搭建与工具链配置
-
-### 模块三：案例实战与项目实施（{hour_block3}课时）
-- {_safe(enterprise_name)}真实业务场景解析
-- 基于用友平台的功能开发与集成
-- 项目方案设计、实施与优化
-
-### 模块四：总结与拓展（{hour_block4}课时）
-- 项目成果展示与答辩
-- {_safe(industry)}领域最佳实践总结
-- 职业发展路径与学习资源推荐
-
-## 三、学习后可以胜任的岗位
-
-结合{_safe(industry)}领域与{_safe(major)}专业，学员毕业后可胜任以下岗位：
-
-1. **{_safe(major)}工程师**
-   - 负责{_safe(industry)}领域的数据/系统开发
-   - 参与企业数字化转型项目
-   - 熟练使用用友产品体系
-
-2. **{_safe(industry)}解决方案架构师**
-   - 设计行业数字化解决方案
-   - 对接客户需求与技术实现
-
-3. **项目实施顾问**
-   - 负责用友产品在企业的落地实施
-   - 提供客户培训与技术支持
-
-4. **业务分析师**
-   - 分析{_safe(industry)}业务流程与需求
-   - 设计数字化优化方案
-
-5. **技术项目经理**
-   - 管理{_safe(industry)}领域IT项目
-   - 协调团队与客户资源
-
----
-
-<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">课程最终报价</span>
-
-<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">¥{total_cost:,}</span>
-
-<div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:14px;color:#666666"><span>📊 PPT</span><span>|</span><span>🎬 视频</span><span>|</span><span>📖 指导书</span><span>|</span><span>📂 数据集</span><span>|</span><span>⌨ 代码包</span><span>|</span><span>🖥 实操环境</span></div>
-
----
-
-> ⚠️ 以上内容由 AI 生成，请结合实际教学需求进行调整。
-
-请使用 Markdown 格式输出。"""
+要求：
+1. 请根据实际信息丰富 introduction 的内容，使其不少于 100 字。
+2. modules 中每个模块的 items 不少于 3 条。
+3. positions 中岗位和描述需结合 {industry} 领域与 {major} 专业。
+4. 仅输出 JSON，不要输出其他内容。"""
 
     try:
         if api_key and api_key != "sk-xxx":
@@ -365,96 +488,22 @@ def generate(request: dict, db: Session = Depends(get_db)):
                     )
                     db.add(log)
                     db.commit()
-                # 修复 LLM 可能生成的单 * (italic) 为 ** (bold)
-                content = re.sub(r'(?<!\*)\*(?!\s)([^\*]+?)(?<!\s)\*(?!\*)', r'**\1**', content)
 
-                # ========== 标准化报价区域 HTML ==========
-                # 将报价标题 span 标准化为前端正则可匹配的格式
-                content = re.sub(
-                    r'<span\s[^>]*font-size\s*:\s*15px[^>]*>([^<]*最终报价[^<]*)</span>',
-                    '<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">课程最终报价</span>',
-                    content,
-                )
-                # 将报价数字 span 标准化为前端正则可匹配的格式（提取 ¥ 数字部分）
-                content = re.sub(
-                    r'<span\s[^>]*font-size\s*:\s*56px[^>]*>([¥￥][\d,]+)</span>',
-                    '<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">\\1</span>',
-                    content,
-                )
-                # ========== 标准化结束 ==========
-
-                return {"content": content, "source": "ai"}
+                # 解析 LLM 返回的 JSON
+                plan_json = _parse_llm_json(content)
+                if plan_json is not None:
+                    plan_json["pricing"] = {
+                        "hour": hour,
+                        "unit_price": rate,
+                        "total_cost": total_cost,
+                    }
+                    return {"data": plan_json, "source": "ai"}
     except Exception as e:
         _logger.error("AI API call failed: %s", e)
 
-    # 回退到模板生成
-    template = f"""# {enterprise_name}案例教学课程方案
-
-## {enterprise_name}
-
----
-
-## 一、总体介绍
-
-本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，设计了一套完整的**{hour}课时**教学方案。通过本案例的学习，学员将深入理解{industry}与{major}技术的融合应用，掌握实际项目中的核心技能。
-
-## 二、案例课程主要结构
-
-### 模块一：行业背景与需求分析（{hour_block1}课时）
-- {industry}行业现状与发展趋势
-- {enterprise_name}业务模式与技术需求分析
-- 数字化转型痛点与机遇
-
-### 模块二：技术基础与工具介绍（{hour_block2}课时）
-- {major}核心技术原理与架构
-- 用友产品体系与解决方案概览
-- 开发环境搭建与工具链配置
-
-### 模块三：案例实战与项目实施（{hour_block3}课时）
-- {enterprise_name}真实业务场景解析
-- 基于用友平台的功能开发与集成
-- 项目方案设计、实施与优化
-
-### 模块四：总结与拓展（{hour_block4}课时）
-- 项目成果展示与答辩
-- {industry}领域最佳实践总结
-- 职业发展路径与学习资源推荐
-
-## 三、学习后可以胜任的岗位
-
-结合{industry}领域与{major}专业，学员毕业后可胜任以下岗位：
-
-1. **{major}工程师**
-   - 负责{industry}领域的数据/系统开发
-   - 参与企业数字化转型项目
-   - 熟练使用用友产品体系
-
-2. **{industry}解决方案架构师**
-   - 设计行业数字化解决方案
-   - 对接客户需求与技术实现
-
-3. **项目实施顾问**
-   - 负责用友产品在企业的落地实施
-   - 提供客户培训与技术支持
-
-4. **业务分析师**
-   - 分析{industry}业务流程与需求
-   - 设计数字化优化方案
-
-5. **技术项目经理**
-   - 管理{industry}领域IT项目
-   - 协调团队与客户资源
-
----
-
-<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">课程最终报价</span>
-
-<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">¥{total_cost:,}</span>
-
-<div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:14px;color:#666666"><span>📊 PPT</span><span>|</span><span>🎬 视频</span><span>|</span><span>📖 指导书</span><span>|</span><span>📂 数据集</span><span>|</span><span>⌨ 代码包</span><span>|</span><span>🖥 实操环境</span></div>
-
----
-
-> ⚠️ 以上内容由 AI 生成，请结合实际教学需求进行调整。
-"""
-    return {"content": template, "source": "template"}
+    # 回退到模板生成（JSON 格式）
+    fallback = _build_fallback_json(enterprise_name, major, industry,
+                                    hour, hour_block1, hour_block2,
+                                    hour_block3, hour_block4,
+                                    rate, total_cost)
+    return {"data": fallback, "source": "template"}

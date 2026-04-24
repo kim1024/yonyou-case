@@ -350,3 +350,32 @@ export interface PromptListParams {
   scene?: string
   keyword?: string
 }
+
+// ── 课程方案（JSON 结构化） ──
+export interface CourseModule {
+  name: string
+  hours: number
+  items: string[]
+}
+
+export interface CoursePosition {
+  title: string
+  description: string[]
+}
+
+export interface CoursePricing {
+  hour: number
+  unit_price: number
+  total_cost: number
+}
+
+export interface CoursePlan {
+  title: string
+  subtitle: string
+  introduction: string
+  modules: CourseModule[]
+  positions: CoursePosition[]
+  deliverables: string[]
+  notes: string
+  pricing: CoursePricing
+}

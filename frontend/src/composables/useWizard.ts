@@ -1,6 +1,6 @@
 import { reactive, computed } from 'vue'
 import { wizardApi } from '@/api/wizard'
-import type { WizardState, CascadeData } from '@/types'
+import type { WizardState, CascadeData, CoursePlan } from '@/types'
 
 export function useWizard() {
   const state = reactive<WizardState>({
@@ -176,7 +176,7 @@ export function useWizard() {
   }
 
   // 生成课程方案
-  async function generate() {
+  async function generate(): Promise<{ data: CoursePlan; source: string } | null> {
     if (!canSubmit.value) return null
 
     loading.generating = true

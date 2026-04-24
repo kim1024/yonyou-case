@@ -332,8 +332,10 @@ def seed_prompt_templates(db):
         _logger.info("prompt_templates table already has data, skipping.")
         return
 
-    # 主提示词模板（AI 生成用，含变量占位符）
-    main_prompt_content = """请根据以下信息，生成一份产业案例教学课程设计方案。
+    # 主提示词模板（AI 生成用，要求 JSON 输出）
+    main_prompt_content = """请根据以下信息，生成一份产业案例教学课程设计方案。你必须严格按照下方 JSON Schema 的结构输出，不要输出任何其他内容。
+
+## 输入信息
 
 专业方向：{major}
 行业：{industry}
@@ -348,77 +350,117 @@ def seed_prompt_templates(db):
 {yonyou_content}
 </用友建设内容>
 
-请严格按照以下格式生成 Markdown 方案，用 **粗体** 标注关键数字和费用信息：
+## 课时分配参考
 
-# {enterprise_name}案例教学课程方案
+- 模块一（行业背景与需求分析）：{hour_block1}课时
+- 模块二（技术基础与工具介绍）：{hour_block2}课时
+- 模块三（案例实战与项目实施）：{hour_block3}课时
+- 模块四（总结与拓展）：{hour_block4}课时
 
-## {enterprise_name}
+## 输出要求
 
----
+请严格按照以下 JSON Schema 输出，仅输出合法的 JSON 对象，不要包含任何 Markdown、注释或其他文字：
 
-## 一、总体介绍
-本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，设计了一套完整的{hour}课时教学方案。通过本案例的学习，学员将深入理解{industry}与{major}技术的融合应用，掌握实际项目中的核心技能。
+```json
+{{
+  "title": "{enterprise_name}案例教学课程方案",
+  "subtitle": "{enterprise_name}",
+  "introduction": "（不少于100字的总体介绍，说明本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，设计了{hour}课时教学方案，涵盖学员将掌握的核心技能和学习目标）",
+  "modules": [
+    {{
+      "name": "模块一：行业背景与需求分析",
+      "hours": "{hour_block1}",
+      "items": [
+        "{industry}行业现状与发展趋势",
+        "{enterprise_name}业务模式与技术需求分析",
+        "数字化转型痛点与机遇"
+      ]
+    }},
+    {{
+      "name": "模块二：技术基础与工具介绍",
+      "hours": "{hour_block2}",
+      "items": [
+        "{major}核心技术原理与架构",
+        "用友产品体系与解决方案概览",
+        "开发环境搭建与工具链配置"
+      ]
+    }},
+    {{
+      "name": "模块三：案例实战与项目实施",
+      "hours": "{hour_block3}",
+      "items": [
+        "{enterprise_name}真实业务场景解析",
+        "基于用友平台的功能开发与集成",
+        "项目方案设计、实施与优化"
+      ]
+    }},
+    {{
+      "name": "模块四：总结与拓展",
+      "hours": "{hour_block4}",
+      "items": [
+        "项目成果展示与答辩",
+        "{industry}领域最佳实践总结",
+        "职业发展路径与学习资源推荐"
+      ]
+    }}
+  ],
+  "positions": [
+    {{
+      "title": "{major}工程师",
+      "description": [
+        "负责{industry}领域的数据/系统开发",
+        "参与企业数字化转型项目",
+        "熟练使用用友产品体系"
+      ]
+    }},
+    {{
+      "title": "{industry}解决方案架构师",
+      "description": [
+        "设计行业数字化解决方案",
+        "对接客户需求与技术实现"
+      ]
+    }},
+    {{
+      "title": "项目实施顾问",
+      "description": [
+        "负责用友产品在企业的落地实施",
+        "提供客户培训与技术支持"
+      ]
+    }},
+    {{
+      "title": "业务分析师",
+      "description": [
+        "分析{industry}业务流程与需求",
+        "设计数字化优化方案"
+      ]
+    }},
+    {{
+      "title": "技术项目经理",
+      "description": [
+        "管理{industry}领域IT项目",
+        "协调团队与客户资源"
+      ]
+    }}
+  ],
+  "deliverables": [
+    "PPT课件",
+    "教学视频",
+    "实验指导书",
+    "数据集",
+    "代码包",
+    "实操环境配置文档"
+  ],
+  "notes": "以上内容由 AI 生成，请结合实际教学需求进行调整。"
+}}
+```
 
-## 二、案例课程主要结构
-
-### 模块一：行业背景与需求分析（{hour_block1}课时）
-- {industry}行业现状与发展趋势
-- {enterprise_name}业务模式与技术需求分析
-- 数字化转型痛点与机遇
-
-### 模块二：技术基础与工具介绍（{hour_block2}课时）
-- {major}核心技术原理与架构
-- 用友产品体系与解决方案概览
-- 开发环境搭建与工具链配置
-
-### 模块三：案例实战与项目实施（{hour_block3}课时）
-- {enterprise_name}真实业务场景解析
-- 基于用友平台的功能开发与集成
-- 项目方案设计、实施与优化
-
-### 模块四：总结与拓展（{hour_block4}课时）
-- 项目成果展示与答辩
-- {industry}领域最佳实践总结
-- 职业发展路径与学习资源推荐
-
-## 三、学习后可以胜任的岗位
-
-结合{industry}领域与{major}专业，学员毕业后可胜任以下岗位：
-
-1. **{major}工程师**
-   - 负责{industry}领域的数据/系统开发
-   - 参与企业数字化转型项目
-   - 熟练使用用友产品体系
-
-2. **{industry}解决方案架构师**
-   - 设计行业数字化解决方案
-   - 对接客户需求与技术实现
-
-3. **项目实施顾问**
-   - 负责用友产品在企业的落地实施
-   - 提供客户培训与技术支持
-
-4. **业务分析师**
-   - 分析{industry}业务流程与需求
-   - 设计数字化优化方案
-
-5. **技术项目经理**
-   - 管理{industry}领域IT项目
-   - 协调团队与客户资源
-
----
-
-<span style="display:block;text-align:center;margin:40px 0 12px;font-size:15px;font-weight:600;color:#888888;letter-spacing:2px">课程最终报价</span>
-
-<span style="display:block;text-align:center;font-size:56px;font-weight:800;letter-spacing:-1px">¥{total_cost}</span>
-
-<div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:14px;color:#666666"><span>📊 PPT</span><span>|</span><span>🎬 视频</span><span>|</span><span>📖 指导书</span><span>|</span><span>📂 数据集</span><span>|</span><span>⌨ 代码包</span><span>|</span><span>🖥 实操环境</span></div>
-
----
-
-> ⚠️ 以上内容由 AI 生成，请结合实际教学需求进行调整。
-
-请使用 Markdown 格式输出。"""
+重要提示：
+1. 仅输出上述 JSON 对象，不要输出其他任何内容。
+2. JSON 中所有字段均为必填项。
+3. introduction 字段不少于100字。
+4. modules 数组必须包含4个模块。
+5. positions 数组必须包含5个岗位。
+6. 报价信息不需要生成，由系统另行计算。"""
 
     # 创建模板
     template = PromptTemplate(
@@ -435,7 +477,7 @@ def seed_prompt_templates(db):
         template_id=template.id,
         version_number=1,
         content=main_prompt_content,
-        variables='["major", "industry", "enterprise_name", "region", "hour", "company_intro", "yonyou_content", "total_cost", "hour_block1", "hour_block2", "hour_block3", "hour_block4"]',
+        variables='["major", "industry", "enterprise_name", "region", "hour", "company_intro", "yonyou_content", "hour_block1", "hour_block2", "hour_block3", "hour_block4"]',
         remark="初始版本：主提示词模板",
         created_by="system",
     )
