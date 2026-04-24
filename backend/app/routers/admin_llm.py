@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from app.database import get_db
 from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
@@ -256,10 +256,19 @@ def get_token_stats(
         .order_by(func.strftime('%Y-%m-%d', TokenUsageLog.request_timestamp))
         .all()
     )
-    daily_trend = [
-        {"date": str(row.date), "tokens": int(row.tokens), "calls": int(row.calls)}
-        for row in daily_rows
-    ]
+    # 补全缺失日期（填 0）
+    date_map = {str(row.date): row for row in daily_rows}
+    end_date = date.today()
+    start_date = end_date - timedelta(days=days)
+    daily_trend = []
+    for i in range(days + 1):
+        d = (start_date + timedelta(days=i)).isoformat()
+        row = date_map.get(d)
+        daily_trend.append({
+            "date": d,
+            "tokens": int(row.tokens) if row else 0,
+            "calls": int(row.calls) if row else 0,
+        })
 
     return {
         "total_tokens": total_tokens,

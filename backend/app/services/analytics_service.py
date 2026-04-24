@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models.analytics import VisitLog
@@ -37,7 +37,15 @@ def get_visit_trends(db: Session, days: int = 30):
         func.strftime('%Y-%m-%d', VisitLog.request_timestamp)
     ).order_by("date").all()
 
-    return [{"date": str(r.date), "count": r.count} for r in results]
+    # 补全缺失日期（填 0）
+    date_map = {str(r.date): r.count for r in results}
+    end_date = date.today()
+    start_date = end_date - timedelta(days=days)
+    trend = []
+    for i in range(days + 1):
+        d = (start_date + timedelta(days=i)).isoformat()
+        trend.append({"date": d, "count": date_map.get(d, 0)})
+    return trend
 
 
 def get_province_distribution(db: Session, days: int = 30):
