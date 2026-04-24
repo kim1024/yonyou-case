@@ -182,6 +182,9 @@ export const adminApi = {
   },
 
   // ── 方案管理 ──
+  getPlanFilterOptions() {
+    return http.get('/api/admin/plans/filter-options')
+  },
   getPlans(params: PlanListParams) {
     return http.get('/api/admin/plans', { params })
   },

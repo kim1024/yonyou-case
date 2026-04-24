@@ -13,6 +13,40 @@ from app.models.generated_plan import GeneratedPlan
 router = APIRouter(prefix="/api/admin/plans", tags=["admin-plans"])
 
 
+@router.get("/filter-options")
+def get_filter_options(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """返回方案表中去重的 major / industry / province 值列表"""
+    majors = (
+        db.query(GeneratedPlan.major)
+        .filter(GeneratedPlan.major != "", GeneratedPlan.major.isnot(None))
+        .distinct()
+        .order_by(GeneratedPlan.major)
+        .all()
+    )
+    industries = (
+        db.query(GeneratedPlan.industry)
+        .filter(GeneratedPlan.industry != "", GeneratedPlan.industry.isnot(None))
+        .distinct()
+        .order_by(GeneratedPlan.industry)
+        .all()
+    )
+    provinces = (
+        db.query(GeneratedPlan.province)
+        .filter(GeneratedPlan.province != "", GeneratedPlan.province.isnot(None))
+        .distinct()
+        .order_by(GeneratedPlan.province)
+        .all()
+    )
+    return {
+        "majors": [r[0] for r in majors],
+        "industries": [r[0] for r in industries],
+        "provinces": [r[0] for r in provinces],
+    }
+
+
 @router.get("")
 def list_plans(
     page: int = Query(1, ge=1),

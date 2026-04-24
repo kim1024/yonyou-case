@@ -65,9 +65,16 @@ function handleClickOutsideIndustry(e: MouseEvent) {
 const showProvinceDropdown = ref(false)
 const provinceDropdownRef = ref<HTMLDivElement | null>(null)
 const provinceLabel = computed(() => filterProvince.value || '省份')
+const provinceSearch = ref('')
+const filteredProvinceOptions = computed(() =>
+  provinceSearch.value
+    ? provinceOptions.value.filter(p => p.includes(provinceSearch.value))
+    : provinceOptions.value
+)
 
 function selectProvince(val: string) {
   filterProvince.value = val
+  provinceSearch.value = ''
   showProvinceDropdown.value = false
   resetToFirst()
 }
@@ -137,6 +144,7 @@ function handleResetFilters() {
   filterMajor.value = ''
   filterIndustry.value = ''
   filterProvince.value = ''
+  provinceSearch.value = ''
   filterKeyword.value = ''
   filterDateFrom.value = ''
   filterDateTo.value = ''
@@ -251,14 +259,10 @@ onMounted(async () => {
   document.addEventListener('mousedown', handleClickOutsideIndustry)
   document.addEventListener('mousedown', handleClickOutsideProvince)
   try {
-    const [majorsRes, industriesRes, regionsRes] = await Promise.all([
-      adminApi.getMajors({ page: 1, page_size: 999 }),
-      adminApi.getIndustries({ page: 1, page_size: 999 }),
-      adminApi.getRegions({ page: 1, page_size: 999 }),
-    ])
-    majorOptions.value = majorsRes.data.items.map((m: { name: string }) => m.name)
-    industryOptions.value = industriesRes.data.items.map((i: { name: string }) => i.name)
-    provinceOptions.value = regionsRes.data.items.map((r: { name: string }) => r.name)
+    const res = await adminApi.getPlanFilterOptions()
+    majorOptions.value = res.data.majors
+    industryOptions.value = res.data.industries
+    provinceOptions.value = res.data.provinces
   } catch {
     /* silently fail — filters will just be empty */
   }
@@ -382,7 +386,7 @@ onUnmounted(() => {
         <button
           class="btn-secondary min-w-[100px] justify-between"
           :class="filterProvince ? 'ring-1 ring-primary-200 bg-primary-50/30' : ''"
-          @click="showProvinceDropdown = !showProvinceDropdown"
+          @click="showProvinceDropdown = !showProvinceDropdown; provinceSearch = ''"
         >
           <span class="flex items-center gap-1.5">
             <MapPin :size="13" class="text-sky-400" />
@@ -392,15 +396,30 @@ onUnmounted(() => {
         </button>
         <div
           v-if="showProvinceDropdown"
-          class="absolute top-full left-0 mt-1 w-40 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-60 overflow-y-auto"
+          class="absolute top-full left-0 mt-1 w-44 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 overflow-hidden"
         >
-          <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors" :class="filterProvince === '' ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'" @click="selectProvince('')">全部省份</button>
-          <button
-            v-for="opt in provinceOptions" :key="opt"
-            class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors truncate"
-            :class="filterProvince === opt ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'"
-            @click="selectProvince(opt)"
-          >{{ opt }}</button>
+          <!-- 搜索框 -->
+          <div class="px-2 pt-2 pb-1">
+            <input
+              v-model="provinceSearch"
+              type="text"
+              placeholder="搜索省份..."
+              class="w-full px-2.5 py-1.5 text-sm border border-neutral-200 rounded-md focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/20"
+            />
+          </div>
+          <!-- 选项列表 -->
+          <div class="max-h-52 overflow-y-auto">
+            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors" :class="filterProvince === '' ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'" @click="selectProvince('')">全部省份</button>
+            <button
+              v-for="opt in filteredProvinceOptions" :key="opt"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors truncate"
+              :class="filterProvince === opt ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'"
+              @click="selectProvince(opt)"
+            >{{ opt }}</button>
+            <div v-if="filteredProvinceOptions.length === 0" class="px-3 py-4 text-center text-sm text-neutral-400">
+              无匹配结果
+            </div>
+          </div>
         </div>
       </div>
 
