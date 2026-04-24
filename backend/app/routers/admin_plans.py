@@ -18,6 +18,9 @@ def list_plans(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     source: Optional[str] = None,
+    major: Optional[str] = None,
+    industry: Optional[str] = None,
+    province: Optional[str] = None,
     keyword: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
@@ -28,6 +31,15 @@ def list_plans(
 
     if source:
         query = query.filter(GeneratedPlan.source == source)
+
+    if major:
+        query = query.filter(GeneratedPlan.major == major)
+
+    if industry:
+        query = query.filter(GeneratedPlan.industry == industry)
+
+    if province:
+        query = query.filter(GeneratedPlan.province == province)
 
     if keyword:
         pattern = f"%{keyword}%"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, X, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw } from 'lucide-vue-next'
+import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, X, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw, Briefcase } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import type { GeneratedPlanListItem, GeneratedPlan, CoursePlan, PlanListParams } from '@/types'
 
@@ -17,6 +17,76 @@ const filterKeyword = ref('')
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+/* ── 专业/行业/省份过滤 ── */
+const filterMajor = ref('')
+const filterIndustry = ref('')
+const filterProvince = ref('')
+
+const majorOptions = ref<string[]>([])
+const industryOptions = ref<string[]>([])
+const provinceOptions = ref<string[]>([])
+
+/* ── 专业下拉 ── */
+const showMajorDropdown = ref(false)
+const majorDropdownRef = ref<HTMLDivElement | null>(null)
+const majorLabel = computed(() => filterMajor.value || '专业')
+
+function selectMajor(val: string) {
+  filterMajor.value = val
+  showMajorDropdown.value = false
+  resetToFirst()
+}
+
+function handleClickOutsideMajor(e: MouseEvent) {
+  if (majorDropdownRef.value && !majorDropdownRef.value.contains(e.target as Node)) {
+    showMajorDropdown.value = false
+  }
+}
+
+/* ── 行业下拉 ── */
+const showIndustryDropdown = ref(false)
+const industryDropdownRef = ref<HTMLDivElement | null>(null)
+const industryLabel = computed(() => filterIndustry.value || '行业')
+
+function selectIndustry(val: string) {
+  filterIndustry.value = val
+  showIndustryDropdown.value = false
+  resetToFirst()
+}
+
+function handleClickOutsideIndustry(e: MouseEvent) {
+  if (industryDropdownRef.value && !industryDropdownRef.value.contains(e.target as Node)) {
+    showIndustryDropdown.value = false
+  }
+}
+
+/* ── 省份下拉 ── */
+const showProvinceDropdown = ref(false)
+const provinceDropdownRef = ref<HTMLDivElement | null>(null)
+const provinceLabel = computed(() => filterProvince.value || '省份')
+
+function selectProvince(val: string) {
+  filterProvince.value = val
+  showProvinceDropdown.value = false
+  resetToFirst()
+}
+
+function handleClickOutsideProvince(e: MouseEvent) {
+  if (provinceDropdownRef.value && !provinceDropdownRef.value.contains(e.target as Node)) {
+    showProvinceDropdown.value = false
+  }
+}
+
+const hasActiveFilters = computed(() =>
+  filterSource.value !== '' ||
+  filterMajor.value !== '' ||
+  filterIndustry.value !== '' ||
+  filterProvince.value !== '' ||
+  filterKeyword.value.trim() !== '' ||
+  filterDateFrom.value !== '' ||
+  filterDateTo.value !== ''
+)
 
 /* ── 类型下拉 ── */
 const showTypeDropdown = ref(false)
@@ -64,6 +134,9 @@ function handleSearchDebounce() {
 
 function handleResetFilters() {
   filterSource.value = ''
+  filterMajor.value = ''
+  filterIndustry.value = ''
+  filterProvince.value = ''
   filterKeyword.value = ''
   filterDateFrom.value = ''
   filterDateTo.value = ''
@@ -79,6 +152,9 @@ async function loadData() {
       page_size: pageSize,
     }
     if (filterSource.value) params.source = filterSource.value
+    if (filterMajor.value) params.major = filterMajor.value
+    if (filterIndustry.value) params.industry = filterIndustry.value
+    if (filterProvince.value) params.province = filterProvince.value
     if (filterKeyword.value.trim()) params.keyword = filterKeyword.value.trim()
     if (filterDateFrom.value) params.date_from = filterDateFrom.value
     if (filterDateTo.value) params.date_to = filterDateTo.value
@@ -168,13 +244,31 @@ function fmtPrice(n: number): string {
 }
 
 /* ── 生命周期 ── */
-onMounted(() => {
+onMounted(async () => {
   loadData()
   document.addEventListener('mousedown', handleClickOutsideType)
+  document.addEventListener('mousedown', handleClickOutsideMajor)
+  document.addEventListener('mousedown', handleClickOutsideIndustry)
+  document.addEventListener('mousedown', handleClickOutsideProvince)
+  try {
+    const [majorsRes, industriesRes, regionsRes] = await Promise.all([
+      adminApi.getMajors({ page: 1, page_size: 999 }),
+      adminApi.getIndustries({ page: 1, page_size: 999 }),
+      adminApi.getRegions({ page: 1, page_size: 999 }),
+    ])
+    majorOptions.value = majorsRes.data.items.map((m: { name: string }) => m.name)
+    industryOptions.value = industriesRes.data.items.map((i: { name: string }) => i.name)
+    provinceOptions.value = regionsRes.data.items.map((r: { name: string }) => r.name)
+  } catch {
+    /* silently fail — filters will just be empty */
+  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutsideType)
+  document.removeEventListener('mousedown', handleClickOutsideMajor)
+  document.removeEventListener('mousedown', handleClickOutsideIndustry)
+  document.removeEventListener('mousedown', handleClickOutsideProvince)
   if (debounceTimer) clearTimeout(debounceTimer)
 })
 </script>
@@ -201,8 +295,8 @@ onUnmounted(() => {
     </div>
 
     <!-- 筛选栏 -->
-    <div class="flex items-center gap-3 mb-6 flex-wrap">
-      <!-- 类型下拉 -->
+    <div class="flex items-center gap-2.5 mb-5 flex-wrap">
+      <!-- 类型下拉（保持不变） -->
       <div ref="typeDropdownRef" class="relative">
         <button
           class="btn-secondary min-w-[90px] justify-between"
@@ -229,10 +323,99 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <!-- 专业下拉 -->
+      <div ref="majorDropdownRef" class="relative">
+        <button
+          class="btn-secondary min-w-[100px] justify-between"
+          :class="filterMajor ? 'ring-1 ring-primary-200 bg-primary-50/30' : ''"
+          @click="showMajorDropdown = !showMajorDropdown"
+        >
+          <span class="flex items-center gap-1.5">
+            <GraduationCap :size="13" class="text-indigo-400" />
+            {{ majorLabel }}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="ml-1"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div
+          v-if="showMajorDropdown"
+          class="absolute top-full left-0 mt-1 w-40 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-60 overflow-y-auto"
+        >
+          <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors" :class="filterMajor === '' ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'" @click="selectMajor('')">全部专业</button>
+          <button
+            v-for="opt in majorOptions" :key="opt"
+            class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors truncate"
+            :class="filterMajor === opt ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'"
+            @click="selectMajor(opt)"
+          >{{ opt }}</button>
+        </div>
+      </div>
+
+      <!-- 行业下拉 -->
+      <div ref="industryDropdownRef" class="relative">
+        <button
+          class="btn-secondary min-w-[100px] justify-between"
+          :class="filterIndustry ? 'ring-1 ring-primary-200 bg-primary-50/30' : ''"
+          @click="showIndustryDropdown = !showIndustryDropdown"
+        >
+          <span class="flex items-center gap-1.5">
+            <Briefcase :size="13" class="text-emerald-400" />
+            {{ industryLabel }}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="ml-1"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div
+          v-if="showIndustryDropdown"
+          class="absolute top-full left-0 mt-1 w-40 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-60 overflow-y-auto"
+        >
+          <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors" :class="filterIndustry === '' ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'" @click="selectIndustry('')">全部行业</button>
+          <button
+            v-for="opt in industryOptions" :key="opt"
+            class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors truncate"
+            :class="filterIndustry === opt ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'"
+            @click="selectIndustry(opt)"
+          >{{ opt }}</button>
+        </div>
+      </div>
+
+      <!-- 省份下拉 -->
+      <div ref="provinceDropdownRef" class="relative">
+        <button
+          class="btn-secondary min-w-[100px] justify-between"
+          :class="filterProvince ? 'ring-1 ring-primary-200 bg-primary-50/30' : ''"
+          @click="showProvinceDropdown = !showProvinceDropdown"
+        >
+          <span class="flex items-center gap-1.5">
+            <MapPin :size="13" class="text-sky-400" />
+            {{ provinceLabel }}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="ml-1"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div
+          v-if="showProvinceDropdown"
+          class="absolute top-full left-0 mt-1 w-40 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 overflow-hidden max-h-60 overflow-y-auto"
+        >
+          <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors" :class="filterProvince === '' ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'" @click="selectProvince('')">全部省份</button>
+          <button
+            v-for="opt in provinceOptions" :key="opt"
+            class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition-colors truncate"
+            :class="filterProvince === opt ? 'text-primary-600 font-medium bg-primary-50/50' : 'text-neutral-700'"
+            @click="selectProvince(opt)"
+          >{{ opt }}</button>
+        </div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="hidden lg:block w-px h-4 bg-neutral-200 mx-1 flex-shrink-0" />
+
       <!-- 日期范围 -->
-      <input v-model="filterDateFrom" type="date" class="input-macos w-[150px]" placeholder="开始日期" @change="resetToFirst" />
-      <span class="text-neutral-400 text-xs">至</span>
-      <input v-model="filterDateTo" type="date" class="input-macos w-[150px]" placeholder="结束日期" @change="resetToFirst" />
+      <div class="flex items-center gap-1.5">
+        <input v-model="filterDateFrom" type="date" class="input-macos w-[140px] text-[13px]" placeholder="开始日期" @change="resetToFirst" />
+        <span class="text-neutral-300 text-xs">—</span>
+        <input v-model="filterDateTo" type="date" class="input-macos w-[140px] text-[13px]" placeholder="结束日期" @change="resetToFirst" />
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="hidden lg:block w-px h-4 bg-neutral-200 mx-1 flex-shrink-0" />
 
       <!-- 关键词搜索 -->
       <div class="relative">
@@ -240,7 +423,7 @@ onUnmounted(() => {
           v-model="filterKeyword"
           type="text"
           placeholder="搜索专业、行业、方案名称"
-          class="input-macos w-60 pl-8"
+          class="input-macos w-56 pl-8"
           @input="handleSearchDebounce"
           @keyup.enter="resetToFirst"
         />
@@ -248,7 +431,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 重置 -->
-      <button class="btn-ghost text-neutral-500" @click="handleResetFilters">
+      <button v-if="hasActiveFilters" class="btn-ghost text-neutral-500" @click="handleResetFilters">
         <RotateCcw :size="14" />
         重置
       </button>
@@ -743,5 +926,20 @@ onUnmounted(() => {
 .intro-content :deep(strong) {
   font-weight: 600;
   color: var(--color-neutral-800);
+}
+
+/* ── 日期选择器美化 ── */
+input[type="date"].input-macos {
+  color-scheme: light;
+}
+
+input[type="date"].input-macos::-webkit-calendar-picker-indicator {
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+input[type="date"].input-macos::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.7;
 }
 </style>

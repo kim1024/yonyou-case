@@ -401,6 +401,9 @@ export interface PlanListParams {
   page: number
   page_size: number
   source?: 'ai' | 'template'
+  major?: string
+  industry?: string
+  province?: string
   keyword?: string
   date_from?: string
   date_to?: string
