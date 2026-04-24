@@ -60,7 +60,7 @@ async function handleSubmit() {
     <!-- 顶部栏 -->
     <header class="bg-white/80 backdrop-blur-md border-b border-neutral-200">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-        <h1 class="text-lg font-bold text-neutral-900 tracking-tight">产业案例课程定制</h1>
+        <h1 class="text-lg font-bold text-neutral-900 tracking-tight">用友产业案例教学项目课程定制系统</h1>
         <button
           class="btn-ghost text-sm"
           @click="reset"

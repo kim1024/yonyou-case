@@ -36,7 +36,7 @@ function handleLogout() {
             <LayoutDashboard :size="16" color="#fff" :stroke-width="2" />
           </div>
           <div v-show="!collapsed" class="sidebar-text overflow-hidden whitespace-nowrap">
-            <h1 class="text-sm font-bold text-white tracking-tight" style="font-family: var(--font-display);">产业案例管理</h1>
+            <h1 class="text-sm font-bold text-white tracking-tight" style="font-family: var(--font-display);">课程定制系统</h1>
             <p class="text-xs mt-0.5" style="color: var(--sidebar-dark-text);">用友教育</p>
           </div>
         </div>

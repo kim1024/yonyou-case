@@ -102,8 +102,8 @@ async function handleLogin() {
           <h1
             class="text-2xl font-bold tracking-tight"
             style="color: rgba(255,255,255,0.95); font-family: var(--font-display);"
-          >产业案例管理</h1>
-          <p class="text-sm mt-2" style="color: rgba(255,255,255,0.4);">用友教育 · 登录后台管理系统</p>
+          >用友产业案例教学项目课程定制系统</h1>
+          <p class="text-sm mt-2" style="color: rgba(255,255,255,0.4);">用友教育 · 课程定制平台</p>
         </div>
 
         <!-- 表单 -->
