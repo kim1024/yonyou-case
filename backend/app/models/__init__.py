@@ -6,9 +6,11 @@ from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
 from app.models.prompt_template import PromptTemplate
 from app.models.prompt_version import PromptVersion
+from app.models.province_city import Province, City
 
 __all__ = [
     "Enterprise", "AdminUser", "VisitLog",
     "Major", "Industry", "MajorIndustry", "Region", "Hour",
     "LLMConfig", "TokenUsageLog", "PromptTemplate", "PromptVersion",
+    "Province", "City",
 ]

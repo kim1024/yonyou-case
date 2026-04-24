@@ -111,6 +111,39 @@ def migrate_db():
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_template_version ON prompt_versions(template_id, version_number)")
         conn.commit()
 
+    # --- provinces 表 ---
+    cursor.execute("PRAGMA table_info(provinces)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if not columns:
+        cursor.execute("""
+            CREATE TABLE provinces (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(100) NOT NULL UNIQUE,
+                sort_order INTEGER DEFAULT 0,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+    # --- cities 表 ---
+    cursor.execute("PRAGMA table_info(cities)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if not columns:
+        cursor.execute("""
+            CREATE TABLE cities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(100) NOT NULL,
+                province_id INTEGER NOT NULL REFERENCES provinces(id),
+                sort_order INTEGER DEFAULT 0,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_province_id ON cities(province_id)")
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_province_city ON cities(province_id, name)")
+        conn.commit()
+
     conn.close()
 
 
