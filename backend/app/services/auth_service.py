@@ -1,3 +1,5 @@
+import hashlib
+import logging
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -5,19 +7,23 @@ from passlib.context import CryptContext
 
 from app.config import settings
 
+_logger = logging.getLogger(__name__)
+
 # bcrypt 密码哈希上下文
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT 配置
-_jwt_secret = settings.get("admin", {}).get("jwt_secret")
+_base_secret = settings.get("admin", {}).get("jwt_secret")
 _INSECURE_DEFAULTS = {"default-secret-change-me", "change-me-in-production"}
-if not _jwt_secret or _jwt_secret in _INSECURE_DEFAULTS:
+if not _base_secret or _base_secret in _INSECURE_DEFAULTS:
     raise RuntimeError(
         "jwt_secret is not configured or is using an insecure default value. "
         "Set a strong, unique jwt_secret in config.yaml under admin.jwt_secret. "
         "Without this, anyone can forge authentication tokens."
     )
-SECRET_KEY = _jwt_secret
+
+# 基于配置密钥派生 JWT 签名密钥（多进程/重启保持一致）
+SECRET_KEY = hashlib.sha256(_base_secret.encode()).hexdigest()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, X, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw, Briefcase, CalendarDays } from 'lucide-vue-next'
+import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw, Briefcase, CalendarDays } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import type { GeneratedPlanListItem, GeneratedPlan, CoursePlan, PlanListParams } from '@/types'
 
@@ -16,8 +16,6 @@ const filterSource = ref<'' | 'ai' | 'template'>('')
 const filterKeyword = ref('')
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
-const dateFromInput = ref<HTMLInputElement | null>(null)
-const dateToInput = ref<HTMLInputElement | null>(null)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -88,6 +86,101 @@ function handleClickOutsideProvince(e: MouseEvent) {
   }
 }
 
+/* ── 日期选择器（自定义日历面板） ── */
+const showDateFromPicker = ref(false)
+const showDateToPicker = ref(false)
+const dateFromRef = ref<HTMLDivElement | null>(null)
+const dateToRef = ref<HTMLDivElement | null>(null)
+
+const now = new Date()
+const dateFromYear = ref(now.getFullYear())
+const dateFromMonth = ref(now.getMonth())
+const dateToYear = ref(now.getFullYear())
+const dateToMonth = ref(now.getMonth())
+
+const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+const weekdayNames = ['日', '一', '二', '三', '四', '五', '六']
+
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+function getFirstDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 1).getDay()
+}
+
+function getCalendarDays(year: number, month: number): Array<{ day: number; currentMonth: boolean; dateStr: string }> {
+  const daysInMonth = getDaysInMonth(year, month)
+  const firstDay = getFirstDayOfMonth(year, month)
+  const days: Array<{ day: number; currentMonth: boolean; dateStr: string }> = []
+
+  // 填充上个月的日期
+  const prevMonth = month === 0 ? 11 : month - 1
+  const prevYear = month === 0 ? year - 1 : year
+  const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth)
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const day = daysInPrevMonth - i
+    days.push({ day, currentMonth: false, dateStr: '' })
+  }
+
+  // 当月日期
+  for (let d = 1; d <= daysInMonth; d++) {
+    const mm = String(month + 1).padStart(2, '0')
+    const dd = String(d).padStart(2, '0')
+    days.push({ day: d, currentMonth: true, dateStr: `${year}-${mm}-${dd}` })
+  }
+
+  // 填充下个月的日期
+  const remaining = 42 - days.length
+  for (let d = 1; d <= remaining; d++) {
+    days.push({ day: d, currentMonth: false, dateStr: '' })
+  }
+
+  return days
+}
+
+function selectDateFrom(dateStr: string) {
+  filterDateFrom.value = dateStr
+  showDateFromPicker.value = false
+  resetToFirst()
+}
+
+function selectDateTo(dateStr: string) {
+  filterDateTo.value = dateStr
+  showDateToPicker.value = false
+  resetToFirst()
+}
+
+function toggleDateFromPicker() {
+  if (showDateFromPicker.value) {
+    showDateFromPicker.value = false
+  } else {
+    showDateToPicker.value = false
+    showDateFromPicker.value = true
+  }
+}
+
+function toggleDateToPicker() {
+  if (showDateToPicker.value) {
+    showDateToPicker.value = false
+  } else {
+    showDateFromPicker.value = false
+    showDateToPicker.value = true
+  }
+}
+
+function handleClickOutsideDateFrom(e: MouseEvent) {
+  if (dateFromRef.value && !dateFromRef.value.contains(e.target as Node)) {
+    showDateFromPicker.value = false
+  }
+}
+
+function handleClickOutsideDateTo(e: MouseEvent) {
+  if (dateToRef.value && !dateToRef.value.contains(e.target as Node)) {
+    showDateToPicker.value = false
+  }
+}
+
 const hasActiveFilters = computed(() =>
   filterSource.value !== '' ||
   filterMajor.value !== '' ||
@@ -151,6 +244,8 @@ function handleResetFilters() {
   filterKeyword.value = ''
   filterDateFrom.value = ''
   filterDateTo.value = ''
+  showDateFromPicker.value = false
+  showDateToPicker.value = false
   resetToFirst()
 }
 
@@ -267,6 +362,8 @@ onMounted(async () => {
   document.addEventListener('mousedown', handleClickOutsideMajor)
   document.addEventListener('mousedown', handleClickOutsideIndustry)
   document.addEventListener('mousedown', handleClickOutsideProvince)
+  document.addEventListener('mousedown', handleClickOutsideDateFrom)
+  document.addEventListener('mousedown', handleClickOutsideDateTo)
   try {
     const res = await adminApi.getPlanFilterOptions()
     majorOptions.value = res.data.majors
@@ -282,6 +379,8 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutsideMajor)
   document.removeEventListener('mousedown', handleClickOutsideIndustry)
   document.removeEventListener('mousedown', handleClickOutsideProvince)
+  document.removeEventListener('mousedown', handleClickOutsideDateFrom)
+  document.removeEventListener('mousedown', handleClickOutsideDateTo)
   if (debounceTimer) clearTimeout(debounceTimer)
 })
 </script>
@@ -438,42 +537,98 @@ onUnmounted(() => {
       <!-- 日期范围 -->
       <div class="flex items-center gap-1.5">
         <!-- 开始日期 -->
-        <div class="relative">
-          <input
-            ref="dateFromInput"
-            v-model="filterDateFrom"
-            type="date"
-            class="absolute inset-0 opacity-0 pointer-events-none"
-            @change="resetToFirst"
-          />
+        <div ref="dateFromRef" class="relative">
           <div
-            class="date-picker-trigger relative z-1"
-            @click="($refs.dateFromInput as HTMLInputElement).showPicker()"
+            class="date-picker-trigger"
+            :class="{ 'active': showDateFromPicker, 'text-neutral-700': filterDateFrom, 'text-neutral-400': !filterDateFrom }"
+            @click="toggleDateFromPicker"
           >
             <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
-            <span :class="filterDateFrom ? 'text-neutral-700' : 'text-neutral-400'">
-              {{ filterDateFrom ? fmtDateShort(filterDateFrom) : '开始日期' }}
-            </span>
+            <span>{{ filterDateFrom ? fmtDateShort(filterDateFrom) : '开始日期' }}</span>
+          </div>
+          <div
+            v-if="showDateFromPicker"
+            class="calendar-panel"
+          >
+            <!-- 月份导航 -->
+            <div class="calendar-nav">
+              <button class="calendar-nav-btn" @click.stop="dateFromMonth--; if (dateFromMonth < 0) { dateFromMonth = 11; dateFromYear--; }">
+                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+              </button>
+              <span class="calendar-nav-label">{{ dateFromYear }}年{{ monthNames[dateFromMonth] }}</span>
+              <button class="calendar-nav-btn" @click.stop="dateFromMonth++; if (dateFromMonth > 11) { dateFromMonth = 0; dateFromYear++; }">
+                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+              </button>
+            </div>
+            <!-- 星期标题 -->
+            <div class="calendar-weekdays">
+              <span v-for="w in weekdayNames" :key="w" class="calendar-weekday">{{ w }}</span>
+            </div>
+            <!-- 日期格子 -->
+            <div class="calendar-grid">
+              <button
+                v-for="(cell, ci) in getCalendarDays(dateFromYear, dateFromMonth)"
+                :key="ci"
+                class="calendar-day"
+                :class="{
+                  'calendar-day--outside': !cell.currentMonth,
+                  'calendar-day--selected': cell.currentMonth && filterDateFrom === cell.dateStr,
+                  'calendar-day--today': cell.currentMonth && filterDateFrom === '' && cell.dateStr === new Date().toLocaleDateString('sv-SE')
+                }"
+                :disabled="!cell.currentMonth"
+                @click.stop="cell.currentMonth && selectDateFrom(cell.dateStr)"
+              >
+                {{ cell.day }}
+              </button>
+            </div>
           </div>
         </div>
         <span class="text-neutral-300 text-xs select-none">—</span>
         <!-- 结束日期 -->
-        <div class="relative">
-          <input
-            ref="dateToInput"
-            v-model="filterDateTo"
-            type="date"
-            class="absolute inset-0 opacity-0 pointer-events-none"
-            @change="resetToFirst"
-          />
+        <div ref="dateToRef" class="relative">
           <div
-            class="date-picker-trigger relative z-1"
-            @click="($refs.dateToInput as HTMLInputElement).showPicker()"
+            class="date-picker-trigger"
+            :class="{ 'active': showDateToPicker, 'text-neutral-700': filterDateTo, 'text-neutral-400': !filterDateTo }"
+            @click="toggleDateToPicker"
           >
             <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
-            <span :class="filterDateTo ? 'text-neutral-700' : 'text-neutral-400'">
-              {{ filterDateTo ? fmtDateShort(filterDateTo) : '结束日期' }}
-            </span>
+            <span>{{ filterDateTo ? fmtDateShort(filterDateTo) : '结束日期' }}</span>
+          </div>
+          <div
+            v-if="showDateToPicker"
+            class="calendar-panel"
+          >
+            <!-- 月份导航 -->
+            <div class="calendar-nav">
+              <button class="calendar-nav-btn" @click.stop="dateToMonth--; if (dateToMonth < 0) { dateToMonth = 11; dateToYear--; }">
+                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+              </button>
+              <span class="calendar-nav-label">{{ dateToYear }}年{{ monthNames[dateToMonth] }}</span>
+              <button class="calendar-nav-btn" @click.stop="dateToMonth++; if (dateToMonth > 11) { dateToMonth = 0; dateToYear++; }">
+                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+              </button>
+            </div>
+            <!-- 星期标题 -->
+            <div class="calendar-weekdays">
+              <span v-for="w in weekdayNames" :key="w" class="calendar-weekday">{{ w }}</span>
+            </div>
+            <!-- 日期格子 -->
+            <div class="calendar-grid">
+              <button
+                v-for="(cell, ci) in getCalendarDays(dateToYear, dateToMonth)"
+                :key="ci"
+                class="calendar-day"
+                :class="{
+                  'calendar-day--outside': !cell.currentMonth,
+                  'calendar-day--selected': cell.currentMonth && filterDateTo === cell.dateStr,
+                  'calendar-day--today': cell.currentMonth && filterDateTo === '' && cell.dateStr === new Date().toLocaleDateString('sv-SE')
+                }"
+                :disabled="!cell.currentMonth"
+                @click.stop="cell.currentMonth && selectDateTo(cell.dateStr)"
+              >
+                {{ cell.day }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1015,9 +1170,114 @@ onUnmounted(() => {
   border-color: var(--color-neutral-300);
 }
 
-.date-picker-trigger:focus-within,
 .date-picker-trigger.active {
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ── 日历面板 ── */
+.calendar-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  width: 280px;
+  background: #fff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 10px 12px 8px;
+  user-select: none;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.calendar-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-neutral-500);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.calendar-nav-btn:hover {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+}
+
+.calendar-nav-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-neutral-800);
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.calendar-weekday {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-neutral-400);
+  padding: 2px 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px 0;
+}
+
+.calendar-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.calendar-day:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+}
+
+.calendar-day--outside {
+  color: var(--color-neutral-300);
+  cursor: default;
+}
+
+.calendar-day--outside:hover {
+  background: transparent;
+}
+
+.calendar-day--selected {
+  background: var(--color-primary-500) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.calendar-day--today:not(.calendar-day--selected) {
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  font-weight: 600;
 }
 </style>
