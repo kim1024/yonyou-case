@@ -346,6 +346,9 @@ def generate(request: dict, db: Session = Depends(get_db)):
         max_tokens = llm_cfg.get("max_tokens", 4000)
         timeout = llm_cfg.get("timeout", 60)
 
+    # 防止 max_tokens 被误设为模型上下文窗口大小等超大值
+    max_tokens = min(max_tokens, 16384)
+
     # 对数据库字段做长度限制，防止提示注入
     def _safe(text: str, max_len: int = 500) -> str:
         return str(text)[:max_len].replace("{", "{{").replace("}", "}}")

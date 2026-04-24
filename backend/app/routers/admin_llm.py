@@ -30,7 +30,7 @@ class LLMConfigCreate(BaseModel):
     api_key: str
     model: str
     temperature: float = 0.7
-    max_tokens: int = 2000
+    max_tokens: int = Field(default=2000, ge=1, le=16384)
     timeout: int = 60
     is_active: bool = False
 
@@ -41,7 +41,7 @@ class LLMConfigUpdate(BaseModel):
     api_key: Optional[str] = Field(default=None, description="传空字符串则不更新")
     model: Optional[str] = None
     temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
+    max_tokens: Optional[int] = Field(default=None, ge=1, le=16384)
     timeout: Optional[int] = None
     is_active: Optional[bool] = None
 
