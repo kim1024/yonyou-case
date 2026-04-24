@@ -158,6 +158,30 @@ def migrate_db():
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_province_city ON cities(province_id, name)")
         conn.commit()
 
+    # --- generated_plans 表 ---
+    cursor.execute("PRAGMA table_info(generated_plans)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if not columns:
+        cursor.execute("""
+            CREATE TABLE generated_plans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                major VARCHAR(100),
+                industry VARCHAR(100),
+                enterprise VARCHAR(200),
+                province VARCHAR(50),
+                hour INTEGER,
+                source VARCHAR(20),
+                plan_title VARCHAR(500),
+                plan_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_generated_plans_source ON generated_plans(source)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_generated_plans_created_at ON generated_plans(created_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_generated_plans_industry ON generated_plans(industry)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_generated_plans_province ON generated_plans(province)")
+        conn.commit()
+
     conn.close()
 
 

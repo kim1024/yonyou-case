@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { Building2, BarChart3, GraduationCap, Briefcase, MapPin, Clock, LogOut, LayoutDashboard, Bot, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Building2, BarChart3, GraduationCap, Briefcase, MapPin, Clock, LogOut, LayoutDashboard, Bot, FileStack, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 const router = useRouter()
 const { username, logout } = useAuth()
@@ -109,6 +109,15 @@ function handleLogout() {
         >
           <Bot :size="18" :stroke-width="1.8" />
           <span v-show="!collapsed" class="sidebar-text">大模型管理</span>
+        </router-link>
+
+        <router-link
+          to="/admin/plans"
+          class="sidebar-nav-item"
+          :class="{ 'is-active': $route.name === 'plans', 'is-collapsed': collapsed }"
+        >
+          <FileStack :size="18" :stroke-width="1.8" />
+          <span v-show="!collapsed" class="sidebar-text">方案管理</span>
         </router-link>
       </nav>
 

@@ -14,6 +14,7 @@ from app.models.llm_config import LLMConfig
 from app.models.prompt_template import PromptTemplate
 from app.models.prompt_version import PromptVersion
 from app.models.token_usage_log import TokenUsageLog
+from app.models.generated_plan import GeneratedPlan
 
 _logger = logging.getLogger(__name__)
 
@@ -523,6 +524,19 @@ def generate(request: dict, db: Session = Depends(get_db)):
                         "unit_price": rate,
                         "total_cost": total_cost,
                     }
+                    # 持久化 AI 生成的方案
+                    plan_record = GeneratedPlan(
+                        major=major,
+                        industry=industry,
+                        enterprise=enterprise_name,
+                        province=region,
+                        hour=hour,
+                        source="ai",
+                        plan_title=plan_json.get("title", ""),
+                        plan_data=json.dumps(plan_json, ensure_ascii=False),
+                    )
+                    db.add(plan_record)
+                    db.commit()
                     return {"data": plan_json, "source": "ai"}
                 else:
                     _logger.warning("LLM 返回 JSON 解析失败，回退到模板")
@@ -537,4 +551,17 @@ def generate(request: dict, db: Session = Depends(get_db)):
                                     hour, hour_block1, hour_block2,
                                     hour_block3, hour_block4,
                                     rate, total_cost)
+    # 持久化模板回退的方案
+    plan_record = GeneratedPlan(
+        major=major,
+        industry=industry,
+        enterprise=enterprise_name,
+        province=region,
+        hour=hour,
+        source="template",
+        plan_title=fallback.get("title", ""),
+        plan_data=json.dumps(fallback, ensure_ascii=False),
+    )
+    db.add(plan_record)
+    db.commit()
     return {"data": fallback, "source": "template", "llm_error": "大模型调用失败，已使用模板生成方案。请检查大模型配置（API Key、Base URL）是否正确。"}

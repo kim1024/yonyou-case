@@ -5,6 +5,7 @@ import type {
   ProvinceListParams, CityListParams,
   LlmConfigCreate, LlmConfigUpdate, LlmListParams,
   PromptTemplateCreate, PromptVersionCreate, PromptListParams,
+  PlanListParams,
 } from '@/types'
 
 export const adminApi = {
@@ -178,5 +179,16 @@ export const adminApi = {
   },
   rollbackPromptVersion(templateId: number, versionId: number) {
     return http.post(`/api/admin/prompts/${templateId}/versions/${versionId}/rollback`)
+  },
+
+  // ── 方案管理 ──
+  getPlans(params: PlanListParams) {
+    return http.get('/api/admin/plans', { params })
+  },
+  getPlanDetail(id: number) {
+    return http.get(`/api/admin/plans/${id}`)
+  },
+  deletePlan(id: number) {
+    return http.delete(`/api/admin/plans/${id}`)
   },
 }

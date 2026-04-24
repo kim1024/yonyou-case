@@ -19,6 +19,7 @@ from app.database import engine, Base, migrate_db, recover_visit_logs
 from app.routers import admin_auth, wizard, admin_analytics, admin_enterprises
 from app.routers import admin_majors, admin_industries, admin_regions, admin_hours
 from app.routers import admin_prompts, admin_llm, admin_provinces
+from app.routers import admin_plans
 from app.middleware.analytics_middleware import AnalyticsMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
 from seed import seed_database
@@ -28,6 +29,7 @@ from app.models import Enterprise, AdminUser, VisitLog  # noqa: F401
 from app.models import Major, Industry, MajorIndustry, Region, Hour  # noqa: F401
 from app.models import LLMConfig, TokenUsageLog, PromptTemplate, PromptVersion  # noqa: F401
 from app.models import Province, City  # noqa: F401
+from app.models import GeneratedPlan  # noqa: F401
 
 app = FastAPI(title="用友案例定制系统 API")
 
@@ -55,6 +57,7 @@ app.include_router(admin_prompts.router)
 app.include_router(admin_prompts.public_router)
 app.include_router(admin_llm.router)
 app.include_router(admin_provinces.router)
+app.include_router(admin_plans.router)
 
 # 注册分析中间件
 app.add_middleware(AnalyticsMiddleware)

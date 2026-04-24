@@ -379,3 +379,29 @@ export interface CoursePlan {
   notes: string
   pricing: CoursePricing
 }
+
+// ── 生成方案管理 ──
+export interface GeneratedPlanListItem {
+  id: number
+  major: string
+  industry: string
+  enterprise: string
+  province: string
+  hour: number
+  source: 'ai' | 'template'
+  plan_title: string
+  created_at: string
+}
+
+export interface GeneratedPlan extends GeneratedPlanListItem {
+  plan_data: CoursePlan
+}
+
+export interface PlanListParams {
+  page: number
+  page_size: number
+  source?: 'ai' | 'template'
+  keyword?: string
+  date_from?: string
+  date_to?: string
+}
