@@ -78,7 +78,8 @@ export interface AnalyticsSummary {
 
 export interface VisitTrend {
   date: string
-  count: number
+  pv: number
+  uv: number
 }
 
 export interface ProvinceCount {

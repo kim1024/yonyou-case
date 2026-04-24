@@ -24,13 +24,14 @@ def get_summary(db: Session):
 
 
 def get_visit_trends(db: Session, days: int = 30):
-    """按天统计访问量趋势"""
+    """按天统计访问量趋势（PV / UV）"""
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     start = today - timedelta(days=days)
 
     results = db.query(
         cast(VisitLog.request_timestamp, Date).label("date"),
-        func.count(VisitLog.id).label("count")
+        func.count(VisitLog.id).label("pv"),
+        func.count(VisitLog.ip_address.distinct()).label("uv")
     ).filter(
         VisitLog.request_timestamp >= start
     ).group_by(
@@ -38,13 +39,14 @@ def get_visit_trends(db: Session, days: int = 30):
     ).order_by("date").all()
 
     # 补全缺失日期（填 0）
-    date_map = {str(r.date): r.count for r in results}
+    date_map = {str(r.date): (r.pv, r.uv) for r in results}
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
     trend = []
     for i in range(days + 1):
         d = (start_date + timedelta(days=i)).isoformat()
-        trend.append({"date": d, "count": date_map.get(d, 0)})
+        pv, uv = date_map.get(d, (0, 0))
+        trend.append({"date": d, "pv": pv, "uv": uv})
     return trend
 
 
