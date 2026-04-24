@@ -85,6 +85,12 @@ const gridLines = computed(() => {
   return lines
 })
 
+const visibleLabelIndices = computed(() => {
+  if (props.data.length <= 10) return props.data.map((_, i) => i)
+  const step = Math.ceil(props.data.length / 10)
+  return props.data.map((_, i) => i).filter(i => i % step === 0)
+})
+
 function showTooltip(e: MouseEvent, d: VisitTrend, _i: number) {
   const rect = (e.target as SVGElement).closest('svg')!.getBoundingClientRect()
   tooltip.value = {
@@ -152,11 +158,11 @@ function hideTooltip() {
 
       <!-- X轴标签 -->
       <text
-        v-for="(d, i) in data" :key="'l'+i"
+        v-for="i in visibleLabelIndices" :key="'l'+i"
         :x="px(i)" :y="H-PAD+20"
         text-anchor="middle"
         class="text-[10px] fill-neutral-400"
-      >{{ d.date.slice(5) }}</text>
+      >{{ data[i].date.slice(5) }}</text>
     </svg>
     <SvgTooltip v-bind="tooltip" :container-width="containerWidth" />
   </div>

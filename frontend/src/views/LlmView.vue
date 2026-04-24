@@ -321,6 +321,12 @@ const trendGridLines = computed(() => {
   return lines
 })
 
+const trendVisibleLabelIndices = computed(() => {
+  if (trendData.value.length <= 10) return trendData.value.map((_, i) => i)
+  const step = Math.ceil(trendData.value.length / 10)
+  return trendData.value.map((_, i) => i).filter(i => i % step === 0)
+})
+
 const trendTooltip = ref({ visible: false, x: 0, y: 0, content: '' })
 
 function showTrendTooltip(e: MouseEvent, d: { date: string; tokens: number; calls: number }) {
@@ -1049,10 +1055,10 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                   @mouseleave="trendHoverIdx = -1; hideTrendTooltip()"
                 />
                 <text
-                  v-for="(d, i) in trendData" :key="'l'+i"
+                  v-for="i in trendVisibleLabelIndices" :key="'l'+i"
                   :x="trendPx(i)" :y="LINE_H-LINE_PAD+20"
                   text-anchor="middle" class="text-[10px] fill-neutral-400"
-                >{{ d.date.slice(5) }}</text>
+                >{{ trendData[i].date.slice(5) }}</text>
               </svg>
               <SvgTooltip v-bind="trendTooltip" :container-width="trendContainerWidth" />
             </div>
