@@ -110,18 +110,18 @@ function handlePrint() {
 
 <template>
   <div class="result-page" style="min-height:100vh;background:#F8F7F4">
-    <main class="main-content" style="padding:48px 48px 80px">
+    <main class="main-content" style="padding:24px 40px 60px">
       <!-- Empty state -->
       <div
         v-if="!plan"
         class="content-card"
-        style="background:#FFFFFF;border-radius:16px;padding:80px 56px;margin:0 auto;max-width:1080px;text-align:center"
+        style="background:#FFFFFF;border-radius:16px;padding:80px 56px;margin:0 auto;max-width:1320px;text-align:center"
       >
         <p style="font-size:16px;color:#888">暂无方案数据，请重新定制</p>
       </div>
 
       <!-- Course plan content -->
-      <div v-else class="content-card" style="background:#FFFFFF;border-radius:16px;padding:56px;margin:0 auto;max-width:1080px">
+      <div v-else class="content-card" style="background:#FFFFFF;border-radius:16px;padding:48px;margin:0 auto;max-width:1320px">
 
         <!-- ===== Title area ===== -->
         <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #E8E5DF;margin-bottom:0">
@@ -217,7 +217,7 @@ function handlePrint() {
 
     <!-- Bottom action bar -->
     <footer class="bottom-bar" style="position:sticky;bottom:0;z-50;background:rgba(255,255,255,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid #E8E5DF">
-      <div class="bottom-bar-inner max-w-4xl mx-auto flex items-center justify-center gap-3" style="padding:16px 48px">
+      <div class="bottom-bar-inner max-w-4xl mx-auto flex items-center justify-center gap-3" style="padding:16px 40px">
         <button class="btn-secondary flex items-center gap-2" style="padding:10px 24px" @click="router.push('/')">
           <RotateCcw style="width:15px;height:15px" />
           重新定制
@@ -236,7 +236,7 @@ function handlePrint() {
    Title area
    ======================================== */
 .plan-title {
-  font-size: 32px;
+  font-size: 38px;
   font-weight: 700;
   color: #C0392B;
   margin: 0 0 6px;
@@ -245,7 +245,7 @@ function handlePrint() {
 }
 
 .plan-subtitle {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 600;
   color: #C0392B;
   margin: 0;
@@ -254,7 +254,7 @@ function handlePrint() {
 }
 
 .plan-pricing-info {
-  font-size: 15px;
+  font-size: 16px;
   color: #999;
   margin: 12px 0 0;
   letter-spacing: 0.5px;
@@ -271,11 +271,11 @@ function handlePrint() {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: #2D2D2D;
   margin: 0 0 20px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .section-heading-bar {
@@ -291,9 +291,9 @@ function handlePrint() {
    Introduction
    ======================================== */
 .introduction-content {
-  font-size: 16px;
+  font-size: 17px;
   color: #444444;
-  line-height: 1.8;
+  line-height: 1.75;
 }
 
 .introduction-content :deep(.highlight) {
@@ -325,7 +325,7 @@ function handlePrint() {
 }
 
 .module-card-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: #2D2D2D;
   line-height: 1.4;
@@ -351,7 +351,7 @@ function handlePrint() {
 }
 
 .module-item {
-  font-size: 12px;
+  font-size: 13px;
   color: #666666;
   line-height: 1.6;
   padding-left: 12px;
@@ -379,7 +379,7 @@ function handlePrint() {
    Positions – 2-column grid
    ======================================== */
 .position-intro {
-  font-size: 15px;
+  font-size: 16px;
   color: #666;
   margin: 0 0 16px;
   line-height: 1.7;
@@ -406,7 +406,7 @@ function handlePrint() {
 }
 
 .position-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: #2D2D2D;
   line-height: 1.4;
@@ -432,7 +432,7 @@ function handlePrint() {
 }
 
 .position-item {
-  font-size: 12px;
+  font-size: 13px;
   color: #666666;
   line-height: 1.6;
   margin-bottom: 4px;
@@ -506,7 +506,7 @@ function handlePrint() {
 }
 
 .pricing-card-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.65);
   letter-spacing: 0.18em;
@@ -529,7 +529,7 @@ function handlePrint() {
 }
 
 .pricing-card-number {
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -556,7 +556,7 @@ function handlePrint() {
   background: #F5F3EF;
   border: 1px solid #DDD8D0;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 14px;
   color: #444;
 }
 
@@ -572,7 +572,7 @@ function handlePrint() {
   background: linear-gradient(135deg, rgba(254, 243, 199, 0.9), rgba(254, 240, 138, 0.5));
   border: 1px solid rgba(234, 179, 8, 0.3);
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 14px;
   color: #92400e;
   line-height: 1.5;
 }
@@ -591,7 +591,7 @@ function handlePrint() {
   gap: 6px;
   margin-top: 32px;
   padding: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
 }
 
@@ -600,20 +600,20 @@ function handlePrint() {
    ======================================== */
 @media (max-width: 767px) {
   .main-content {
-    padding: 20px 20px 60px !important;
+    padding: 16px 16px 48px !important;
   }
 
   .content-card {
-    padding: 28px 20px !important;
+    padding: 24px 16px !important;
     border-radius: 12px !important;
   }
 
   .plan-title {
-    font-size: 24px;
+    font-size: 28px;
   }
 
   .plan-subtitle {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .plan-pricing-info {
@@ -621,7 +621,7 @@ function handlePrint() {
   }
 
   .section-heading {
-    font-size: 17px;
+    font-size: 19px;
   }
 
   .introduction-content {
@@ -638,7 +638,7 @@ function handlePrint() {
   }
 
   .module-card-title {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .positions-grid {
@@ -650,13 +650,37 @@ function handlePrint() {
     padding: 12px 14px;
   }
 
+  .position-intro {
+    font-size: 15px;
+  }
+
+  .position-name {
+    font-size: 14px;
+  }
+
+  .position-item {
+    font-size: 13px;
+  }
+
+  .deliverable-chip {
+    font-size: 13px;
+  }
+
+  .llm-warning-banner {
+    font-size: 13px;
+  }
+
+  .ai-note {
+    font-size: 12px;
+  }
+
   .pricing-card {
     max-width: 100%;
     padding: 20px 22px;
   }
 
   .pricing-card-number {
-    font-size: 34px;
+    font-size: 36px;
   }
 
   .pricing-card-symbol {
@@ -664,7 +688,7 @@ function handlePrint() {
   }
 
   .pricing-card-label {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .bottom-bar-inner {
