@@ -7,7 +7,7 @@ const props = defineProps<{ data: CaseFrequency[] }>()
 
 const W = 800
 const PAD_TOP = 30
-const PAD_BOTTOM = 130
+const PAD_BOTTOM = 160
 const PAD_LEFT = 50
 const PAD_RIGHT = 20
 const H = 420
@@ -196,25 +196,15 @@ function barH(d: CaseFrequency): number {
           class="text-[10px] fill-neutral-400"
         >{{ d.count }}</text>
 
-        <!-- X 轴旋转标签（完整企业名称） -->
+        <!-- X 轴竖向标签（完整企业名称） -->
         <text
           :x="barX(i) + barW / 2"
-          :y="PAD_TOP + CHART_H + 14"
-          text-anchor="end"
-          :transform="`rotate(-45, ${barX(i) + barW / 2}, ${PAD_TOP + CHART_H + 14})`"
-          class="text-[13px]"
+          :y="PAD_TOP + CHART_H + 18"
+          text-anchor="start"
+          :transform="`rotate(90, ${barX(i) + barW / 2}, ${PAD_TOP + CHART_H + 18})`"
+          class="text-[14px]"
           :class="hoverIdx === i ? 'fill-neutral-900 font-medium' : 'fill-neutral-600'"
         >{{ d.enterprise }}</text>
-
-        <!-- 排名序号（Top 1/2/3） -->
-        <text
-          v-if="i < 3"
-          :x="barX(i) + barW / 2"
-          :y="PAD_TOP + CHART_H + 14 + 22"
-          text-anchor="end"
-          :transform="`rotate(-45, ${barX(i) + barW / 2}, ${PAD_TOP + CHART_H + 14 + 22})`"
-          class="text-[10px] fill-primary-500 font-semibold"
-        >Top {{ i + 1 }}</text>
       </g>
     </svg>
     <SvgTooltip v-bind="tooltip" :container-width="containerWidth" />
