@@ -6,34 +6,53 @@ dist/
 build/
 *.egg
 
-# 虚拟环境
+# 虚拟环境 / conda
 venv/
 .venv/
 env/
+yonyou-case/
 
 # 环境变量
 .env
 
-# 数据库
+# 数据库（SQLite 遗留 + PostgreSQL 备份）
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
+*.sql
+
+# 日志
+backend/logs/
+*.log
+
+# 运行时数据
 *.jsonl
+*.pid
 
 # 配置文件（含敏感信息，使用 config.yaml.example 作为模板）
 config.yaml
+config/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # 系统文件
 .DS_Store
 Thumbs.db
 
+# Node.js
+node_modules/
+
 # 旧代码
 old/
 
-# Logs
-backend/logs/
+# 遗留文档
+旧业务说明.md
+
+# 临时产物
+deliverable-icons/
