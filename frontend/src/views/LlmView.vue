@@ -6,6 +6,7 @@ import {
   Layers, Activity, Zap, Hash, Copy, Info, Maximize2, Minimize2, Eye,
 } from 'lucide-vue-next'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
+import ModelConsumptionChart from '@/components/admin/ModelConsumptionChart.vue'
 import { adminApi } from '@/api/admin'
 import type {
   LlmConfig, LlmConfigCreate, LlmConfigUpdate,
@@ -337,62 +338,6 @@ function showTrendTooltip(e: MouseEvent, d: { date: string; tokens: number; call
   }
 }
 function hideTrendTooltip() { trendTooltip.value.visible = false }
-
-/* ── 环形图 ── */
-const PIE_CX = 200, PIE_CY = 200, PIE_R = 140, PIE_INNER_R = PIE_R * 0.55
-const PIE_COLORS = ['#6366F1', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6']
-const pieHoverIdx = ref(-1)
-const pieContainerEl = ref<HTMLElement | null>(null)
-const pieContainerWidth = ref(0)
-let pieResizeObs: ResizeObserver | null = null
-const pieTooltip = ref({ visible: false, x: 0, y: 0, content: '' })
-
-interface PieSlice {
-  path: string
-  color: string
-  model: string
-  tokens: number
-  pct: string
-  tx: number
-  ty: number
-  lx: number
-  ly: number
-}
-
-const pieTotal = computed(() => (tokenStats.value?.by_model ?? []).reduce((s, d) => s + d.total_tokens, 0))
-
-const pieSlices = computed<PieSlice[]>(() => {
-  const data = tokenStats.value?.by_model ?? []
-  if (!data.length) return []
-  let angle = -Math.PI / 2
-  return data.map((d, i) => {
-    const sweep = pieTotal.value > 0 ? (d.total_tokens / pieTotal.value) * Math.PI * 2 : 0
-    const startAngle = angle
-    angle += sweep
-    const largeArc = sweep > Math.PI ? 1 : 0
-    const x1 = PIE_CX + PIE_R * Math.cos(startAngle)
-    const y1 = PIE_CY + PIE_R * Math.sin(startAngle)
-    const x2 = PIE_CX + PIE_R * Math.cos(angle)
-    const y2 = PIE_CY + PIE_R * Math.sin(angle)
-    const ix1 = PIE_CX + PIE_INNER_R * Math.cos(startAngle)
-    const iy1 = PIE_CY + PIE_INNER_R * Math.sin(startAngle)
-    const ix2 = PIE_CX + PIE_INNER_R * Math.cos(angle)
-    const iy2 = PIE_CY + PIE_INNER_R * Math.sin(angle)
-    const path = `M ${x1} ${y1} A ${PIE_R} ${PIE_R} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${PIE_INNER_R} ${PIE_INNER_R} 0 ${largeArc} 0 ${ix1} ${iy1} Z`
-    const midAngle = startAngle + sweep / 2
-    const pct = pieTotal.value > 0 ? ((d.total_tokens / pieTotal.value) * 100).toFixed(1) : '0'
-    const tx = pieHoverIdx.value === i ? 6 * Math.cos(midAngle) : 0
-    const ty = pieHoverIdx.value === i ? 6 * Math.sin(midAngle) : 0
-    const lx = PIE_CX + (PIE_R * 0.78) * Math.cos(midAngle)
-    const ly = PIE_CY + (PIE_R * 0.78) * Math.sin(midAngle)
-    return { path, color: PIE_COLORS[i % PIE_COLORS.length], model: d.model, tokens: d.total_tokens, pct, tx, ty, lx, ly }
-  })
-})
-
-function showPieTooltip(e: MouseEvent, s: PieSlice) {
-  const rect = pieContainerEl.value!.getBoundingClientRect()
-  pieTooltip.value = { visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top, content: `${s.model}: ${s.tokens.toLocaleString()} Token (${s.pct}%)` }
-}
 
 /* ═══════════════════════════════════════════════
    Tab 3：提示词模板
@@ -732,18 +677,9 @@ watch(trendContainerEl, (el) => {
     trendResizeObs.observe(el)
   }
 })
-watch(pieContainerEl, (el) => {
-  pieResizeObs?.disconnect()
-  if (el) {
-    pieContainerWidth.value = el.offsetWidth
-    pieResizeObs = new ResizeObserver(([entry]) => { pieContainerWidth.value = entry.contentRect.width })
-    pieResizeObs.observe(el)
-  }
-})
 
 onBeforeUnmount(() => {
   trendResizeObs?.disconnect()
-  pieResizeObs?.disconnect()
   if (toastTimer) clearTimeout(toastTimer)
 })
 
@@ -1074,45 +1010,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             class="gradient-card p-6 relative overflow-hidden"
             style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 400ms both"
           >
-            <div ref="pieContainerEl" class="relative">
-              <h3 class="text-base font-semibold text-neutral-800 mb-4">模型消耗分布</h3>
-              <template v-if="pieSlices.length > 0">
-                <svg viewBox="0 0 400 400" class="w-full max-w-sm mx-auto">
-                  <path
-                    v-for="(s, i) in pieSlices" :key="i"
-                    :d="s.path"
-                    :fill="pieHoverIdx === i ? '#4338CA' : s.color"
-                    :transform="`translate(${s.tx}, ${s.ty})`"
-                    class="cursor-pointer"
-                    style="transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), fill 0.15s ease"
-                    @mouseenter="pieHoverIdx = i; showPieTooltip($event, s)"
-                    @mouseleave="pieHoverIdx = -1; pieTooltip.visible = false"
-                  />
-                  <text :x="PIE_CX" :y="PIE_CY - 6" text-anchor="middle" class="text-[18px] fill-neutral-900 font-bold">
-                    {{ formatTokenNumber(pieTotal) }}
-                  </text>
-                  <text :x="PIE_CX" :y="PIE_CY + 14" text-anchor="middle" class="text-[11px] fill-neutral-400">总计</text>
-                  <text
-                    v-for="(s, i) in pieSlices" :key="'t'+i"
-                    :x="s.lx" :y="s.ly"
-                    text-anchor="middle" dominant-baseline="middle"
-                    class="text-[9px] fill-white font-medium pointer-events-none"
-                  >{{ parseFloat(s.pct) > 5 ? s.pct + '%' : '' }}</text>
-                </svg>
-                <div class="flex flex-wrap gap-x-4 gap-y-2 mt-4 justify-center">
-                  <div v-for="(s, i) in pieSlices" :key="'l'+i" class="flex items-center gap-1.5 text-xs text-neutral-600">
-                    <div class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: s.color }" />
-                    <span class="truncate max-w-[100px]">{{ s.model }}</span>
-                    <span class="text-neutral-400 tabular-nums">{{ s.pct }}%</span>
-                  </div>
-                </div>
-                <SvgTooltip v-bind="pieTooltip" :container-width="pieContainerWidth" />
-              </template>
-              <div v-else class="flex flex-col items-center justify-center h-64 text-neutral-400">
-                <Inbox :size="32" />
-                <span class="mt-2 text-sm">暂无消耗数据</span>
-              </div>
-            </div>
+            <ModelConsumptionChart :data="tokenStats?.by_model ?? []" />
           </div>
         </div>
       </template>
