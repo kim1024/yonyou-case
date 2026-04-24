@@ -67,12 +67,12 @@ const formattedPrice = computed(() => {
 // ---------- Deliverable icons (inline SVG) ----------
 
 const deliverableIcons: Record<string, string> = {
-  'PPT': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>',
-  '视频': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>',
-  '指导书': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>',
-  '数据集': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
-  '代码包': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-  '实操环境': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  'PPT': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="14" rx="2" fill="#E8563A" fill-opacity="0.15" stroke="#E8563A" stroke-width="1.5"/><polygon points="10,9 10,15 15,12" fill="#E8563A"/><line x1="7" y1="21" x2="17" y2="21" stroke="#E8563A" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="21" stroke="#E8563A" stroke-width="1.5"/></svg>',
+  '视频': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="15" height="14" rx="2" fill="#E88A3A" fill-opacity="0.15" stroke="#E88A3A" stroke-width="1.5"/><polygon points="8,10 8,16 13,13" fill="#E88A3A"/><path d="M17 9l5-3v12l-5-3V9z" fill="#E88A3A" fill-opacity="0.7" stroke="#E88A3A" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  '指导书': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 4h6a2 2 0 012 2v14a1 1 0 00-1-1H4V4z" fill="#C4883A" fill-opacity="0.15" stroke="#C4883A" stroke-width="1.5" stroke-linejoin="round"/><path d="M20 4h-6a2 2 0 00-2 2v14a1 1 0 011-1h7V4z" fill="#C4883A" fill-opacity="0.15" stroke="#C4883A" stroke-width="1.5" stroke-linejoin="round"/><line x1="8" y1="8" x2="10" y2="8" stroke="#C4883A" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><line x1="8" y1="11" x2="11" y2="11" stroke="#C4883A" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><line x1="13" y1="8" x2="16" y2="8" stroke="#C4883A" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><line x1="13" y1="11" x2="15" y2="11" stroke="#C4883A" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/></svg>',
+  '数据集': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="5" rx="8" ry="3" fill="#5B9A6F" fill-opacity="0.15" stroke="#5B9A6F" stroke-width="1.5"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5" stroke="#5B9A6F" stroke-width="1.5"/><path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" fill="#5B9A6F" fill-opacity="0.08" stroke="#5B9A6F" stroke-width="1.5"/><circle cx="8" cy="5" r="0.8" fill="#5B9A6F"/><circle cx="12" cy="5" r="0.8" fill="#5B9A6F"/><circle cx="16" cy="5" r="0.8" fill="#5B9A6F"/></svg>',
+  '代码包': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 7V5a2 2 0 012-2h4l2 2h6a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" fill="#4A82C4" fill-opacity="0.15" stroke="#4A82C4" stroke-width="1.5" stroke-linejoin="round"/><polyline points="9,16 5,12 9,8" stroke="#4A82C4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="15,8 19,12 15,16" stroke="#4A82C4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  '实操环境': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#8B6BC4" fill-opacity="0.15" stroke="#8B6BC4" stroke-width="1.5"/><line x1="2" y1="7" x2="22" y2="7" stroke="#8B6BC4" stroke-width="1.5" opacity="0.4"/><circle cx="5" cy="5" r="0.7" fill="#8B6BC4" opacity="0.7"/><circle cx="7.5" cy="5" r="0.7" fill="#8B6BC4" opacity="0.5"/><polyline points="6,12 9,15 6,18" stroke="#8B6BC4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="11" y1="18" x2="17" y2="18" stroke="#8B6BC4" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/></svg>',
 }
 
 const positionIcons: string[] = [
@@ -551,13 +551,25 @@ function handlePrint() {
 .deliverable-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 15px;
+  gap: 5px;
+  padding: 5px 12px 5px 8px;
   background: #F5F3EF;
   border: 1px solid #DDD8D0;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: #444;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.deliverable-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.deliverable-chip svg {
+  flex-shrink: 0;
 }
 
 /* ========================================
