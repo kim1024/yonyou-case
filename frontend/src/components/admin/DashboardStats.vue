@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { AnalyticsSummary } from '@/types'
 import { Eye, Building2, CalendarDays, TrendingUp } from 'lucide-vue-next'
 
@@ -39,21 +38,24 @@ function formatNumber(val: number | null | undefined): string {
         :style="{ background: card.gradient }"
       />
 
-      <div class="flex items-center justify-center gap-2 mb-4">
+      <!-- 居中内容区 -->
+      <div class="flex flex-col items-center">
+        <!-- 图标 -->
         <div
-          class="flex items-center justify-center w-7 h-7 rounded-lg"
+          class="flex items-center justify-center w-10 h-10 rounded-xl mb-3"
           :style="{ background: card.gradient.replace('linear-gradient(90deg', 'linear-gradient(135deg') + ', rgba(255,255,255,0.18))' }"
         >
           <component
             :is="card.icon"
-            :size="15"
+            :size="18"
             class="text-white"
           />
         </div>
-        <span class="text-xs font-medium text-neutral-500 tracking-wide uppercase">{{ card.label }}</span>
-      </div>
 
-      <div class="text-center">
+        <!-- 指标名称 -->
+        <span class="text-xs font-medium text-neutral-500 tracking-wide uppercase mb-2">{{ card.label }}</span>
+
+        <!-- 数字 -->
         <div class="text-[40px] font-bold text-neutral-900 leading-none tracking-tight tabular-nums">
           {{ formatNumber(summary ? (summary as Record<string, number>)[card.key] : null) }}
         </div>

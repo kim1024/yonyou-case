@@ -1,7 +1,8 @@
 import http from './http'
 import type {
-  Major, Industry, Region, Hour,
+  Major, Industry, Region, Hour, Province, City,
   MajorListParams, IndustryListParams, RegionListParams, HourListParams,
+  ProvinceListParams, CityListParams,
   LlmConfigCreate, LlmConfigUpdate, LlmListParams,
   PromptTemplateCreate, PromptVersionCreate, PromptListParams,
 } from '@/types'
@@ -83,6 +84,34 @@ export const adminApi = {
   },
   deleteRegion(id: number) {
     return http.delete(`/api/admin/regions/${id}`)
+  },
+
+  // ── 省份管理 ──
+  getProvinces(params: ProvinceListParams) {
+    return http.get('/api/admin/provinces', { params })
+  },
+  createProvince(data: { name: string; sort_order?: number }) {
+    return http.post('/api/admin/provinces', data)
+  },
+  updateProvince(id: number, data: { name?: string; is_active?: boolean; sort_order?: number }) {
+    return http.put(`/api/admin/provinces/${id}`, data)
+  },
+  deleteProvince(id: number) {
+    return http.delete(`/api/admin/provinces/${id}`)
+  },
+
+  // ── 城市管理 ──
+  getCities(provinceId: number, params: CityListParams) {
+    return http.get(`/api/admin/provinces/${provinceId}/cities`, { params })
+  },
+  createCity(data: { name: string; province_id: number; sort_order?: number }) {
+    return http.post('/api/admin/cities', data)
+  },
+  updateCity(id: number, data: { name?: string; province_id?: number; is_active?: boolean; sort_order?: number }) {
+    return http.put(`/api/admin/cities/${id}`, data)
+  },
+  deleteCity(id: number) {
+    return http.delete(`/api/admin/cities/${id}`)
   },
 
   // ── 课时管理 ──

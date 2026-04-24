@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, onUnmounted } from 'vue'
-import { Plus, Search, Inbox, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Plus, Search, Inbox, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import type { Major, Industry } from '@/types'
 
@@ -163,9 +163,17 @@ function handleBackdropClick(e: MouseEvent) {
   <div class="animate-fade-up">
     <!-- 标题栏 -->
     <div class="page-header flex items-center justify-between">
-      <div>
-        <h1>专业管理</h1>
-        <p>配置专业方向及关联行业</p>
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-xl flex items-center justify-center"
+          style="background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);"
+        >
+          <GraduationCap :size="20" color="#fff" :stroke-width="1.8" />
+        </div>
+        <div>
+          <h1>专业管理</h1>
+          <p>配置专业方向与课程体系</p>
+        </div>
       </div>
       <button class="btn-primary" @click="handleAdd">
         <Plus :size="16" />

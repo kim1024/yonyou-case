@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { BarChart3 } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import DashboardStats from '@/components/admin/DashboardStats.vue'
 import VisitTimeline from '@/components/admin/VisitTimeline.vue'
@@ -40,8 +41,18 @@ onMounted(async () => {
 <template>
   <div class="animate-fade-up">
     <div class="page-header">
-      <h1>统计面板</h1>
-      <p>数据概览与可视化分析</p>
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-xl flex items-center justify-center"
+          style="background: linear-gradient(135deg, #14B8A6 0%, #2DD4BF 100%);"
+        >
+          <BarChart3 :size="20" color="#fff" :stroke-width="1.8" />
+        </div>
+        <div>
+          <h1>统计面板</h1>
+          <p>系统访问数据与业务洞察</p>
+        </div>
+      </div>
     </div>
 
     <!-- Skeleton Loading -->

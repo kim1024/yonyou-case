@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-import { Plus, Inbox, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Plus, Inbox, Pencil, Trash2, ChevronLeft, ChevronRight, Clock } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import type { Hour } from '@/types'
 
@@ -128,9 +128,17 @@ function handleBackdropClick(e: MouseEvent) {
   <div class="animate-fade-up">
     <!-- 标题栏 -->
     <div class="page-header flex items-center justify-between">
-      <div>
-        <h1>课时管理</h1>
-        <p>配置课时及单价</p>
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-xl flex items-center justify-center"
+          style="background: linear-gradient(135deg, #6366F1 0%, #818CF8 100%);"
+        >
+          <Clock :size="20" color="#fff" :stroke-width="1.8" />
+        </div>
+        <div>
+          <h1>课时管理</h1>
+          <p>设置课时方案与定价策略</p>
+        </div>
       </div>
       <button class="btn-primary" @click="handleAdd">
         <Plus :size="16" />

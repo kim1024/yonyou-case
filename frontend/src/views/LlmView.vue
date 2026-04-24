@@ -3,7 +3,7 @@ import { ref, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import {
   Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight,
   Inbox, Cpu, ArrowLeft, RotateCcw, Sparkles, X, Search,
-  Layers, Activity, Zap, Hash,
+  Layers, Activity, Zap, Hash, Copy, Info,
 } from 'lucide-vue-next'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import { adminApi } from '@/api/admin'
@@ -13,6 +13,30 @@ import type {
   PromptTemplate, PromptVersion,
   PromptTemplateCreate, PromptVersionCreate,
 } from '@/types'
+
+/* ═══════════════════════════════════════════════
+   全局 Toast 通知
+   ═══════════════════════════════════════════════ */
+interface ToastItem {
+  id: number
+  message: string
+  type: 'success' | 'error' | 'info'
+}
+const toastItems = ref<ToastItem[]>([])
+let toastIdCounter = 0
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+function showToast(message: string, type: ToastItem['type'] = 'success') {
+  const id = ++toastIdCounter
+  toastItems.value.push({ id, message, type })
+  if (toastItems.value.length > 5) toastItems.value.shift()
+  setTimeout(() => { removeToast(id) }, 3200)
+}
+
+function removeToast(id: number) {
+  const idx = toastItems.value.findIndex(t => t.id === id)
+  if (idx !== -1) toastItems.value.splice(idx, 1)
+}
 
 /* ═══════════════════════════════════════════════
    公共状态
@@ -120,8 +144,9 @@ async function handleSaveLlm() {
     }
     showLlmModal.value = false
     loadLlmConfigs()
+    showToast('配置已保存，已全局生效', 'success')
   } catch {
-    alert('保存失败')
+    showToast('保存失败，请重试', 'error')
   } finally {
     llmSaving.value = false
   }
@@ -136,8 +161,9 @@ async function handleDeleteLlm(item: LlmConfig) {
   try {
     await adminApi.deleteLlmConfig(item.id)
     loadLlmConfigs()
+    showToast('配置已删除', 'info')
   } catch {
-    alert('删除失败')
+    showToast('删除失败，请重试', 'error')
   }
 }
 
@@ -146,8 +172,9 @@ async function handleActivateLlm(item: LlmConfig) {
   try {
     await adminApi.activateLlmConfig(item.id)
     loadLlmConfigs()
+    showToast(`「${item.name}」已激活，已全局生效`, 'success')
   } catch {
-    alert('激活失败')
+    showToast('激活失败，请重试', 'error')
   }
 }
 
@@ -346,6 +373,18 @@ const showRollbackModal = ref(false)
 const rollbackTarget = ref<PromptVersion | null>(null)
 const rollbackLoading = ref(false)
 
+/* ── 提示词变量说明 ── */
+const promptVariables = [
+  { name: '{major}', desc: '专业名称' },
+  { name: '{industry}', desc: '所属行业' },
+  { name: '{enterprise_name}', desc: '企业名称' },
+  { name: '{region}', desc: '所属地区' },
+  { name: '{hour}', desc: '课时数' },
+  { name: '{company_intro}', desc: '企业简介' },
+  { name: '{yonyou_content}', desc: '用友产品内容' },
+  { name: '{total_cost}', desc: '总费用' },
+]
+
 async function loadPromptTemplates() {
   promptLoading.value = true
   try {
@@ -409,8 +448,9 @@ async function handleSavePrompt() {
     }
     showPromptModal.value = false
     loadPromptTemplates()
+    showToast(editPromptItem.value ? '模板已更新' : '模板已创建', 'success')
   } catch {
-    alert('保存失败')
+    showToast('保存失败，请重试', 'error')
   } finally {
     promptSaving.value = false
   }
@@ -421,8 +461,9 @@ async function handleDeletePrompt(item: PromptTemplate) {
   try {
     await adminApi.deletePromptTemplate(item.id)
     loadPromptTemplates()
+    showToast('模板已删除', 'info')
   } catch {
-    alert('删除失败')
+    showToast('删除失败，请重试', 'error')
   }
 }
 
@@ -457,12 +498,23 @@ function handleBackToList() {
   selectedVersionId.value = null
 }
 
+/** 复制当前版本内容创建新版本 */
 async function handleCreateVersion() {
   if (!currentTemplateId.value) return
   /* 预填当前版本内容 */
   const current = versions.value.find(v => v.is_current)
   versionForm.value = { content: current?.content ?? '', remark: '' }
   showVersionModal.value = true
+}
+
+/** 从模板列表直接复制为新版本 */
+async function handleCopyAsNewVersion(item: PromptTemplate) {
+  currentTemplateId.value = item.id
+  currentTemplateName.value = item.name
+  showPromptList.value = false
+  await loadVersions(item.id)
+  await nextTick()
+  handleCreateVersion()
 }
 
 async function handleSaveVersion() {
@@ -475,8 +527,9 @@ async function handleSaveVersion() {
     } as PromptVersionCreate)
     showVersionModal.value = false
     await loadVersions(currentTemplateId.value)
+    showToast('新版本已创建，已全局生效', 'success')
   } catch {
-    alert('创建版本失败')
+    showToast('创建版本失败，请重试', 'error')
   } finally {
     versionSaving.value = false
   }
@@ -494,8 +547,9 @@ async function confirmRollback() {
     await adminApi.rollbackPromptVersion(currentTemplateId.value, rollbackTarget.value.id)
     showRollbackModal.value = false
     await loadVersions(currentTemplateId.value)
+    showToast('回滚成功，已全局生效', 'success')
   } catch {
-    alert('回滚失败')
+    showToast('回滚失败，请重试', 'error')
   } finally {
     rollbackLoading.value = false
   }
@@ -541,6 +595,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   trendResizeObs?.disconnect()
   pieResizeObs?.disconnect()
+  if (toastTimer) clearTimeout(toastTimer)
 })
 
 /* Tab 切换时按需加载 */
@@ -557,6 +612,32 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
 
 <template>
   <div class="animate-fade-up">
+    <!-- ═══ Toast 通知层 ═══ -->
+    <Teleport to="body">
+      <div class="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none">
+        <TransitionGroup name="toast">
+          <div
+            v-for="toast in toastItems"
+            :key="toast.id"
+            class="pointer-events-auto toast-item flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg backdrop-blur-sm"
+            :class="{
+              'toast-success': toast.type === 'success',
+              'toast-error': toast.type === 'error',
+              'toast-info': toast.type === 'info',
+            }"
+            @click="removeToast(toast.id)"
+          >
+            <div class="toast-icon-wrap">
+              <Check v-if="toast.type === 'success'" :size="14" :stroke-width="2.5" />
+              <X v-else-if="toast.type === 'error'" :size="14" :stroke-width="2.5" />
+              <Info v-else :size="14" :stroke-width="2.5" />
+            </div>
+            <span class="text-sm font-medium">{{ toast.message }}</span>
+          </div>
+        </TransitionGroup>
+      </div>
+    </Teleport>
+
     <!-- ═══ 标题栏 ═══ -->
     <div class="page-header">
       <div class="flex items-center gap-3">
@@ -650,11 +731,22 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 <tr
                   v-for="(item, index) in llmItems"
                   :key="item.id"
-                  class="border-t border-neutral-100 transition-colors duration-100"
-                  :class="[index % 2 === 1 ? 'bg-neutral-50/50' : '', item.is_active ? 'bg-green-50/40' : '']"
+                  class="border-t border-neutral-100 transition-colors duration-100 llm-row"
+                  :class="[
+                    index % 2 === 1 ? 'bg-neutral-50/50' : '',
+                    item.is_active ? 'llm-row--active' : '',
+                  ]"
                 >
                   <td class="px-4 py-3 text-neutral-400">{{ (llmPage - 1) * llmPageSize + index + 1 }}</td>
-                  <td class="px-4 py-3 font-medium text-neutral-800">{{ item.name }}</td>
+                  <td class="px-4 py-3 font-medium text-neutral-800">
+                    <div class="flex items-center gap-2">
+                      <span>{{ item.name }}</span>
+                      <span v-if="item.is_active" class="active-badge">
+                        <Zap :size="10" :stroke-width="2.5" />
+                        使用中
+                      </span>
+                    </div>
+                  </td>
                   <td class="px-4 py-3">
                     <span class="inline-block px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 text-xs font-medium">
                       {{ item.model }}
@@ -669,15 +761,15 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                   <td class="px-4 py-3 text-center">
                     <button
                       v-if="!item.is_active"
-                      class="btn-ghost text-xs text-primary-500"
+                      class="btn-activate"
                       @click="handleActivateLlm(item)"
                     >
-                      <Check :size="13" />
+                      <Check :size="13" :stroke-width="2.5" />
                       设为当前
                     </button>
-                    <span v-else class="inline-flex items-center gap-1 text-green-600 text-xs font-medium">
-                      <Check :size="14" class="text-green-500" />
-                      使用中
+                    <span v-else class="active-indicator">
+                      <span class="active-dot" />
+                      当前使用
                     </span>
                   </td>
                   <td class="px-4 py-3 text-center">
@@ -959,6 +1051,9 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                       <button class="btn-ghost text-primary-500" @click="handleViewVersions(item)" title="查看版本">
                         <Layers :size="14" />
                       </button>
+                      <button class="btn-ghost text-primary-500" @click="handleCopyAsNewVersion(item)" title="复制创建新版本">
+                        <Copy :size="14" />
+                      </button>
                       <button class="btn-ghost text-primary-500" @click="handleEditPrompt(item)">
                         <Pencil :size="14" />
                       </button>
@@ -1134,6 +1229,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 :class="{ 'ef-input-error': llmErrors.api_key }"
                 @input="delete llmErrors.api_key"
                 :placeholder="editLlmItem ? '留空则保持原值' : '请输入 API Key'"
+                autocomplete="off"
               />
               <span v-if="llmErrors.api_key" class="ef-error-text">{{ llmErrors.api_key }}</span>
             </div>
@@ -1151,6 +1247,16 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 <label class="ef-label">Timeout (s)</label>
                 <input v-model.number="llmForm.timeout" type="number" min="1" class="input-macos" />
               </div>
+            </div>
+            <div class="ef-field">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  v-model="llmForm.is_active"
+                  type="checkbox"
+                  class="w-4 h-4 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
+                />
+                <span class="text-sm text-neutral-700">设为当前激活配置</span>
+              </label>
             </div>
           </form>
           <div class="ef-footer">
@@ -1204,6 +1310,19 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
               />
               <span v-if="promptErrors.content" class="ef-error-text">{{ promptErrors.content }}</span>
             </div>
+            <!-- 变量占位符说明 -->
+            <div class="variable-hint-box">
+              <div class="variable-hint-title">
+                <Info :size="13" :stroke-width="2" />
+                支持的变量占位符
+              </div>
+              <div class="variable-hint-grid">
+                <span v-for="v in promptVariables" :key="v.name" class="variable-tag" :title="v.desc">
+                  <code>{{ v.name }}</code>
+                  <span class="variable-tag-desc">{{ v.desc }}</span>
+                </span>
+              </div>
+            </div>
           </form>
           <div class="ef-footer">
             <button type="button" class="btn-secondary" @click="showPromptModal = false">取消</button>
@@ -1239,6 +1358,19 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
                 placeholder="输入提示词内容..."
                 style="resize: vertical; font-family: var(--font-mono); font-size: 12px; line-height: 1.6;"
               />
+            </div>
+            <!-- 变量占位符说明 -->
+            <div class="variable-hint-box">
+              <div class="variable-hint-title">
+                <Info :size="13" :stroke-width="2" />
+                支持的变量占位符
+              </div>
+              <div class="variable-hint-grid">
+                <span v-for="v in promptVariables" :key="v.name" class="variable-tag" :title="v.desc">
+                  <code>{{ v.name }}</code>
+                  <span class="variable-tag-desc">{{ v.desc }}</span>
+                </span>
+              </div>
             </div>
             <div class="ef-field">
               <label class="ef-label">备注</label>
@@ -1333,7 +1465,143 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
   box-shadow: 0 1px 3px rgba(99, 102, 241, 0.12);
 }
 
-/* ── 弹窗覆盖层（与 IndustryView 一致） ── */
+/* ── 模型配置行 ── */
+.llm-row--active {
+  background-color: rgba(16, 185, 129, 0.04) !important;
+  border-left: 3px solid var(--color-success);
+}
+
+.llm-row--active td:first-child {
+  padding-left: 12px;
+}
+
+/* ── Active Badge（名称旁） ── */
+.active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  color: #059669;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  white-space: nowrap;
+}
+
+/* ── Active Indicator（当前使用列） ── */
+.active-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #059669;
+}
+
+.active-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+  animation: activeDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes activeDotPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18); }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.08); }
+}
+
+/* ── 激活按钮 ── */
+.btn-activate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background-color: transparent;
+  color: var(--color-primary-500);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+}
+
+.btn-activate:hover {
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-400);
+  color: var(--color-primary-600);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.15);
+}
+
+.btn-activate:active {
+  background-color: var(--color-primary-100);
+}
+
+/* ── 变量占位符提示 ── */
+.variable-hint-box {
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.variable-hint-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-neutral-600);
+  margin-bottom: 8px;
+}
+
+.variable-hint-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.variable-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-neutral-600);
+  cursor: default;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+
+.variable-tag:hover {
+  border-color: var(--color-primary-300);
+  background-color: var(--color-primary-50);
+}
+
+.variable-tag code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary-600);
+  background: none;
+  padding: 0;
+}
+
+.variable-tag-desc {
+  color: var(--color-neutral-400);
+  font-size: 10px;
+}
+
+/* ── 弹窗覆盖层 ── */
 .ef-overlay {
   position: fixed;
   inset: 0;
@@ -1461,6 +1729,87 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* ── Toast 通知 ── */
+.toast-item {
+  min-width: 260px;
+  max-width: 400px;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.toast-success {
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.95) 0%, rgba(209, 250, 229, 0.95) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #065f46;
+}
+
+.toast-error {
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.95) 0%, rgba(254, 226, 226, 0.95) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #991b1b;
+}
+
+.toast-info {
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.95) 0%, rgba(207, 250, 254, 0.95) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  color: #164e63;
+}
+
+.toast-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.toast-success .toast-icon-wrap {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.toast-error .toast-icon-wrap {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #DC2626;
+}
+
+.toast-info .toast-icon-wrap {
+  background-color: rgba(6, 182, 212, 0.15);
+  color: #0891B2;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Toast TransitionGroup */
+.toast-enter-active {
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.toast-leave-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(24px) scale(0.96);
+}
+
+.toast-move {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── 折线图动画 ── */

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Plus, Upload, Search, Inbox, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, Upload, Search, Inbox, Pencil, Trash2, Building2 } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import EnterpriseForm from '@/components/admin/EnterpriseForm.vue'
 import ImportDialog from '@/components/admin/ImportDialog.vue'
@@ -69,9 +69,17 @@ onMounted(() => loadData())
   <div class="animate-fade-up">
     <!-- 页面标题区 -->
     <div class="page-header flex items-center justify-between">
-      <div>
-        <h1>企业管理</h1>
-        <p>管理企业案例数据</p>
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-xl flex items-center justify-center"
+          style="background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);"
+        >
+          <Building2 :size="20" color="#fff" :stroke-width="1.8" />
+        </div>
+        <div>
+          <h1>企业管理</h1>
+          <p>管理企业信息与案例数据</p>
+        </div>
       </div>
       <div class="flex gap-3">
         <button class="btn-secondary" @click="showImport = true">
