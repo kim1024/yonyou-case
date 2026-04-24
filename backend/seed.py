@@ -357,8 +357,8 @@ def seed_prompt_templates(db):
 请严格按照以下 JSON 结构输出（仅输出 JSON，不要输出任何其他内容）：
 
 {{
-  "title": "{enterprise_name}案例教学课程方案",
-  "subtitle": "{enterprise_name}",
+  "title": "{enterprise_name}案例",
+  "subtitle": "教学课程方案",
   "introduction": "（请根据实际信息丰富此段介绍，不少于100字。说明本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，设计了{hour}课时教学方案。需要强调的动态内容（如企业名、行业名、专业名、课时数等）请用 HTML 标签 <b class=\\"highlight\\">内容</b> 包裹，使其加粗并使用特殊颜色显示。）",
   "modules": [
     {{
