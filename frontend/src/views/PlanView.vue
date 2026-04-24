@@ -576,7 +576,7 @@ onUnmounted(() => {
 }
 
 .ef-dialog--detail {
-  max-width: 640px;
+  max-width: 92vw;
   max-height: 85vh;
 }
 
