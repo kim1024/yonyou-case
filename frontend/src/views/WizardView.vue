@@ -39,6 +39,11 @@ async function handleSubmit() {
   if (result) {
     sessionStorage.setItem('resultContent', JSON.stringify(result.data))
     sessionStorage.setItem('resultSource', result.source)
+    if (result.llm_error) {
+      sessionStorage.setItem('resultLlmError', result.llm_error)
+    } else {
+      sessionStorage.removeItem('resultLlmError')
+    }
     sessionStorage.setItem('resultSelections', JSON.stringify({
       major: state.major,
       industry: state.industry,

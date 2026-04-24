@@ -44,6 +44,8 @@ const source = computed(() => (route.query.source as string) || sessionStorage.g
 
 const isTemplateFallback = computed(() => source.value === 'template')
 
+const llmError = computed(() => sessionStorage.getItem('resultLlmError') || '')
+
 const plan = computed<CoursePlan | null>(() => {
   try {
     const raw = sessionStorage.getItem('resultContent')
@@ -110,7 +112,7 @@ function handlePrint() {
         class="llm-warning-banner"
       >
         <AlertTriangle :size="16" :stroke-width="2" />
-        <span>当前方案由模板生成（大模型不可用）。如需 AI 生成的方案，请在后台检查大模型配置（API Key、Base URL）。</span>
+        <span>{{ llmError || '当前方案由模板生成（大模型不可用）。如需 AI 生成的方案，请在后台检查大模型配置（API Key、Base URL）。' }}</span>
       </div>
 
       <!-- Empty state -->

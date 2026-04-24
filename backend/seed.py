@@ -333,9 +333,7 @@ def seed_prompt_templates(db):
         return
 
     # 主提示词模板（AI 生成用，要求 JSON 输出）
-    main_prompt_content = """请根据以下信息，生成一份产业案例教学课程设计方案。你必须严格按照下方 JSON Schema 的结构输出，不要输出任何其他内容。
-
-## 输入信息
+    main_prompt_content = """请根据以下信息，生成一份产业案例教学课程设计方案。
 
 专业方向：{major}
 行业：{industry}
@@ -350,26 +348,22 @@ def seed_prompt_templates(db):
 {yonyou_content}
 </用友建设内容>
 
-## 课时分配参考
-
+课时分配参考：
 - 模块一（行业背景与需求分析）：{hour_block1}课时
 - 模块二（技术基础与工具介绍）：{hour_block2}课时
 - 模块三（案例实战与项目实施）：{hour_block3}课时
 - 模块四（总结与拓展）：{hour_block4}课时
 
-## 输出要求
+请严格按照以下 JSON 结构输出（仅输出 JSON，不要输出任何其他内容）：
 
-请严格按照以下 JSON Schema 输出，仅输出合法的 JSON 对象，不要包含任何 Markdown、注释或其他文字：
-
-```json
 {{
   "title": "{enterprise_name}案例教学课程方案",
   "subtitle": "{enterprise_name}",
-  "introduction": "（不少于100字的总体介绍，说明本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，设计了{hour}课时教学方案，涵盖学员将掌握的核心技能和学习目标）",
+  "introduction": "（请根据实际信息丰富此段介绍，不少于100字。说明本教学案例基于{enterprise_name}公司的真实业务场景，结合{industry}专业技术，设计了{hour}课时教学方案。需要强调的动态内容（如企业名、行业名、专业名、课时数等）请用 HTML 标签 <b class=\\"highlight\\">内容</b> 包裹，使其加粗并使用特殊颜色显示。）",
   "modules": [
     {{
       "name": "模块一：行业背景与需求分析",
-      "hours": "{hour_block1}",
+      "hours": {hour_block1},
       "items": [
         "{industry}行业现状与发展趋势",
         "{enterprise_name}业务模式与技术需求分析",
@@ -378,7 +372,7 @@ def seed_prompt_templates(db):
     }},
     {{
       "name": "模块二：技术基础与工具介绍",
-      "hours": "{hour_block2}",
+      "hours": {hour_block2},
       "items": [
         "{major}核心技术原理与架构",
         "用友产品体系与解决方案概览",
@@ -387,7 +381,7 @@ def seed_prompt_templates(db):
     }},
     {{
       "name": "模块三：案例实战与项目实施",
-      "hours": "{hour_block3}",
+      "hours": {hour_block3},
       "items": [
         "{enterprise_name}真实业务场景解析",
         "基于用友平台的功能开发与集成",
@@ -396,7 +390,7 @@ def seed_prompt_templates(db):
     }},
     {{
       "name": "模块四：总结与拓展",
-      "hours": "{hour_block4}",
+      "hours": {hour_block4},
       "items": [
         "项目成果展示与答辩",
         "{industry}领域最佳实践总结",
@@ -440,6 +434,13 @@ def seed_prompt_templates(db):
         "管理{industry}领域IT项目",
         "协调团队与客户资源"
       ]
+    }},
+    {{
+      "title": "数字化运营专员",
+      "description": [
+        "负责{industry}领域数字化运营与持续优化",
+        "监控系统运行指标，推动业务流程改进"
+      ]
     }}
   ],
   "deliverables": [
@@ -452,15 +453,15 @@ def seed_prompt_templates(db):
   ],
   "notes": "以上内容由 AI 生成，请结合实际教学需求进行调整。"
 }}
-```
 
 重要提示：
 1. 仅输出上述 JSON 对象，不要输出其他任何内容。
 2. JSON 中所有字段均为必填项。
 3. introduction 字段不少于100字。
-4. modules 数组必须包含4个模块。
-5. positions 数组必须包含5个岗位。
-6. 报价信息不需要生成，由系统另行计算。"""
+4. modules 数组必须包含4个模块，每个模块的 items 不少于3条。
+5. positions 数组必须包含6个岗位，岗位和描述需结合 {industry} 领域与 {major} 专业。
+6. introduction 中需要强调的动态内容（企业名、行业名、专业名、课时数等），请用 HTML 标签包裹：<b class="highlight">xxx</b>，使其加粗并使用特殊颜色显示。
+7. 报价信息不需要生成，由系统另行计算。"""
 
     # 创建模板
     template = PromptTemplate(

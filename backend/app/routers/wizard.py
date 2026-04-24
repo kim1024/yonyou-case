@@ -333,7 +333,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
         api_base_url = db_llm.api_base_url
         model = db_llm.model
         temperature = db_llm.temperature or 0.7
-        max_tokens = db_llm.max_tokens or 2000
+        max_tokens = db_llm.max_tokens or 4000
         timeout = db_llm.timeout or 60
         llm_config_id = db_llm.id
     else:
@@ -343,7 +343,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
         api_base_url = llm_cfg.get("api_base_url", "https://api.openai.com/v1")
         model = llm_cfg.get("model", "gpt-4o")
         temperature = llm_cfg.get("temperature", 0.7)
-        max_tokens = llm_cfg.get("max_tokens", 2000)
+        max_tokens = llm_cfg.get("max_tokens", 4000)
         timeout = llm_cfg.get("timeout", 60)
 
     # 对数据库字段做长度限制，防止提示注入
@@ -385,6 +385,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
                 enterprise_name=_safe(enterprise_name),
                 region=_safe(region),
                 hour=hour,
+                total_cost=total_cost,
                 company_intro=_safe(company_intro, 1000),
                 yonyou_content=_safe(yonyou_content, 1000),
                 hour_block1=hour_block1,
