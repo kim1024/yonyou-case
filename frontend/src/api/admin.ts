@@ -147,6 +147,9 @@ export const adminApi = {
   getTokenStats(days: number = 30) {
     return http.get('/api/admin/llm/token-stats', { params: { days } })
   },
+  fetchModels(apiBaseUrl: string, apiKey: string) {
+    return http.post('/api/admin/llm/models', { api_base_url: apiBaseUrl, api_key: apiKey })
+  },
 
   // ── 提示词模板 ──
   getPromptTemplates(params: PromptListParams) {

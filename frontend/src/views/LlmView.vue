@@ -67,6 +67,41 @@ const llmForm = ref<Omit<LlmConfigCreate, 'is_active'> & { is_active: boolean }>
   is_active: false,
 })
 
+const modelList = ref<string[]>([])
+const modelListLoading = ref(false)
+const modelInputMode = ref<'select' | 'manual'>('select')
+
+async function fetchModels() {
+  const url = llmForm.value.api_base_url.trim()
+  const key = llmForm.value.api_key.trim()
+  if (!url || !key) {
+    showToast('请先填写 Base URL 和 API Key', 'error')
+    return
+  }
+  modelListLoading.value = true
+  modelList.value = []
+  try {
+    const res = await adminApi.fetchModels(url, key)
+    const models: string[] = res.data.models ?? []
+    if (models.length === 0) {
+      showToast('未获取到可用模型', 'info')
+      modelInputMode.value = 'manual'
+    } else {
+      modelList.value = models
+      modelInputMode.value = 'select'
+      if (llmForm.value.model && !models.includes(llmForm.value.model)) {
+        modelInputMode.value = 'manual'
+      }
+    }
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '拉取模型列表失败'
+    showToast(String(msg), 'error')
+    modelInputMode.value = 'manual'
+  } finally {
+    modelListLoading.value = false
+  }
+}
+
 async function loadLlmConfigs() {
   llmLoading.value = true
   try {
@@ -85,6 +120,8 @@ function handleAddLlm() {
     name: '', model: '', api_base_url: '', api_key: '',
     temperature: 0.7, max_tokens: 2000, timeout: 60, is_active: false,
   }
+  modelList.value = []
+  modelInputMode.value = 'select'
   showLlmModal.value = true
 }
 
@@ -101,7 +138,13 @@ function handleEditLlm(item: LlmConfig) {
     timeout: item.timeout,
     is_active: item.is_active,
   }
+  modelList.value = []
+  modelInputMode.value = 'select'
   showLlmModal.value = true
+  // 编辑模式自动拉取模型列表（需用户提供 api_key）
+  nextTick(() => {
+    fetchModels()
+  })
 }
 
 function validateLlmForm(): boolean {
@@ -143,6 +186,8 @@ async function handleSaveLlm() {
       })
     }
     showLlmModal.value = false
+    modelList.value = []
+    modelInputMode.value = 'select'
     loadLlmConfigs()
     showToast('配置已保存，已全局生效', 'success')
   } catch {
@@ -179,7 +224,11 @@ async function handleActivateLlm(item: LlmConfig) {
 }
 
 function handleLlmBackdropClick(e: MouseEvent) {
-  if ((e.target as HTMLElement).classList.contains('ef-overlay')) showLlmModal.value = false
+  if ((e.target as HTMLElement).classList.contains('ef-overlay')) {
+    showLlmModal.value = false
+    modelList.value = []
+    modelInputMode.value = 'select'
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -1315,7 +1364,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
         <div class="ef-dialog" style="max-width: 580px;">
           <div class="ef-header">
             <h2 class="ef-title">{{ editLlmItem ? '编辑配置' : '新增配置' }}</h2>
-            <button class="ef-close-btn" @click="showLlmModal = false" type="button">
+            <button class="ef-close-btn" @click="showLlmModal = false; modelList = []; modelInputMode = 'select'" type="button">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -1329,7 +1378,50 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             </div>
             <div class="ef-field">
               <label class="ef-label">模型名称<span class="ef-required">*</span></label>
-              <input v-model="llmForm.model" type="text" class="input-macos" :class="{ 'ef-input-error': llmErrors.model }" @input="delete llmErrors.model" placeholder="如：gpt-4o、deepseek-chat" />
+              <div class="flex gap-2 items-start">
+                <div class="flex-1">
+                  <template v-if="modelInputMode === 'select' && modelList.length > 0">
+                    <select v-model="llmForm.model" class="input-macos" :class="{ 'ef-input-error': llmErrors.model }" @change="delete llmErrors.model">
+                      <option value="" disabled>请选择模型</option>
+                      <option v-for="m in modelList" :key="m" :value="m">{{ m }}</option>
+                    </select>
+                  </template>
+                  <template v-else>
+                    <input v-model="llmForm.model" type="text" class="input-macos" :class="{ 'ef-input-error': llmErrors.model }" @input="delete llmErrors.model" placeholder="手动输入模型名称" />
+                  </template>
+                </div>
+                <button
+                  type="button"
+                  class="btn-secondary whitespace-nowrap"
+                  style="margin-top: 0"
+                  :disabled="modelListLoading"
+                  @click="fetchModels"
+                >
+                  <RotateCcw v-if="modelListLoading" :size="14" class="animate-spin" />
+                  <Search v-else :size="14" />
+                  {{ modelListLoading ? '拉取中...' : '拉取模型' }}
+                </button>
+                <button
+                  v-if="modelInputMode === 'select' && modelList.length > 0"
+                  type="button"
+                  class="btn-ghost text-xs whitespace-nowrap"
+                  style="margin-top: 4px"
+                  @click="modelInputMode = 'manual'"
+                  title="切换为手动输入"
+                >
+                  手动输入
+                </button>
+                <button
+                  v-else-if="modelList.length > 0"
+                  type="button"
+                  class="btn-ghost text-xs whitespace-nowrap"
+                  style="margin-top: 4px"
+                  @click="modelInputMode = 'select'"
+                  title="切换为下拉选择"
+                >
+                  下拉选择
+                </button>
+              </div>
               <span v-if="llmErrors.model" class="ef-error-text">{{ llmErrors.model }}</span>
             </div>
             <div class="ef-field">
@@ -1379,7 +1471,7 @@ const promptNameRef = ref<HTMLInputElement | null>(null)
             </div>
           </form>
           <div class="ef-footer">
-            <button type="button" class="btn-secondary" @click="showLlmModal = false">取消</button>
+            <button type="button" class="btn-secondary" @click="showLlmModal = false; modelList = []; modelInputMode = 'select'">取消</button>
             <button type="button" class="btn-primary" :disabled="llmSaving" @click="handleSaveLlm">
               {{ llmSaving ? '保存中...' : (editLlmItem ? '保存' : '创建') }}
             </button>

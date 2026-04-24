@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, cast, Date
@@ -55,6 +56,11 @@ class DailyTrend(BaseModel):
     date: str
     tokens: int
     calls: int
+
+
+class FetchModelsRequest(BaseModel):
+    api_base_url: str
+    api_key: str
 
 
 class TokenStatsResponse(BaseModel):
@@ -264,3 +270,40 @@ def get_token_stats(
         "by_model": by_model,
         "daily_trend": daily_trend,
     }
+
+
+# ─── 模型列表代理 ──────────────────────────────────────────────────────────────
+
+@router.post("/models")
+def fetch_models(
+    data: FetchModelsRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """代理请求上游 API 获取可用模型列表，API Key 仅用于代理转发，不记录日志。"""
+    # 自动补全 /v1 路径
+    base = data.api_base_url.rstrip("/")
+    if not base.endswith("/v1"):
+        base = f"{base}/v1"
+
+    try:
+        response = httpx.get(
+            f"{base}/models",
+            headers={"Authorization": f"Bearer {data.api_key}"},
+            timeout=15,
+        )
+    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as exc:
+        raise HTTPException(status_code=502, detail=f"上游服务连接失败: {exc}")
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=400,
+            detail=f"上游 API 返回错误 (HTTP {response.status_code})",
+        )
+
+    try:
+        payload = response.json()
+    except Exception:
+        raise HTTPException(status_code=502, detail="上游 API 响应无法解析为 JSON")
+
+    models = [m["id"] for m in payload.get("data", [])]
+    return {"models": sorted(models)}
