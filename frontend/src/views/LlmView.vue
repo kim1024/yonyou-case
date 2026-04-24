@@ -351,14 +351,14 @@ interface PieSlice {
   ly: number
 }
 
-const pieTotal = computed(() => (tokenStats.value?.by_model ?? []).reduce((s, d) => s + d.tokens, 0))
+const pieTotal = computed(() => (tokenStats.value?.by_model ?? []).reduce((s, d) => s + d.total_tokens, 0))
 
 const pieSlices = computed<PieSlice[]>(() => {
   const data = tokenStats.value?.by_model ?? []
   if (!data.length) return []
   let angle = -Math.PI / 2
   return data.map((d, i) => {
-    const sweep = pieTotal.value > 0 ? (d.tokens / pieTotal.value) * Math.PI * 2 : 0
+    const sweep = pieTotal.value > 0 ? (d.total_tokens / pieTotal.value) * Math.PI * 2 : 0
     const startAngle = angle
     angle += sweep
     const largeArc = sweep > Math.PI ? 1 : 0
@@ -372,12 +372,12 @@ const pieSlices = computed<PieSlice[]>(() => {
     const iy2 = PIE_CY + PIE_INNER_R * Math.sin(angle)
     const path = `M ${x1} ${y1} A ${PIE_R} ${PIE_R} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${PIE_INNER_R} ${PIE_INNER_R} 0 ${largeArc} 0 ${ix1} ${iy1} Z`
     const midAngle = startAngle + sweep / 2
-    const pct = pieTotal.value > 0 ? ((d.tokens / pieTotal.value) * 100).toFixed(1) : '0'
+    const pct = pieTotal.value > 0 ? ((d.total_tokens / pieTotal.value) * 100).toFixed(1) : '0'
     const tx = pieHoverIdx.value === i ? 6 * Math.cos(midAngle) : 0
     const ty = pieHoverIdx.value === i ? 6 * Math.sin(midAngle) : 0
     const lx = PIE_CX + (PIE_R * 0.78) * Math.cos(midAngle)
     const ly = PIE_CY + (PIE_R * 0.78) * Math.sin(midAngle)
-    return { path, color: PIE_COLORS[i % PIE_COLORS.length], model: d.model, tokens: d.tokens, pct, tx, ty, lx, ly }
+    return { path, color: PIE_COLORS[i % PIE_COLORS.length], model: d.model, tokens: d.total_tokens, pct, tx, ty, lx, ly }
   })
 })
 

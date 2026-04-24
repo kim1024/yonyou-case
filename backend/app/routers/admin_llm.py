@@ -247,13 +247,13 @@ def get_token_stats(
     # 每日趋势
     daily_rows = (
         db.query(
-            func.date(TokenUsageLog.request_timestamp).label("date"),
+            func.strftime('%Y-%m-%d', TokenUsageLog.request_timestamp).label("date"),
             func.coalesce(func.sum(TokenUsageLog.total_tokens), 0).label("tokens"),
             func.count().label("calls"),
         )
         .filter(base_filter)
-        .group_by(func.date(TokenUsageLog.request_timestamp))
-        .order_by(func.date(TokenUsageLog.request_timestamp))
+        .group_by(func.strftime('%Y-%m-%d', TokenUsageLog.request_timestamp))
+        .order_by(func.strftime('%Y-%m-%d', TokenUsageLog.request_timestamp))
         .all()
     )
     daily_trend = [
