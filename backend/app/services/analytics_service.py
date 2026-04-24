@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date
-from sqlalchemy import func
+from sqlalchemy import cast, Date, func
 from sqlalchemy.orm import Session
 from app.models.analytics import VisitLog
 from app.models.enterprise import Enterprise
@@ -29,12 +29,12 @@ def get_visit_trends(db: Session, days: int = 30):
     start = today - timedelta(days=days)
 
     results = db.query(
-        func.strftime('%Y-%m-%d', VisitLog.request_timestamp).label("date"),
+        cast(VisitLog.request_timestamp, Date).label("date"),
         func.count(VisitLog.id).label("count")
     ).filter(
         VisitLog.request_timestamp >= start
     ).group_by(
-        func.strftime('%Y-%m-%d', VisitLog.request_timestamp)
+        cast(VisitLog.request_timestamp, Date)
     ).order_by("date").all()
 
     # 补全缺失日期（填 0）

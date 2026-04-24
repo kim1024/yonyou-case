@@ -1,7 +1,7 @@
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+from sqlalchemy import func, case, cast, Date
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timedelta, date
@@ -247,13 +247,13 @@ def get_token_stats(
     # 每日趋势
     daily_rows = (
         db.query(
-            func.strftime('%Y-%m-%d', TokenUsageLog.request_timestamp).label("date"),
+            cast(TokenUsageLog.request_timestamp, Date).label("date"),
             func.coalesce(func.sum(TokenUsageLog.total_tokens), 0).label("tokens"),
             func.count().label("calls"),
         )
         .filter(base_filter)
-        .group_by(func.strftime('%Y-%m-%d', TokenUsageLog.request_timestamp))
-        .order_by(func.strftime('%Y-%m-%d', TokenUsageLog.request_timestamp))
+        .group_by(cast(TokenUsageLog.request_timestamp, Date))
+        .order_by(cast(TokenUsageLog.request_timestamp, Date))
         .all()
     )
     # 补全缺失日期（填 0）

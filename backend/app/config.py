@@ -15,7 +15,7 @@ DEFAULT_CONFIG = {
         "cors_origins": ["http://localhost:5173"],
     },
     "database": {
-        "url": "sqlite:///./data/app.db",
+        "url": "postgresql://postgres:postgres@localhost:5432/yonyou_case",
     },
     "admin": {
         "username": "admin",

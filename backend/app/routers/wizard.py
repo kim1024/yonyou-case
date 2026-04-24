@@ -514,7 +514,6 @@ def generate(request: dict, db: Session = Depends(get_db)):
                         total_tokens=usage.get("total_tokens", 0),
                     )
                     db.add(log)
-                    db.commit()
 
                 # 解析 LLM 返回的 JSON
                 plan_json = _parse_llm_json(content)
@@ -536,7 +535,11 @@ def generate(request: dict, db: Session = Depends(get_db)):
                         plan_data=json.dumps(plan_json, ensure_ascii=False),
                     )
                     db.add(plan_record)
-                    db.commit()
+                    try:
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+                        raise
                     return {"data": plan_json, "source": "ai"}
                 else:
                     _logger.warning("LLM 返回 JSON 解析失败，回退到模板")
@@ -563,5 +566,9 @@ def generate(request: dict, db: Session = Depends(get_db)):
         plan_data=json.dumps(fallback, ensure_ascii=False),
     )
     db.add(plan_record)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return {"data": fallback, "source": "template", "llm_error": "大模型调用失败，已使用模板生成方案。请检查大模型配置（API Key、Base URL）是否正确。"}

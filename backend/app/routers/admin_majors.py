@@ -187,9 +187,15 @@ def set_major_industries(
     # 删除旧关联
     db.query(MajorIndustry).filter(MajorIndustry.major_id == major_id).delete()
 
-    # 插入新关联
-    for ind_id in data.industry_ids:
-        db.add(MajorIndustry(major_id=major_id, industry_id=ind_id))
+    # 插入新关联（savepoint 保证原子性）
+    savepoint = db.begin_nested()
+    try:
+        for ind_id in data.industry_ids:
+            db.add(MajorIndustry(major_id=major_id, industry_id=ind_id))
+        savepoint.commit()
+    except Exception:
+        savepoint.rollback()
+        raise
 
     db.commit()
     return {"message": "行业关联设置成功"}
