@@ -9,8 +9,8 @@ const DEFAULT_STYLE_CONFIG: PlanThemeStyleConfig = {
   accentColor: '#C0392B',
   highlightColor: '#C0392B',
   dotColor: '#D4A06A',
-  pricingCardBg: '#C0392B',
-  pricingNumberGradient: '#C0392B',
+  pricingCardBg: 'linear-gradient(135deg, #B83227 0%, #C0392B 35%, #D94A3F 100%)',
+  pricingNumberGradient: 'linear-gradient(180deg, #FFE066 0%, #FFD700 40%, #DAA520 100%)',
   pageBg: '#F8F7F4',
   cardBg: '#FFFFFF',
   textColor: '#444444',
@@ -313,13 +313,17 @@ function getAccentColor(themeId: number): string {
 }
 
 /* ── 实时预览计算 ── */
-const previewPricingBg = computed(() =>
-  `linear-gradient(135deg, ${formStyle.pricingCardBg}, ${formStyle.pricingCardBg}CC)`
-)
+const previewPricingBg = computed(() => {
+  const val = formStyle.pricingCardBg
+  if (val.startsWith('linear-gradient') || val.startsWith('radial-gradient')) return val
+  return `linear-gradient(135deg, ${val}, ${val}CC)`
+})
 
-const previewPricingText = computed(() =>
-  `linear-gradient(135deg, ${formStyle.pricingNumberGradient}, ${formStyle.pricingNumberGradient}CC)`
-)
+const previewPricingText = computed(() => {
+  const val = formStyle.pricingNumberGradient
+  if (val.startsWith('linear-gradient') || val.startsWith('radial-gradient')) return val
+  return `linear-gradient(135deg, ${val}, ${val}CC)`
+})
 
 /* ── 生命周期 ── */
 onMounted(() => {
@@ -583,16 +587,9 @@ onMounted(() => {
                   </div>
                   <div class="theme-color-input-wrap">
                     <input
-                      type="color"
-                      :value="(formStyle as Record<string, string>)[field.key]"
-                      class="theme-color-picker"
-                      @input="(formStyle as Record<string, string>)[field.key] = ($event.target as HTMLInputElement).value"
-                    />
-                    <input
                       type="text"
                       :value="(formStyle as Record<string, string>)[field.key]"
-                      class="theme-color-hex"
-                      maxlength="7"
+                      class="theme-color-hex gradient-input"
                       @input="(formStyle as Record<string, string>)[field.key] = ($event.target as HTMLInputElement).value"
                     />
                   </div>
@@ -985,6 +982,10 @@ onMounted(() => {
 
 .theme-color-hex:focus {
   border-color: var(--color-primary-500);
+}
+
+.gradient-input {
+  width: 280px;
 }
 
 /* ── Preview Frame ── */
