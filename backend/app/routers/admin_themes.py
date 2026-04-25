@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -66,6 +67,14 @@ class PlanThemeUpdate(BaseModel):
 
 class PlanThemeVersionCreate(BaseModel):
     """创建新版本请求体。"""
+    style_config: dict
+    remark: Optional[str] = None
+
+
+class PlanThemeFullUpdate(BaseModel):
+    """原子更新主题（名称 + 描述 + 样式版本）。"""
+    name: Optional[str] = None
+    description: Optional[str] = None
     style_config: dict
     remark: Optional[str] = None
 
@@ -227,6 +236,63 @@ def update_theme(
     return {"message": "更新成功"}
 
 
+@router.put("/{theme_id}/full")
+def update_theme_full(
+    theme_id: int,
+    data: PlanThemeFullUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """原子更新主题元信息并创建新版本。"""
+    theme = db.query(PlanTheme).filter(PlanTheme.id == theme_id).first()
+    if not theme:
+        raise HTTPException(status_code=404, detail="主题不存在")
+
+    # 更新元信息
+    if data.name is not None:
+        theme.name = data.name
+    if data.description is not None:
+        theme.description = data.description
+
+    # 创建新版本（带唯一约束冲突重试）
+    version = None
+    for attempt in range(3):
+        max_version = (
+            db.query(func.max(PlanThemeVersion.version_number))
+            .filter(PlanThemeVersion.theme_id == theme_id)
+            .scalar()
+        )
+        next_version_number = (max_version or 0) + 1
+
+        version = PlanThemeVersion(
+            theme_id=theme_id,
+            version_number=next_version_number,
+            style_config=json.dumps(data.style_config, ensure_ascii=False),
+            remark=data.remark or "由管理员编辑更新",
+            created_by=current_user.get("sub"),
+        )
+        db.add(version)
+        try:
+            db.flush()
+            break
+        except IntegrityError:
+            db.rollback()
+            if attempt == 2:
+                raise HTTPException(status_code=500, detail="版本创建失败，请重试")
+            continue
+
+    theme.current_version_id = version.id
+    db.commit()
+    db.refresh(theme)
+
+    return {
+        "id": theme.id,
+        "name": theme.name,
+        "message": "主题更新成功",
+        "version_number": version.version_number,
+    }
+
+
 @router.delete("/{theme_id}")
 def delete_theme(
     theme_id: int,
@@ -266,12 +332,11 @@ def activate_theme(
     if not theme.current_version_id:
         raise HTTPException(status_code=400, detail="该主题尚未配置版本，无法激活")
 
-    # 将所有主题设为非激活
-    db.query(PlanTheme).update({PlanTheme.is_active: False})
+    # 原子操作：将所有主题设为非激活，再激活目标主题
+    with db.begin():
+        db.query(PlanTheme).update({PlanTheme.is_active: False})
+        theme.is_active = True
 
-    # 激活目标主题
-    theme.is_active = True
-    db.commit()
     db.refresh(theme)
 
     return {"message": "激活成功", "is_active": True}
@@ -321,22 +386,31 @@ def create_version(
     if not theme:
         raise HTTPException(status_code=404, detail="主题不存在")
 
-    max_version = (
-        db.query(func.max(PlanThemeVersion.version_number))
-        .filter(PlanThemeVersion.theme_id == theme_id)
-        .scalar()
-    )
-    next_version_number = (max_version or 0) + 1
+    version = None
+    for attempt in range(3):
+        max_version = (
+            db.query(func.max(PlanThemeVersion.version_number))
+            .filter(PlanThemeVersion.theme_id == theme_id)
+            .scalar()
+        )
+        next_version_number = (max_version or 0) + 1
 
-    version = PlanThemeVersion(
-        theme_id=theme_id,
-        version_number=next_version_number,
-        style_config=json.dumps(data.style_config, ensure_ascii=False),
-        remark=data.remark,
-        created_by=current_user.get("sub"),
-    )
-    db.add(version)
-    db.flush()
+        version = PlanThemeVersion(
+            theme_id=theme_id,
+            version_number=next_version_number,
+            style_config=json.dumps(data.style_config, ensure_ascii=False),
+            remark=data.remark,
+            created_by=current_user.get("sub"),
+        )
+        db.add(version)
+        try:
+            db.flush()
+            break
+        except IntegrityError:
+            db.rollback()
+            if attempt == 2:
+                raise HTTPException(status_code=500, detail="版本创建失败，请重试")
+            continue
 
     theme.current_version_id = version.id
     db.commit()
@@ -418,11 +492,19 @@ def get_active_theme(
     db: Session = Depends(get_db),
 ):
     """获取当前激活主题的当前版本（无需鉴权）。"""
-    theme = (
+    active_themes = (
         db.query(PlanTheme)
         .filter(PlanTheme.is_active == True)  # noqa: E712
-        .first()
+        .all()
     )
+
+    if len(active_themes) > 1:
+        _logger.warning(
+            "检测到多个激活主题（%s），请运行迁移脚本并重新激活以修复",
+            [t.id for t in active_themes],
+        )
+
+    theme = active_themes[0] if active_themes else None
 
     if not theme or not theme.current_version_id:
         return None

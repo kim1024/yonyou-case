@@ -255,11 +255,11 @@ async function handleSave() {
       showToast('主题创建成功')
     } else {
       if (editingThemeId.value !== null) {
-        // 编辑模式：更新名称 + 创建新版本
-        await adminApi.updateTheme(editingThemeId.value, { name })
-        await adminApi.createThemeVersion(editingThemeId.value, {
+        // 编辑模式：原子更新名称 + 创建新版本
+        await adminApi.updateThemeFull(editingThemeId.value, {
+          name,
           style_config: stylePayload,
-          remark: `由管理员编辑更新`,
+          remark: '由管理员编辑更新',
         })
         showToast('主题更新成功')
       }

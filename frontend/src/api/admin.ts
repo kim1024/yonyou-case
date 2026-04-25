@@ -5,7 +5,7 @@ import type {
   LlmConfigCreate, LlmConfigUpdate, LlmListParams,
   PromptTemplateCreate, PromptVersionCreate, PromptListParams,
   PlanListParams,
-  PlanThemeListParams, PlanThemeCreate, PlanThemeVersionCreate,
+  PlanThemeListParams, PlanThemeCreate, PlanThemeVersionCreate, PlanThemeStyleConfig,
 } from '@/types'
 
 export const adminApi = {
@@ -225,6 +225,9 @@ export const adminApi = {
   },
   rollbackThemeVersion(themeId: number, versionId: number) {
     return http.post(`/api/admin/themes/${themeId}/versions/${versionId}/rollback`)
+  },
+  updateThemeFull(id: number, data: { name?: string; description?: string; style_config: PlanThemeStyleConfig; remark?: string }) {
+    return http.put(`/api/admin/themes/${id}/full`, data)
   },
   getActiveTheme() {
     return http.get('/api/themes/active')

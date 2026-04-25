@@ -1,6 +1,6 @@
 """方案样式主题版本表。"""
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index, UniqueConstraint, func
 from app.database import Base
 
 
@@ -18,4 +18,5 @@ class PlanThemeVersion(Base):
 
     __table_args__ = (
         Index("idx_plan_theme_versions_theme_id", "theme_id"),
+        UniqueConstraint("theme_id", "version_number", name="uq_theme_version_number"),
     )
