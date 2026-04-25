@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { RotateCcw, Printer, AlertTriangle } from 'lucide-vue-next'
 import DOMPurify from 'dompurify'
 import http from '@/api/http'
-import type { PlanThemeStyleConfig } from '@/types'
+import type { PlanThemeStyleConfig, DisplayTemplateConfig, DisplayBlockConfig } from '@/types'
 
 // ---------- Theme ----------
 
@@ -22,6 +22,43 @@ const defaultStyle: PlanThemeStyleConfig = {
 
 const activeTheme = ref<PlanThemeStyleConfig | null>(null)
 const themeStyle = computed(() => activeTheme.value || defaultStyle)
+
+// ---------- Default display template ----------
+
+const DEFAULT_DISPLAY_TEMPLATE: DisplayTemplateConfig = {
+  blocks: {
+    title:        { id: 'title',        visible: true, sectionTitle: '',                    order: 0 },
+    introduction: { id: 'introduction', visible: true, sectionTitle: '一、总体介绍',         order: 1 },
+    modules:      { id: 'modules',      visible: true, sectionTitle: '二、案例课程主要结构',  order: 2, gridCols: 2 },
+    positions:    { id: 'positions',    visible: true, sectionTitle: '三、学习后胜任的岗位',  order: 3, gridCols: 2 },
+    deliverables: { id: 'deliverables', visible: true, sectionTitle: '四、课程成果物',       order: 4, gridCols: 0 },
+    pricing:      { id: 'pricing',      visible: true, sectionTitle: '课程报价',             order: 5 },
+    footerNote:   { id: 'footerNote',   visible: true, sectionTitle: '',                    order: 6 },
+  },
+}
+
+// ---------- Display config ----------
+
+const displayConfig = computed<DisplayTemplateConfig>(() => {
+  return themeStyle.value.display_template ?? DEFAULT_DISPLAY_TEMPLATE
+})
+
+const orderedVisibleBlocks = computed(() => {
+  return Object.values(displayConfig.value.blocks)
+    .filter(b => b.visible)
+    .sort((a, b) => a.order - b.order)
+    .map(b => b.id)
+})
+
+function getBlockConfig(blockId: string): DisplayBlockConfig {
+  return displayConfig.value.blocks[blockId] ?? DEFAULT_DISPLAY_TEMPLATE.blocks[blockId]
+}
+
+function getGridStyle(blockId: string): Record<string, string> {
+  const cfg = getBlockConfig(blockId)
+  if (!cfg.gridCols || cfg.gridCols === 0) return {}
+  return { 'grid-template-columns': `repeat(${cfg.gridCols}, 1fr)` }
+}
 
 // ---------- Types ----------
 
@@ -169,95 +206,127 @@ function handlePrint() {
       <!-- Course plan content -->
       <div v-else class="content-card" style="background:var(--theme-card-bg);border-radius:16px;padding:48px;margin:0 auto;max-width:1320px">
 
-        <!-- ===== Title area ===== -->
-        <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #E8E5DF;margin-bottom:0">
-          <h1 class="plan-title">{{ plan.title }}</h1>
-          <p class="plan-subtitle">{{ plan.subtitle }}</p>
-          <p class="plan-pricing-info">{{ plan.pricing.hour }}课时  ·  课程报价 ¥{{ formattedPrice }}元</p>
-        </div>
+        <div v-for="blockType in orderedVisibleBlocks" :key="blockType">
 
-        <!-- ===== Introduction ===== -->
-        <div v-if="plan.introduction" class="section-block">
-          <h2 class="section-heading"><span class="section-heading-bar" />一、总体介绍</h2>
-          <div class="introduction-content" v-html="sanitize(plan.introduction)" />
-        </div>
-
-        <!-- ===== Course modules ===== -->
-        <div v-if="plan.modules.length" class="section-block">
-          <h2 class="section-heading"><span class="section-heading-bar" />二、案例课程主要结构</h2>
-          <div class="modules-grid">
-            <div
-              v-for="(mod, i) in plan.modules"
-              :key="i"
-              class="module-card"
-            >
-              <h3 class="module-card-title">
-                <span v-if="moduleIcons[i]" class="module-icon" v-html="moduleIcons[i]" />
-                {{ mod.name }}
-              </h3>
-              <ul class="module-items">
-                <li v-for="(item, j) in mod.items" :key="j" class="module-item">
-                  <span v-html="sanitize(item)" />
-                </li>
-              </ul>
+          <!-- ===== Title area ===== -->
+          <template v-if="blockType === 'title'">
+            <div style="text-align:center;padding-bottom:24px;border-bottom:2px solid #E8E5DF;margin-bottom:0">
+              <h1 class="plan-title">{{ plan.title }}</h1>
+              <p class="plan-subtitle">{{ plan.subtitle }}</p>
+              <p class="plan-pricing-info">{{ plan.pricing.hour }}课时  ·  课程报价 ¥{{ formattedPrice }}元</p>
             </div>
-          </div>
-        </div>
+          </template>
 
-        <!-- ===== Positions ===== -->
-        <div v-if="plan.positions.length" class="section-block">
-          <h2 class="section-heading"><span class="section-heading-bar" />三、学习后胜任的岗位</h2>
-          <p class="position-intro">结合相关行业与专业，学员毕业后可胜任以下岗位：</p>
-          <div class="positions-grid">
-            <div
-              v-for="(pos, i) in plan.positions"
-              :key="i"
-              class="position-card"
-            >
-              <div class="position-name">
-                <span v-if="positionIcons[i]" class="position-icon" v-html="positionIcons[i]" />
-                {{ pos.title }}
+          <!-- ===== Introduction ===== -->
+          <template v-else-if="blockType === 'introduction'">
+            <div v-if="plan.introduction" class="section-block">
+              <h2 class="section-heading">
+                <span class="section-heading-bar" />
+                {{ getBlockConfig('introduction').sectionTitle }}
+              </h2>
+              <div class="introduction-content" v-html="sanitize(plan.introduction)" />
+            </div>
+          </template>
+
+          <!-- ===== Course modules ===== -->
+          <template v-else-if="blockType === 'modules'">
+            <div v-if="plan.modules.length" class="section-block">
+              <h2 class="section-heading">
+                <span class="section-heading-bar" />
+                {{ getBlockConfig('modules').sectionTitle }}
+              </h2>
+              <div class="modules-grid" :style="getGridStyle('modules')">
+                <div
+                  v-for="(mod, i) in plan.modules"
+                  :key="i"
+                  class="module-card"
+                >
+                  <h3 class="module-card-title">
+                    <span v-if="moduleIcons[i]" class="module-icon" v-html="moduleIcons[i]" />
+                    {{ mod.name }}
+                  </h3>
+                  <ul class="module-items">
+                    <li v-for="(item, j) in mod.items" :key="j" class="module-item">
+                      <span v-html="sanitize(item)" />
+                    </li>
+                  </ul>
+                </div>
               </div>
-              <ul v-if="pos.description.length" class="position-items">
-                <li v-for="(desc, j) in pos.description" :key="j" class="position-item">
-                  <span v-html="sanitize(desc)" />
-                </li>
-              </ul>
             </div>
-          </div>
-        </div>
+          </template>
 
-        <!-- ===== Deliverables ===== -->
-        <div v-if="plan.deliverables.length" class="section-block">
-          <h2 class="section-heading"><span class="section-heading-bar" />四、课程成果物</h2>
-          <div class="deliverables-grid">
-            <div v-for="(item, i) in plan.deliverables" :key="i" class="deliverable-chip">
-              <span v-html="deliverableIcons[item] || ''" />
-              <span>{{ item }}</span>
+          <!-- ===== Positions ===== -->
+          <template v-else-if="blockType === 'positions'">
+            <div v-if="plan.positions.length" class="section-block">
+              <h2 class="section-heading">
+                <span class="section-heading-bar" />
+                {{ getBlockConfig('positions').sectionTitle }}
+              </h2>
+              <p class="position-intro">结合相关行业与专业，学员毕业后可胜任以下岗位：</p>
+              <div class="positions-grid" :style="getGridStyle('positions')">
+                <div
+                  v-for="(pos, i) in plan.positions"
+                  :key="i"
+                  class="position-card"
+                >
+                  <div class="position-name">
+                    <span v-if="positionIcons[i]" class="position-icon" v-html="positionIcons[i]" />
+                    {{ pos.title }}
+                  </div>
+                  <ul v-if="pos.description.length" class="position-items">
+                    <li v-for="(desc, j) in pos.description" :key="j" class="position-item">
+                      <span v-html="sanitize(desc)" />
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
 
-        <!-- ===== Pricing card ===== -->
-        <div class="pricing-card">
-          <div class="pricing-card-bar" />
-          <div class="pricing-card-label">课程报价</div>
-          <div class="pricing-card-price">
-            <span class="pricing-card-symbol">¥</span>
-            <span class="pricing-card-number">{{ formattedPrice }}</span>
-          </div>
-        </div>
+          <!-- ===== Deliverables ===== -->
+          <template v-else-if="blockType === 'deliverables'">
+            <div v-if="plan.deliverables.length" class="section-block">
+              <h2 class="section-heading">
+                <span class="section-heading-bar" />
+                {{ getBlockConfig('deliverables').sectionTitle }}
+              </h2>
+              <div
+                class="deliverables-grid"
+                :style="getBlockConfig('deliverables').gridCols ? { display: 'grid', 'grid-template-columns': `repeat(${getBlockConfig('deliverables').gridCols}, 1fr)` } : {}"
+              >
+                <div v-for="(item, i) in plan.deliverables" :key="i" class="deliverable-chip">
+                  <span v-html="deliverableIcons[item] || ''" />
+                  <span>{{ item }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
 
-        <!-- ===== Footer note ===== -->
-        <div v-if="isTemplateFallback" class="llm-warning-banner" style="margin-top:32px;max-width:100%">
-          <AlertTriangle :size="16" :stroke-width="2" />
-          <span>{{ llmError || '当前方案由模板生成（大模型不可用）。如需 AI 生成的方案，请在后台检查大模型配置（API Key、Base URL）。' }}</span>
-        </div>
-        <div v-else class="ai-note">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14h.01"/><path d="M8 14h.01"/><path d="M12 18v4"/><path d="M9 22h6"/></svg>
-          <span>{{ plan.notes }}</span>
-        </div>
+          <!-- ===== Pricing card ===== -->
+          <template v-else-if="blockType === 'pricing'">
+            <div class="pricing-card">
+              <div class="pricing-card-bar" />
+              <div class="pricing-card-label">{{ getBlockConfig('pricing').sectionTitle }}</div>
+              <div class="pricing-card-price">
+                <span class="pricing-card-symbol">¥</span>
+                <span class="pricing-card-number">{{ formattedPrice }}</span>
+              </div>
+            </div>
+          </template>
 
+          <!-- ===== Footer note ===== -->
+          <template v-else-if="blockType === 'footerNote'">
+            <div v-if="isTemplateFallback" class="llm-warning-banner" style="margin-top:32px;max-width:100%">
+              <AlertTriangle :size="16" :stroke-width="2" />
+              <span>{{ llmError || '当前方案由模板生成（大模型不可用）。如需 AI 生成的方案，请在后台检查大模型配置（API Key、Base URL）。' }}</span>
+            </div>
+            <div v-else class="ai-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14h.01"/><path d="M8 14h.01"/><path d="M12 18v4"/><path d="M9 22h6"/></svg>
+              <span>{{ plan.notes }}</span>
+            </div>
+          </template>
+
+        </div>
       </div>
     </main>
 
@@ -687,7 +756,7 @@ function handlePrint() {
   }
 
   .modules-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 10px;
   }
 
@@ -700,7 +769,7 @@ function handlePrint() {
   }
 
   .positions-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 10px;
   }
 

@@ -34,6 +34,17 @@ DEFAULT_STYLE_CONFIG = {
     "cardBg": "#FFFFFF",
     "textColor": "#444444",
     "subtitleColor": "#2D2D2D",
+    "display_template": {
+        "blocks": {
+            "title":        {"id": "title",        "visible": True, "sectionTitle": "",                    "order": 0},
+            "introduction": {"id": "introduction", "visible": True, "sectionTitle": "一、总体介绍",         "order": 1},
+            "modules":      {"id": "modules",      "visible": True, "sectionTitle": "二、案例课程主要结构",  "order": 2, "gridCols": 2},
+            "positions":    {"id": "positions",    "visible": True, "sectionTitle": "三、学习后胜任的岗位",  "order": 3, "gridCols": 2},
+            "deliverables": {"id": "deliverables", "visible": True, "sectionTitle": "四、课程成果物",       "order": 4, "gridCols": 0},
+            "pricing":      {"id": "pricing",      "visible": True, "sectionTitle": "课程报价",             "order": 5},
+            "footerNote":   {"id": "footerNote",   "visible": True, "sectionTitle": "",                    "order": 6},
+        }
+    },
 }
 
 

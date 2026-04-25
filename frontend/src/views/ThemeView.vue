@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
-import { Palette, Search, Inbox, Trash2, ChevronLeft, ChevronRight, Plus, Pencil, Zap, Copy, AlertTriangle } from 'lucide-vue-next'
+import { Palette, Search, Inbox, Trash2, ChevronLeft, ChevronRight, Plus, Pencil, Zap, Copy, AlertTriangle, ArrowUp, ArrowDown, Eye, EyeOff } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
-import type { PlanTheme, PlanThemeStyleConfig } from '@/types'
+import type { PlanTheme, PlanThemeStyleConfig, DisplayTemplateConfig, DisplayBlockConfig } from '@/types'
 
 /* ── 默认样式配置 ── */
 const DEFAULT_STYLE_CONFIG: PlanThemeStyleConfig = {
@@ -16,6 +16,42 @@ const DEFAULT_STYLE_CONFIG: PlanThemeStyleConfig = {
   textColor: '#444444',
   subtitleColor: '#2D2D2D',
 }
+
+/* ── 默认展示模板 ── */
+const DEFAULT_DISPLAY_TEMPLATE: DisplayTemplateConfig = {
+  blocks: {
+    title:        { id: 'title',        visible: true, sectionTitle: '',                    order: 0 },
+    introduction: { id: 'introduction', visible: true, sectionTitle: '一、总体介绍',         order: 1 },
+    modules:      { id: 'modules',      visible: true, sectionTitle: '二、案例课程主要结构',  order: 2, gridCols: 2 },
+    positions:    { id: 'positions',    visible: true, sectionTitle: '三、学习后胜任的岗位',  order: 3, gridCols: 2 },
+    deliverables: { id: 'deliverables', visible: true, sectionTitle: '四、课程成果物',       order: 4, gridCols: 0 },
+    pricing:      { id: 'pricing',      visible: true, sectionTitle: '课程报价',             order: 5 },
+    footerNote:   { id: 'footerNote',   visible: true, sectionTitle: '',                    order: 6 },
+  },
+}
+
+const BLOCK_LABELS: Record<string, string> = {
+  title: '标题区',
+  introduction: '总体介绍',
+  modules: '课程模块',
+  positions: '胜任岗位',
+  deliverables: '课程成果物',
+  pricing: '价格卡片',
+  footerNote: '底部说明',
+}
+
+const SECTION_TITLE_EDITABLE: Record<string, boolean> = {
+  title: false,
+  introduction: true,
+  modules: true,
+  positions: true,
+  deliverables: true,
+  pricing: false,
+  footerNote: false,
+}
+
+const ALWAYS_VISIBLE_BLOCKS = ['title', 'pricing']
+const GRID_COLS_BLOCKS = ['modules', 'positions', 'deliverables']
 
 /* ── 颜色配置项定义 ── */
 interface ColorField {
@@ -54,7 +90,8 @@ const modalMode = ref<'create' | 'edit'>('create')
 const editingThemeId = ref<number | null>(null)
 const formName = ref('')
 const formStyle = reactive<PlanThemeStyleConfig>({ ...DEFAULT_STYLE_CONFIG })
-const formTab = ref<'basic' | 'pricing'>('basic')
+const formTab = ref<'basic' | 'pricing' | 'layout'>('basic')
+const formDisplayTemplate = reactive<DisplayTemplateConfig>(JSON.parse(JSON.stringify(DEFAULT_DISPLAY_TEMPLATE)))
 const saving = ref(false)
 
 /* ── 删除确认 ── */
@@ -144,8 +181,14 @@ async function openCreateModal() {
     } else {
       Object.assign(formStyle, DEFAULT_STYLE_CONFIG)
     }
+    if (activeTheme?.style_config?.display_template) {
+      Object.assign(formDisplayTemplate, JSON.parse(JSON.stringify(activeTheme.style_config.display_template)))
+    } else {
+      Object.assign(formDisplayTemplate, JSON.parse(JSON.stringify(DEFAULT_DISPLAY_TEMPLATE)))
+    }
   } catch {
     Object.assign(formStyle, DEFAULT_STYLE_CONFIG)
+    Object.assign(formDisplayTemplate, JSON.parse(JSON.stringify(DEFAULT_DISPLAY_TEMPLATE)))
   }
 
   formName.value = ''
@@ -168,8 +211,14 @@ async function openEditModal(theme: PlanTheme) {
     } else {
       Object.assign(formStyle, DEFAULT_STYLE_CONFIG)
     }
+    if (detail?.current_version?.style_config?.display_template) {
+      Object.assign(formDisplayTemplate, JSON.parse(JSON.stringify(detail.current_version.style_config.display_template)))
+    } else {
+      Object.assign(formDisplayTemplate, JSON.parse(JSON.stringify(DEFAULT_DISPLAY_TEMPLATE)))
+    }
   } catch {
     Object.assign(formStyle, DEFAULT_STYLE_CONFIG)
+    Object.assign(formDisplayTemplate, JSON.parse(JSON.stringify(DEFAULT_DISPLAY_TEMPLATE)))
   }
 
   showModal.value = true
@@ -197,10 +246,11 @@ async function handleSave() {
 
   saving.value = true
   try {
+    const stylePayload = { ...formStyle, display_template: JSON.parse(JSON.stringify(formDisplayTemplate)) }
     if (modalMode.value === 'create') {
       await adminApi.createTheme({
         name,
-        style_config: { ...formStyle },
+        style_config: stylePayload,
       })
       showToast('主题创建成功')
     } else {
@@ -208,7 +258,7 @@ async function handleSave() {
         // 编辑模式：更新名称 + 创建新版本
         await adminApi.updateTheme(editingThemeId.value, { name })
         await adminApi.createThemeVersion(editingThemeId.value, {
-          style_config: { ...formStyle },
+          style_config: stylePayload,
           remark: `由管理员编辑更新`,
         })
         showToast('主题更新成功')
@@ -323,6 +373,49 @@ const previewPricingText = computed(() => {
   const val = formStyle.pricingNumberGradient
   if (val.startsWith('linear-gradient') || val.startsWith('radial-gradient')) return val
   return `linear-gradient(135deg, ${val}, ${val}CC)`
+})
+
+/* ── 展示布局操作 ── */
+const sortedBlocks = computed(() => {
+  return Object.values(formDisplayTemplate.blocks).sort((a, b) => a.order - b.order)
+})
+
+function moveBlockUp(blockId: string) {
+  const blocks = formDisplayTemplate.blocks
+  const current = blocks[blockId]
+  if (!current || current.order <= 0) return
+  const prevBlock = Object.values(blocks).find(b => b.order === current.order - 1)
+  if (prevBlock) {
+    const tmpOrder = current.order
+    current.order = prevBlock.order
+    prevBlock.order = tmpOrder
+  }
+}
+
+function moveBlockDown(blockId: string) {
+  const blocks = formDisplayTemplate.blocks
+  const current = blocks[blockId]
+  const maxOrder = Object.values(blocks).reduce((max, b) => Math.max(max, b.order), 0)
+  if (!current || current.order >= maxOrder) return
+  const nextBlock = Object.values(blocks).find(b => b.order === current.order + 1)
+  if (nextBlock) {
+    const tmpOrder = current.order
+    current.order = nextBlock.order
+    nextBlock.order = tmpOrder
+  }
+}
+
+function toggleBlockVisibility(blockId: string) {
+  if (ALWAYS_VISIBLE_BLOCKS.includes(blockId)) return
+  formDisplayTemplate.blocks[blockId].visible = !formDisplayTemplate.blocks[blockId].visible
+}
+
+/* ── 预览区块可见性 ── */
+const previewVisibleBlocks = computed(() => {
+  return Object.values(formDisplayTemplate.blocks)
+    .filter(b => b.visible)
+    .sort((a, b) => a.order - b.order)
+    .map(b => b.id)
 })
 
 /* ── 生命周期 ── */
@@ -543,6 +636,13 @@ onMounted(() => {
                 >
                   价格卡片
                 </button>
+                <button
+                  class="theme-tab"
+                  :class="{ 'theme-tab--active': formTab === 'layout' }"
+                  @click="formTab = 'layout'"
+                >
+                  展示布局
+                </button>
               </div>
 
               <!-- 基础颜色 -->
@@ -595,6 +695,83 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
+
+              <!-- 展示布局 -->
+              <div v-if="formTab === 'layout'" class="layout-config-panel">
+                <div class="layout-block-list">
+                  <div
+                    v-for="block in sortedBlocks"
+                    :key="block.id"
+                    class="layout-block-item"
+                    :class="{ 'layout-block-item--hidden': !block.visible }"
+                  >
+                    <!-- 排序按钮 -->
+                    <div class="layout-block-order">
+                      <button
+                        class="layout-order-btn"
+                        :disabled="block.order <= 0"
+                        title="上移"
+                        @click="moveBlockUp(block.id)"
+                      >
+                        <ArrowUp :size="12" />
+                      </button>
+                      <button
+                        class="layout-order-btn"
+                        :disabled="block.order >= Object.values(formDisplayTemplate.blocks).length - 1"
+                        title="下移"
+                        @click="moveBlockDown(block.id)"
+                      >
+                        <ArrowDown :size="12" />
+                      </button>
+                    </div>
+
+                    <!-- 可见性切换 -->
+                    <button
+                      class="layout-visibility-btn"
+                      :class="{ 'layout-visibility-btn--locked': ALWAYS_VISIBLE_BLOCKS.includes(block.id) }"
+                      :disabled="ALWAYS_VISIBLE_BLOCKS.includes(block.id)"
+                      :title="ALWAYS_VISIBLE_BLOCKS.includes(block.id) ? '始终显示' : (block.visible ? '点击隐藏' : '点击显示')"
+                      @click="toggleBlockVisibility(block.id)"
+                    >
+                      <Eye v-if="block.visible" :size="14" />
+                      <EyeOff v-else :size="14" />
+                    </button>
+
+                    <!-- 区块名称 -->
+                    <span class="layout-block-name">{{ BLOCK_LABELS[block.id] || block.id }}</span>
+
+                    <!-- 标题文案输入 -->
+                    <input
+                      v-if="SECTION_TITLE_EDITABLE[block.id]"
+                      v-model="formDisplayTemplate.blocks[block.id].sectionTitle"
+                      type="text"
+                      class="layout-title-input input-macos"
+                      placeholder="区块标题"
+                    />
+                    <span v-else class="layout-title-fixed">{{ block.sectionTitle || '—' }}</span>
+
+                    <!-- 列数选择 -->
+                    <div v-if="GRID_COLS_BLOCKS.includes(block.id)" class="layout-cols-select">
+                      <label class="layout-cols-label">列数</label>
+                      <select
+                        v-model.number="formDisplayTemplate.blocks[block.id].gridCols"
+                        class="input-macos layout-cols-dropdown"
+                      >
+                        <template v-if="block.id === 'deliverables'">
+                          <option :value="0">自适应</option>
+                          <option v-for="n in 6" :key="n" :value="n">{{ n }} 列</option>
+                        </template>
+                        <template v-else>
+                          <option v-for="n in 4" :key="n" :value="n">{{ n }} 列</option>
+                        </template>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <p class="layout-hint">
+                  通过上下箭头调整区块排列顺序，点击眼睛图标切换显示/隐藏。
+                </p>
+              </div>
             </div>
 
             <!-- 右侧：实时预览 -->
@@ -604,72 +781,61 @@ onMounted(() => {
                 class="theme-preview-frame"
                 :style="{ background: formStyle.pageBg }"
               >
-                <!-- 标题栏 -->
-                <div
-                  class="theme-prev-titlebar"
-                  :style="{ background: formStyle.accentColor }"
-                >
-                  <div class="theme-prev-titlebar-text" :style="{ color: '#fff' }">
-                    方案标题示例
+                <template v-for="blockId in previewVisibleBlocks" :key="blockId">
+                  <!-- 标题栏 -->
+                  <div v-if="blockId === 'title'" class="theme-prev-titlebar" :style="{ background: formStyle.accentColor }">
+                    <div class="theme-prev-titlebar-text" :style="{ color: '#fff' }">方案标题示例</div>
                   </div>
-                </div>
 
-                <!-- Section Heading -->
-                <div
-                  class="theme-prev-section-heading"
-                  :style="{ background: formStyle.accentColor + '14', borderLeft: `3px solid ${formStyle.accentColor}` }"
-                >
-                  <span :style="{ color: formStyle.subtitleColor }" class="theme-prev-section-title">课程模块</span>
-                </div>
-
-                <!-- Module Card -->
-                <div
-                  class="theme-prev-card"
-                  :style="{ background: formStyle.cardBg, borderLeft: `3px solid ${formStyle.accentColor}`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }"
-                >
-                  <div class="theme-prev-card-header" :style="{ color: formStyle.subtitleColor }">
-                    数据分析模块
-                  </div>
-                  <ul class="theme-prev-list">
-                    <li :style="{ color: formStyle.textColor }">
-                      <span class="theme-prev-dot" :style="{ background: formStyle.dotColor }" />
-                      基础数据概念讲解
-                    </li>
-                    <li :style="{ color: formStyle.textColor }">
-                      <span class="theme-prev-dot" :style="{ background: formStyle.dotColor }" />
-                      数据采集与清洗实践
-                    </li>
-                  </ul>
-                </div>
-
-                <!-- Position Card -->
-                <div
-                  class="theme-prev-card"
-                  :style="{ background: formStyle.cardBg, borderTop: `3px solid ${formStyle.accentColor}`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }"
-                >
-                  <div class="theme-prev-card-header" :style="{ color: formStyle.subtitleColor }">
-                    培养岗位
-                  </div>
-                  <div class="theme-prev-card-body" :style="{ color: formStyle.textColor }">
-                    数据分析师、业务分析师
-                  </div>
-                </div>
-
-                <!-- Pricing Card -->
-                <div
-                  class="theme-prev-pricing"
-                  :style="{ background: previewPricingBg }"
-                >
-                  <div class="theme-prev-pricing-label" style="color: rgba(255,255,255,0.8);">课程总价</div>
+                  <!-- Section Heading (introduction/modules/positions/deliverables 共用) -->
                   <div
-                    class="theme-prev-pricing-number"
-                    :style="{ background: previewPricingText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }"
+                    v-else-if="['introduction', 'modules', 'positions', 'deliverables'].includes(blockId)"
+                    class="theme-prev-section-heading"
+                    :style="{ background: formStyle.accentColor + '14', borderLeft: `3px solid ${formStyle.accentColor}` }"
                   >
-                    ¥36,000
+                    <span :style="{ color: formStyle.subtitleColor }" class="theme-prev-section-title">
+                      {{ formDisplayTemplate.blocks[blockId].sectionTitle }}
+                    </span>
                   </div>
-                </div>
 
-                <!-- Subtitle -->
+                  <!-- Module Card -->
+                  <div
+                    v-if="blockId === 'modules'"
+                    class="theme-prev-card"
+                    :style="{ background: formStyle.cardBg, borderLeft: `3px solid ${formStyle.accentColor}`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }"
+                  >
+                    <div class="theme-prev-card-header" :style="{ color: formStyle.subtitleColor }">数据分析模块</div>
+                    <ul class="theme-prev-list">
+                      <li :style="{ color: formStyle.textColor }">
+                        <span class="theme-prev-dot" :style="{ background: formStyle.dotColor }" />
+                        基础数据概念讲解
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Position Card -->
+                  <div
+                    v-if="blockId === 'positions'"
+                    class="theme-prev-card"
+                    :style="{ background: formStyle.cardBg, borderTop: `3px solid ${formStyle.accentColor}`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }"
+                  >
+                    <div class="theme-prev-card-header" :style="{ color: formStyle.subtitleColor }">培养岗位</div>
+                    <div class="theme-prev-card-body" :style="{ color: formStyle.textColor }">数据分析师</div>
+                  </div>
+
+                  <!-- Pricing Card -->
+                  <div v-if="blockId === 'pricing'" class="theme-prev-pricing" :style="{ background: previewPricingBg }">
+                    <div class="theme-prev-pricing-label" style="color: rgba(255,255,255,0.8);">课程总价</div>
+                    <div
+                      class="theme-prev-pricing-number"
+                      :style="{ background: previewPricingText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }"
+                    >
+                      ¥36,000
+                    </div>
+                  </div>
+                </template>
+
+                <!-- 底部副标题始终显示 -->
                 <div class="theme-prev-subtitle" :style="{ color: formStyle.subtitleColor }">
                   用友教育 · 产业案例教学
                 </div>
@@ -1087,5 +1253,133 @@ onMounted(() => {
   font-size: 11px;
   text-align: center;
   opacity: 0.7;
+}
+
+/* ── 展示布局配置 ── */
+.layout-config-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.layout-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.layout-block-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #FAFAFA;
+  border: 1px solid #E8E5E0;
+  border-radius: 8px;
+  transition: all 150ms ease;
+}
+
+.layout-block-item--hidden {
+  opacity: 0.5;
+}
+
+.layout-block-order {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.layout-order-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 150ms;
+}
+
+.layout-order-btn:hover:not(:disabled) {
+  background: #E8E5E0;
+  color: #444;
+}
+
+.layout-order-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.layout-visibility-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 150ms;
+  flex-shrink: 0;
+}
+
+.layout-visibility-btn:hover:not(:disabled) {
+  background: #E8E5E0;
+}
+
+.layout-visibility-btn--locked {
+  color: #BBB;
+  cursor: not-allowed;
+}
+
+.layout-block-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #444;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.layout-title-input {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 8px;
+  min-width: 0;
+}
+
+.layout-title-fixed {
+  font-size: 12px;
+  color: #999;
+  flex: 1;
+}
+
+.layout-cols-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.layout-cols-label {
+  font-size: 11px;
+  color: #999;
+}
+
+.layout-cols-dropdown {
+  font-size: 12px;
+  padding: 3px 6px;
+  width: 70px;
+}
+
+.layout-hint {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+  padding: 0 4px;
 }
 </style>

@@ -406,6 +406,19 @@ export interface PlanListParams {
   date_to?: string
 }
 
+// ── 展示模板 ──
+export interface DisplayBlockConfig {
+  id: string
+  visible: boolean
+  sectionTitle: string
+  order: number
+  gridCols?: number
+}
+
+export interface DisplayTemplateConfig {
+  blocks: Record<string, DisplayBlockConfig>
+}
+
 // ── 方案样式主题 ──
 export interface PlanThemeStyleConfig {
   accentColor: string
@@ -417,6 +430,7 @@ export interface PlanThemeStyleConfig {
   cardBg: string
   textColor: string
   subtitleColor: string
+  display_template?: DisplayTemplateConfig  // 新增：展示模板配置
 }
 
 export interface PlanTheme {
