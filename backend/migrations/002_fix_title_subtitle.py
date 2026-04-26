@@ -29,7 +29,10 @@ NEW_SUBTITLE = '"subtitle": "教学课程方案"'
 
 def main():
     from app.config import settings
-    db_url = settings.database.url
+    db_url = settings.get("database", {}).get("url", "")
+    if not db_url:
+        _logger.error("未配置数据库连接 URL，请检查 config.yaml")
+        sys.exit(1)
     _logger.info("数据库: %s", db_url.split("@")[-1] if "@" in db_url else db_url)
 
     engine = create_engine(db_url)

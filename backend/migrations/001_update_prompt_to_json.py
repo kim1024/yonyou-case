@@ -16,7 +16,6 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 _logger = logging.getLogger(__name__)
@@ -158,17 +157,27 @@ NEW_VARIABLES = '["major", "industry", "enterprise_name", "region", "hour", "com
 
 def migrate():
     """执行迁移：更新 prompt_versions 表中的模板内容。"""
-    db_path = BACKEND_DIR / "data" / "app.db"
+    from app.config import settings
 
-    if not db_path.exists():
-        _logger.error("数据库文件不存在: %s", db_path)
+    db_url = settings.get("database", {}).get("url", "")
+    if not db_url:
+        _logger.error("未配置数据库连接 URL，请检查 config.yaml")
         sys.exit(1)
+    _logger.info("数据库: %s", db_url.split("@")[-1] if "@" in db_url else db_url)
 
-    engine = create_engine(f"sqlite:///{db_path}")
+    engine = create_engine(db_url)
 
-    with Session(engine) as session:
+    with engine.begin() as conn:
+        # 幂等性检查：如果已迁移过则跳过
+        existing = conn.execute(
+            text("SELECT COUNT(*) FROM prompt_versions WHERE remark LIKE '%JSON%'")
+        ).scalar()
+        if existing > 0:
+            _logger.info("迁移已执行过，跳过。")
+            return
+
         # 查找课程方案生成场景关联的模板
-        rows = session.execute(
+        rows = conn.execute(
             text("""
                 SELECT pv.id, pv.template_id, pv.version_number, pv.remark,
                        pt.scene, pt.name
@@ -192,7 +201,7 @@ def migrate():
         updated_count = 0
         for row in rows:
             version_id = row[0]
-            result = session.execute(
+            result = conn.execute(
                 text("UPDATE prompt_versions SET content = :content, variables = :variables, remark = :remark WHERE id = :id"),
                 {
                     "content": NEW_PROMPT_CONTENT,
@@ -205,7 +214,6 @@ def migrate():
                 _logger.info("  已更新 prompt_version id=%d", version_id)
                 updated_count += 1
 
-        session.commit()
         _logger.info("迁移完成，共更新 %d 条记录。", updated_count)
 
 

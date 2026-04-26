@@ -629,17 +629,23 @@ def get_generate_status(client_request_id: str, db: Session = Depends(get_db)):
     ).first()
 
     if plan:
-        # 检查超时：记录创建超过 5 分钟视为过期
+        # 尝试解析已有的方案数据
+        try:
+            plan_json = json.loads(plan.plan_data)
+        except (json.JSONDecodeError, TypeError):
+            plan_json = None
+
+        if plan_json:
+            # 已成功生成的方案始终可查，不受过期限制
+            return GenerateStatusResponse(status="completed", data=plan_json, source=plan.source)
+
+        # 尚未生成完成的方案，超过 5 分钟视为过期
         now = datetime.now(timezone.utc)
         plan_time = plan.created_at.replace(tzinfo=timezone.utc) if plan.created_at.tzinfo is None else plan.created_at
         if now - plan_time > timedelta(minutes=5):
             return GenerateStatusResponse(status="expired", message="生成超时")
 
-        try:
-            plan_json = json.loads(plan.plan_data)
-        except (json.JSONDecodeError, TypeError):
-            plan_json = None
-        return GenerateStatusResponse(status="completed", data=plan_json, source=plan.source)
+        return GenerateStatusResponse(status="pending")
 
     # 没有找到记录，视为 pending（记录可能尚未创建）
     return GenerateStatusResponse(status="pending")
