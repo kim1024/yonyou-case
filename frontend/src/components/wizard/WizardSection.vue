@@ -74,7 +74,7 @@ withDefaults(
           class="glass px-6 py-3 rounded-xl flex items-center gap-2.5 text-neutral-500 text-sm font-medium shadow-sm"
         >
           <Loader2 class="w-4 h-4 animate-spin" :stroke-width="1.5" />
-          <span>正在生成课程方案…</span>
+          <span>生成中…</span>
         </div>
       </div>
     </Transition>

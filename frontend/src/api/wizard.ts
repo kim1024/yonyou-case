@@ -15,7 +15,10 @@ export const wizardApi = {
   },
   getHours() { return http.get('/api/hours') },
   getConfig() { return http.get('/api/config') },
-  generate(data: { major: string; industry: string; enterprise: string; region: string; hour: number }) {
-    return http.post('/api/generate', data)
+  generate(data: { major: string; industry: string; enterprise: string; region: string; hour: number; client_request_id?: string }, config?: { signal?: AbortSignal }) {
+    return http.post('/api/generate', data, { ...config, timeout: 120000 })
+  },
+  getGenerateStatus(client_request_id: string) {
+    return http.get(`/api/generate/status/${client_request_id}`)
   },
 }

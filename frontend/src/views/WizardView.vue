@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, RotateCcw, Loader2 } from 'lucide-vue-next'
 import { useWizard } from '@/composables/useWizard'
+import { wizardApi } from '@/api/wizard'
 import SummaryBar from '@/components/wizard/SummaryBar.vue'
 import WizardSection from '@/components/wizard/WizardSection.vue'
 import StepMajor from '@/components/wizard/StepMajor.vue'
@@ -19,6 +20,9 @@ const {
   loading,
   unlocked,
   canSubmit,
+  generationStage,
+  elapsedSeconds,
+  currentRequestId,
   init,
   selectMajor,
   selectIndustry,
@@ -27,15 +31,114 @@ const {
   selectHour,
   generate,
   reset,
+  restoreGeneration,
+  updateStage,
+  clearGeneration,
 } = useWizard()
 
-onMounted(() => {
+let timerInterval: ReturnType<typeof setInterval> | null = null
+let isRestorePolling = false
+
+async function pollStatus() {
+  const requestId = currentRequestId.value
+  if (!requestId) return
+  try {
+    const res = await wizardApi.getGenerateStatus(requestId)
+    const statusData = res.data
+    if (statusData.status === 'completed') {
+      generationStage.value = 4
+      clearGeneration()
+      sessionStorage.setItem('resultContent', JSON.stringify(statusData.data))
+      sessionStorage.setItem('resultSource', statusData.source)
+      if (statusData.llm_error) {
+        sessionStorage.setItem('resultLlmError', statusData.llm_error)
+      }
+      const savedSelections = localStorage.getItem('generating_selections')
+      if (savedSelections) {
+        sessionStorage.setItem('resultSelections', savedSelections)
+      }
+      stopTimer()
+      setTimeout(() => {
+        loading.generating = false
+        router.push({ name: 'result', query: { source: statusData.source } })
+      }, 1500)
+    } else if (statusData.status === 'failed' || statusData.status === 'expired') {
+      stopTimer()
+      clearGeneration()
+      loading.generating = false
+    }
+    // pending → keep polling
+  } catch {
+    // network error → keep polling, don't crash
+  }
+}
+
+function startTimer(polling = false) {
+  if (timerInterval) return
+  isRestorePolling = polling
+  timerInterval = setInterval(() => {
+    if (loading.generating && generationStage.value < 4) {
+      updateStage()
+      // 恢复场景：每 3 秒轮询一次后端状态
+      if (isRestorePolling && elapsedSeconds.value % 3 === 0) {
+        pollStatus()
+      }
+    }
+    if (generationStage.value >= 4 && timerInterval) {
+      clearInterval(timerInterval)
+      timerInterval = null
+    }
+  }, 1000)
+  // 恢复场景：立即执行一次轮询
+  if (polling) {
+    pollStatus()
+  }
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+}
+
+function handleBeforeUnload(e: BeforeUnloadEvent) {
+  if (loading.generating) {
+    e.preventDefault()
+  }
+}
+
+onMounted(async () => {
   init()
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
+  const result = await restoreGeneration()
+  if (result && 'status' in result && result.status === 'pending') {
+    startTimer(true)
+  } else if (result && 'data' in result) {
+    sessionStorage.setItem('resultContent', JSON.stringify(result.data))
+    sessionStorage.setItem('resultSource', result.source)
+    if (result.llm_error) {
+      sessionStorage.setItem('resultLlmError', result.llm_error)
+    }
+    const savedSelections = localStorage.getItem('generating_selections')
+    if (savedSelections) {
+      sessionStorage.setItem('resultSelections', savedSelections)
+    }
+    router.push({ name: 'result', query: { source: result.source } })
+  }
+})
+
+onUnmounted(() => {
+  stopTimer()
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 
 async function handleSubmit() {
   if (!canSubmit.value || loading.generating) return
+  startTimer()
   const result = await generate()
+  stopTimer()
   if (result) {
     sessionStorage.setItem('resultContent', JSON.stringify(result.data))
     sessionStorage.setItem('resultSource', result.source)
@@ -50,7 +153,13 @@ async function handleSubmit() {
       enterprise: state.enterprise,
       hour: state.hour,
     }))
-    router.push({ name: 'result', query: { source: result.source } })
+    // 阶段4完成动画展示1.5秒后跳转
+    setTimeout(() => {
+      loading.generating = false
+      router.push({ name: 'result', query: { source: result.source } })
+    }, 1500)
+  } else {
+    loading.generating = false
   }
 }
 </script>
@@ -199,7 +308,11 @@ async function handleSubmit() {
     </main>
 
     <!-- 全屏生成中遮罩 -->
-    <GeneratingOverlay :visible="loading.generating" />
+    <GeneratingOverlay
+      :visible="loading.generating"
+      :stage="generationStage"
+      :elapsed-seconds="elapsedSeconds"
+    />
 
     <!-- 移动端固定底部 CTA -->
     <div class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/90 backdrop-blur-md border-t border-neutral-200 p-4 z-30">

@@ -1,6 +1,11 @@
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import { wizardApi } from '@/api/wizard'
 import type { WizardState, CascadeData, CoursePlan } from '@/types'
+
+const GEN_STAGE_KEY = 'generating_stage'
+const GEN_START_KEY = 'generating_start_time'
+const GEN_REQUEST_KEY = 'generating_request_id'
+const GEN_SELECTIONS_KEY = 'generating_selections'
 
 export function useWizard() {
   const state = reactive<WizardState>({
@@ -38,6 +43,13 @@ export function useWizard() {
     hour: false,
   })
 
+  // 生成阶段状态
+  const generationStage = ref<1 | 2 | 3 | 4>(1)
+  const generationStartTime = ref<number | null>(null)
+  const elapsedSeconds = ref(0)
+  const currentRequestId = ref<string | null>(null)
+  let abortController: AbortController | null = null
+
   // 所有必选项是否已选完
   const canSubmit = computed(() => {
     return state.major !== null
@@ -46,6 +58,35 @@ export function useWizard() {
       && state.enterprise !== null
       && state.hour !== null
   })
+
+  function clearGeneration() {
+    localStorage.removeItem(GEN_STAGE_KEY)
+    localStorage.removeItem(GEN_START_KEY)
+    localStorage.removeItem(GEN_REQUEST_KEY)
+    localStorage.removeItem(GEN_SELECTIONS_KEY)
+    generationStage.value = 1
+    generationStartTime.value = null
+    elapsedSeconds.value = 0
+    currentRequestId.value = null
+  }
+
+  function updateStage() {
+    if (!generationStartTime.value) return
+    const elapsed = getElapsedSeconds()
+    elapsedSeconds.value = elapsed
+    if (elapsed < 2) {
+      generationStage.value = 1
+    } else if (elapsed < 10) {
+      generationStage.value = 2
+    } else {
+      generationStage.value = 3
+    }
+  }
+
+  function getElapsedSeconds(): number {
+    if (!generationStartTime.value) return 0
+    return Math.floor((Date.now() - generationStartTime.value) / 1000)
+  }
 
   // 初始化：加载 majors + hours
   async function init() {
@@ -179,7 +220,25 @@ export function useWizard() {
   async function generate(): Promise<{ data: CoursePlan; source: string; llm_error?: string } | null> {
     if (!canSubmit.value) return null
 
+    const clientRequestId = crypto.randomUUID()
+
+    generationStage.value = 1
+    generationStartTime.value = Date.now()
+    currentRequestId.value = clientRequestId
+
+    localStorage.setItem(GEN_STAGE_KEY, '1')
+    localStorage.setItem(GEN_START_KEY, String(generationStartTime.value))
+    localStorage.setItem(GEN_REQUEST_KEY, clientRequestId)
+    localStorage.setItem(GEN_SELECTIONS_KEY, JSON.stringify({
+      major: state.major,
+      industry: state.industry,
+      enterprise: state.enterprise,
+      region: state.region,
+      hour: state.hour,
+    }))
+
     loading.generating = true
+    abortController = new AbortController()
     try {
       const res = await wizardApi.generate({
         major: state.major!,
@@ -187,18 +246,70 @@ export function useWizard() {
         enterprise: state.enterprise!,
         region: state.region!,
         hour: state.hour!,
-      })
+        client_request_id: clientRequestId,
+      }, { signal: abortController.signal })
+      generationStage.value = 4
+      clearGeneration()
       return res.data
     } catch (e) {
+      if ((e as Error).name === 'CanceledError' || (e as Error).name === 'AbortError') {
+        // 请求被取消（用户点击重新开始），不报错
+        return null
+      }
       console.error('生成失败:', e)
+      clearGeneration()
       return null
     } finally {
-      loading.generating = false
+      abortController = null
+      // 注意：loading.generating 由调用方管理，不在这里设置 false
+    }
+  }
+
+  // 恢复进行中的生成
+  async function restoreGeneration(): Promise<{ status: 'pending' } | { data: CoursePlan; source: string; llm_error?: string } | null> {
+    const requestId = localStorage.getItem(GEN_REQUEST_KEY)
+    if (!requestId) return null
+
+    const savedStage = localStorage.getItem(GEN_STAGE_KEY)
+    const savedStartTime = localStorage.getItem(GEN_START_KEY)
+
+    try {
+      const res = await wizardApi.getGenerateStatus(requestId)
+      const statusData = res.data
+
+      if (statusData.status === 'completed') {
+        clearGeneration()
+        return { data: statusData.data, source: statusData.source, llm_error: statusData.llm_error }
+      }
+
+      if (statusData.status === 'pending' || statusData.status === 'processing') {
+        if (savedStartTime) {
+          generationStartTime.value = parseInt(savedStartTime, 10)
+          currentRequestId.value = requestId
+          elapsedSeconds.value = getElapsedSeconds()
+          updateStage()
+          loading.generating = true
+        }
+        return { status: 'pending' }
+      }
+
+      // failed or unknown
+      clearGeneration()
+      return null
+    } catch (e) {
+      console.error('恢复生成状态失败:', e)
+      clearGeneration()
+      return null
     }
   }
 
   // 重置全部
   function reset() {
+    // 如果正在生成，先取消请求
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
     state.major = null
     state.majorId = null
     state.industry = null
@@ -213,6 +324,8 @@ export function useWizard() {
     unlocked.region = false
     unlocked.enterprise = false
     unlocked.hour = false
+    loading.generating = false
+    clearGeneration()
   }
 
   return {
@@ -221,6 +334,9 @@ export function useWizard() {
     loading,
     unlocked,
     canSubmit,
+    generationStage,
+    generationStartTime,
+    elapsedSeconds,
     init,
     selectMajor,
     selectIndustry,
@@ -229,5 +345,9 @@ export function useWizard() {
     selectHour,
     generate,
     reset,
+    restoreGeneration,
+    clearGeneration,
+    updateStage,
+    getElapsedSeconds,
   }
 }

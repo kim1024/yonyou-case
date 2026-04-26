@@ -4,9 +4,11 @@ import logging
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -24,6 +26,13 @@ DELIVERABLES = ["PPT", "视频", "指导书", "数据集", "代码包", "实操�
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["wizard"])
+
+
+class GenerateStatusResponse(BaseModel):
+    status: str  # "completed" | "pending" | "expired"
+    data: Optional[dict] = None
+    source: Optional[str] = None
+    message: Optional[str] = None
 
 
 @router.get("/api/majors")
@@ -606,7 +615,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/api/generate/status/{client_request_id}")
+@router.get("/api/generate/status/{client_request_id}", response_model=GenerateStatusResponse)
 def get_generate_status(client_request_id: str, db: Session = Depends(get_db)):
     """查询生成任务状态。"""
     # 验证 UUID 格式
@@ -620,17 +629,17 @@ def get_generate_status(client_request_id: str, db: Session = Depends(get_db)):
     ).first()
 
     if plan:
-        # 检查超时：记录创建超过 5 分钟视为超时
+        # 检查超时：记录创建超过 5 分钟视为过期
         now = datetime.now(timezone.utc)
         plan_time = plan.created_at.replace(tzinfo=timezone.utc) if plan.created_at.tzinfo is None else plan.created_at
         if now - plan_time > timedelta(minutes=5):
-            return {"status": "failed", "message": "生成超时"}
+            return GenerateStatusResponse(status="expired", message="生成超时")
 
         try:
             plan_json = json.loads(plan.plan_data)
         except (json.JSONDecodeError, TypeError):
             plan_json = None
-        return {"status": "completed", "data": plan_json, "source": plan.source}
+        return GenerateStatusResponse(status="completed", data=plan_json, source=plan.source)
 
     # 没有找到记录，视为 pending（记录可能尚未创建）
-    return {"status": "pending"}
+    return GenerateStatusResponse(status="pending")
