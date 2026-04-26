@@ -34,6 +34,10 @@ const {
   restoreGeneration,
   updateStage,
   clearGeneration,
+  rateLimited,
+  rateLimitMessage,
+  cooldownRemaining,
+  error,
 } = useWizard()
 
 let timerInterval: ReturnType<typeof setInterval> | null = null
@@ -314,13 +318,55 @@ async function handleSubmit() {
 
       <!-- 底部 CTA -->
       <div class="hidden lg:block pt-2 pb-4">
+        <!-- Rate limit cooldown banner -->
+        <Transition name="cooldown">
+          <div
+            v-if="rateLimited"
+            class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4"
+          >
+            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-50 border-amber-200 text-amber-800">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div class="flex-1">
+                <p class="text-sm font-medium">{{ rateLimitMessage || '生成请求过于频繁，请稍后再试' }}</p>
+                <p v-if="cooldownRemaining > 0" class="text-xs mt-0.5 text-amber-600">
+                  {{ cooldownRemaining }} 秒后可重新生成
+                </p>
+              </div>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Error banner -->
+        <Transition name="cooldown">
+          <div v-if="error" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-red-50 border-red-200 text-red-800">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div class="flex-1">
+                <p class="text-sm font-medium">{{ error }}</p>
+              </div>
+              <button
+                class="text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                @click="error = ''"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </Transition>
+
         <div class="text-center">
           <button
-            :disabled="!canSubmit || loading.generating"
+            :disabled="!canSubmit || loading.generating || rateLimited"
             :class="[
               'inline-flex items-center gap-2.5 px-10 py-3.5 rounded-xl font-semibold text-base',
               'transition-all duration-300 cursor-pointer',
-              canSubmit && !loading.generating
+              canSubmit && !loading.generating && !rateLimited
                 ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-600 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
                 : 'bg-neutral-200 text-neutral-400 cursor-not-allowed',
             ]"
@@ -331,7 +377,7 @@ async function handleSubmit() {
               class="w-5 h-5 animate-spin"
               :stroke-width="2"
             />
-            <span>{{ loading.generating ? '正在生成课程方案...' : '生成课程方案' }}</span>
+            <span>{{ loading.generating ? '正在生成课程方案...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '生成课程方案' }}</span>
             <ArrowRight
               v-if="!loading.generating"
               class="w-5 h-5"
@@ -351,12 +397,51 @@ async function handleSubmit() {
 
     <!-- 移动端固定底部 CTA -->
     <div class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/90 backdrop-blur-md border-t border-neutral-200 p-4 z-30">
+      <!-- Mobile rate limit cooldown banner -->
+      <Transition name="cooldown">
+        <div v-if="rateLimited" class="mb-3">
+          <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-50 border-amber-200 text-amber-800">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div class="flex-1">
+              <p class="text-sm font-medium">{{ rateLimitMessage || '生成请求过于频繁，请稍后再试' }}</p>
+              <p v-if="cooldownRemaining > 0" class="text-xs mt-0.5 text-amber-600">
+                {{ cooldownRemaining }} 秒后可重新生成
+              </p>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <!-- Mobile error banner -->
+      <Transition name="cooldown">
+        <div v-if="error" class="mb-3">
+          <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-red-50 border-red-200 text-red-800">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div class="flex-1">
+              <p class="text-sm font-medium">{{ error }}</p>
+            </div>
+            <button
+              class="text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+              @click="error = ''"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </Transition>
+
       <button
-        :disabled="!canSubmit || loading.generating"
+        :disabled="!canSubmit || loading.generating || rateLimited"
         :class="[
           'w-full inline-flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-base',
           'transition-all duration-300 cursor-pointer',
-          canSubmit && !loading.generating
+          canSubmit && !loading.generating && !rateLimited
             ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25 active:translate-y-0'
             : 'bg-neutral-200 text-neutral-400 cursor-not-allowed',
         ]"
@@ -367,7 +452,7 @@ async function handleSubmit() {
           class="w-5 h-5 animate-spin"
           :stroke-width="2"
         />
-        <span>{{ loading.generating ? '生成中...' : '生成课程方案' }}</span>
+        <span>{{ loading.generating ? '生成中...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '生成课程方案' }}</span>
         <ArrowRight
           v-if="!loading.generating"
           class="w-5 h-5"
@@ -377,3 +462,16 @@ async function handleSubmit() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.cooldown-enter-active {
+  animation: fadeUp 0.3s ease-out;
+}
+.cooldown-leave-active {
+  transition: all 0.2s ease-in;
+}
+.cooldown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+</style>

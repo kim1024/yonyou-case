@@ -4,13 +4,14 @@ import logging
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional, List
 
 from app.database import get_db
 from app.models.llm_config import LLMConfig
 from app.models.model_fallback_setting import ModelFallbackSetting
 from app.dependencies import get_current_user
+from app.services.llm_runtime import deactivate_all_configs
 from app.utils.datetime import utc_isoformat
 from app.routers.admin_llm import mask_api_key
 
@@ -23,18 +24,36 @@ _logger = logging.getLogger(__name__)
 
 
 class ChainCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     primary_config_id: int
     fallback_config_ids: List[int] = []
     failure_threshold: int = Field(default=3, ge=1)
-    timeout_threshold: int = Field(default=5, ge=1)
+    timeout_seconds: int = Field(default=30, ge=1)
     cooldown_seconds: int = Field(default=300, ge=0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_timeout_field(cls, data):
+        if isinstance(data, dict) and "timeout_seconds" not in data and "timeout_threshold" in data:
+            data["timeout_seconds"] = data["timeout_threshold"]
+        return data
 
 
 class ChainUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     failure_threshold: Optional[int] = Field(default=None, ge=1)
-    timeout_threshold: Optional[int] = Field(default=None, ge=1)
+    timeout_seconds: Optional[int] = Field(default=None, ge=1)
     cooldown_seconds: Optional[int] = Field(default=None, ge=0)
     fallback_config_ids: Optional[List[int]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_timeout_field(cls, data):
+        if isinstance(data, dict) and "timeout_seconds" not in data and "timeout_threshold" in data:
+            data["timeout_seconds"] = data["timeout_threshold"]
+        return data
 
 
 class AddFallback(BaseModel):
@@ -77,7 +96,8 @@ def _chain_dict(setting: ModelFallbackSetting, primary: LLMConfig, fallbacks: Li
             for f in sorted(fallbacks, key=lambda x: x.fallback_order)
         ],
         "failure_threshold": setting.failure_threshold,
-        "timeout_threshold": setting.timeout_threshold,
+        "timeout_seconds": setting.timeout_seconds,
+        "timeout_threshold": setting.timeout_seconds,
         "cooldown_seconds": setting.cooldown_seconds,
         "created_at": utc_isoformat(setting.created_at),
         "updated_at": utc_isoformat(setting.updated_at),
@@ -89,6 +109,7 @@ def _dissolve_config(config: LLMConfig) -> None:
     config.role = "standalone"
     config.fallback_order = 0
     config.fallback_group_id = None
+    config.is_active = False
 
 
 # ─── 1. List all chains ───────────────────────────────────────────────────
@@ -184,6 +205,9 @@ def create_chain(
     current_user: dict = Depends(get_current_user),
 ):
     """Create a new LLM fallback chain."""
+    if len(data.fallback_config_ids) < 1:
+        raise HTTPException(status_code=400, detail="调用链路至少需要 2 个模型，请至少选择 1 个备用模型")
+
     primary = db.query(LLMConfig).filter(LLMConfig.id == data.primary_config_id).first()
     if not primary:
         raise HTTPException(status_code=400, detail=f"主配置 {data.primary_config_id} 不存在")
@@ -192,7 +216,11 @@ def create_chain(
 
     # Validate all fallback configs
     fallbacks = []
+    seen_fallback_ids: set[int] = set()
     for fid in data.fallback_config_ids:
+        if fid in seen_fallback_ids:
+            raise HTTPException(status_code=400, detail=f"备用配置 {fid} 重复")
+        seen_fallback_ids.add(fid)
         cfg = db.query(LLMConfig).filter(LLMConfig.id == fid).first()
         if not cfg:
             raise HTTPException(status_code=400, detail=f"备用配置 {fid} 不存在")
@@ -203,6 +231,8 @@ def create_chain(
         fallbacks.append(cfg)
 
     group_id = uuid.uuid4().hex[:12]
+
+    deactivate_all_configs(db)
 
     # Update primary
     primary.role = "primary"
@@ -221,7 +251,7 @@ def create_chain(
     setting = ModelFallbackSetting(
         primary_llm_config_id=primary.id,
         failure_threshold=data.failure_threshold,
-        timeout_threshold=data.timeout_threshold,
+        timeout_seconds=data.timeout_seconds,
         cooldown_seconds=data.cooldown_seconds,
     )
     db.add(setting)
@@ -253,13 +283,16 @@ def update_chain(
     # Update thresholds
     if data.failure_threshold is not None:
         setting.failure_threshold = data.failure_threshold
-    if data.timeout_threshold is not None:
-        setting.timeout_threshold = data.timeout_threshold
+    if data.timeout_seconds is not None:
+        setting.timeout_seconds = data.timeout_seconds
     if data.cooldown_seconds is not None:
         setting.cooldown_seconds = data.cooldown_seconds
 
     # Reorder / add / remove fallbacks if the list is provided
     if data.fallback_config_ids is not None:
+        if len(data.fallback_config_ids) < 1:
+            raise HTTPException(status_code=400, detail="调用链路至少需要保留 1 个备用模型；如仅保留单模型，请解散链路")
+
         group_id = primary.fallback_group_id
 
         # Current fallbacks in this chain
@@ -272,17 +305,24 @@ def update_chain(
             .all()
         )
         current_ids = {c.id for c in current_fallbacks}
+        active_ids = {c.id for c in current_fallbacks if c.is_active}
         new_ids = set(data.fallback_config_ids)
 
         # Dissolve configs that are being removed
         to_remove = current_ids - new_ids
+        removed_active = False
         for cfg in current_fallbacks:
             if cfg.id in to_remove:
+                removed_active = removed_active or cfg.is_active
                 _dissolve_config(cfg)
 
         # Validate and assign new fallbacks
         new_fallbacks = []
+        seen_new_ids: set[int] = set()
         for fid in data.fallback_config_ids:
+            if fid in seen_new_ids:
+                raise HTTPException(status_code=400, detail=f"配置 {fid} 重复")
+            seen_new_ids.add(fid)
             cfg = db.query(LLMConfig).filter(LLMConfig.id == fid).first()
             if not cfg:
                 raise HTTPException(status_code=400, detail=f"配置 {fid} 不存在")
@@ -296,9 +336,22 @@ def update_chain(
             cfg.role = "fallback"
             cfg.fallback_order = i
             cfg.fallback_group_id = group_id
-            cfg.is_active = False
+            cfg.is_active = cfg.id in active_ids
+
+        has_active_in_group = any(
+            cfg.is_active
+            for cfg in db.query(LLMConfig).filter(LLMConfig.fallback_group_id == group_id).all()
+        )
+        if removed_active or not has_active_in_group:
+            deactivate_all_configs(db, exclude_config_id=primary.id)
+            primary.is_active = True
 
     db.commit()
+
+    if data.fallback_config_ids is not None and primary.fallback_group_id:
+        from app.services.llm_chain_manager import get_chain_manager
+        get_chain_manager().reset_chain(primary.fallback_group_id)
+
     db.refresh(setting)
 
     fallbacks = (
@@ -327,15 +380,21 @@ def delete_chain(
         raise HTTPException(status_code=404, detail="降级链不存在")
 
     primary = db.query(LLMConfig).filter(LLMConfig.id == setting.primary_llm_config_id).first()
+    group_id = None
 
     # Dissolve all configs in the group
     if primary:
         group_id = primary.fallback_group_id
         _dissolve_config(primary)
+        deactivate_all_configs(db, exclude_config_id=primary.id)
+        primary.is_active = True
         if group_id:
             fallbacks = (
                 db.query(LLMConfig)
-                .filter(LLMConfig.fallback_group_id == group_id)
+                .filter(
+                    LLMConfig.fallback_group_id == group_id,
+                    LLMConfig.id != primary.id,
+                )
                 .all()
             )
             for fb in fallbacks:
@@ -423,13 +482,15 @@ def remove_fallback(
     if not cfg or cfg.fallback_group_id != primary.fallback_group_id:
         raise HTTPException(status_code=404, detail="该配置不属于此降级链")
 
+    group_id = primary.fallback_group_id
+    was_active = cfg.is_active
     _dissolve_config(cfg)
 
     # Check remaining fallbacks
     remaining = (
         db.query(LLMConfig)
         .filter(
-            LLMConfig.fallback_group_id == primary.fallback_group_id,
+            LLMConfig.fallback_group_id == group_id,
             LLMConfig.id != primary.id,
         )
         .all()
@@ -437,13 +498,18 @@ def remove_fallback(
 
     if not remaining:
         # Auto-dissolve: only primary left
-        group_id = primary.fallback_group_id
         _dissolve_config(primary)
+        deactivate_all_configs(db, exclude_config_id=primary.id)
+        primary.is_active = True
         db.delete(setting)
         db.commit()
         from app.services.llm_chain_manager import get_chain_manager
         get_chain_manager().reset_chain(group_id)
         return {"message": "最后一个备用模型已移除，降级链已自动解散"}
+
+    if was_active:
+        deactivate_all_configs(db, exclude_config_id=primary.id)
+        primary.is_active = True
 
     # Re-number remaining fallbacks
     remaining.sort(key=lambda x: x.fallback_order)
@@ -451,6 +517,8 @@ def remove_fallback(
         fb.fallback_order = i
 
     db.commit()
+    from app.services.llm_chain_manager import get_chain_manager
+    get_chain_manager().reset_chain(group_id)
     return {"message": "已移除备用模型"}
 
 

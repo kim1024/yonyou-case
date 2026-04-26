@@ -50,6 +50,15 @@ export function useWizard() {
   const currentRequestId = ref<string | null>(null)
   let abortController: AbortController | null = null
 
+  // Rate limit state
+  const rateLimited = ref(false)
+  const rateLimitMessage = ref('')
+  const cooldownRemaining = ref(0)
+  let cooldownTimer: ReturnType<typeof setInterval> | null = null
+
+  // Error state
+  const error = ref('')
+
   // 所有必选项是否已选完
   const canSubmit = computed(() => {
     return state.major !== null
@@ -68,6 +77,30 @@ export function useWizard() {
     generationStartTime.value = null
     elapsedSeconds.value = 0
     currentRequestId.value = null
+  }
+
+  function handleRateLimit(info: { detail: string; message: string; retryAfter: number }) {
+    rateLimited.value = true
+    rateLimitMessage.value = info.message
+    cooldownRemaining.value = info.retryAfter
+
+    if (cooldownTimer) clearInterval(cooldownTimer)
+    cooldownTimer = setInterval(() => {
+      cooldownRemaining.value--
+      if (cooldownRemaining.value <= 0) {
+        clearRateLimit()
+      }
+    }, 1000)
+  }
+
+  function clearRateLimit() {
+    rateLimited.value = false
+    rateLimitMessage.value = ''
+    cooldownRemaining.value = 0
+    if (cooldownTimer) {
+      clearInterval(cooldownTimer)
+      cooldownTimer = null
+    }
   }
 
   function updateStage() {
@@ -238,6 +271,7 @@ export function useWizard() {
     }))
 
     loading.generating = true
+    error.value = ''
     abortController = new AbortController()
     try {
       const res = await wizardApi.generate({
@@ -257,7 +291,15 @@ export function useWizard() {
         // 请求被取消（用户点击重新开始），不报错
         return null
       }
+      // Rate limit detection
+      if ((e as any).rateLimitInfo) {
+        handleRateLimit((e as any).rateLimitInfo)
+        loading.generating = false
+        clearGeneration()
+        return null
+      }
       console.error('[generate] API调用失败:', (e as Error).message, e)
+      error.value = '生成失败，请检查网络连接或大模型配置后重试'
       clearGeneration()
       return null
     } finally {
@@ -271,7 +313,6 @@ export function useWizard() {
     const requestId = localStorage.getItem(GEN_REQUEST_KEY)
     if (!requestId) return null
 
-    const savedStage = localStorage.getItem(GEN_STAGE_KEY)
     const savedStartTime = localStorage.getItem(GEN_START_KEY)
 
     try {
@@ -327,6 +368,8 @@ export function useWizard() {
     unlocked.hour = false
     loading.generating = false
     clearGeneration()
+    clearRateLimit()
+    error.value = ''
   }
 
   return {
@@ -338,6 +381,7 @@ export function useWizard() {
     generationStage,
     generationStartTime,
     elapsedSeconds,
+    currentRequestId,
     init,
     selectMajor,
     selectIndustry,
@@ -350,5 +394,10 @@ export function useWizard() {
     clearGeneration,
     updateStage,
     getElapsedSeconds,
+    rateLimited,
+    rateLimitMessage,
+    cooldownRemaining,
+    clearRateLimit,
+    error,
   }
 }

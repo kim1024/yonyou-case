@@ -16,11 +16,13 @@ from app.database import get_db
 from app.models.enterprise import Enterprise
 from app.models.major import Major, Industry, MajorIndustry, Region, Hour
 from app.models.llm_config import LLMConfig
+from app.models.model_fallback_setting import ModelFallbackSetting
 from app.models.prompt_template import PromptTemplate
 from app.models.prompt_version import PromptVersion
 from app.models.token_usage_log import TokenUsageLog
 from app.models.generated_plan import GeneratedPlan
 from app.services.llm_chain_manager import get_chain_manager
+from app.services.llm_runtime import normalize_runtime_state, resolve_runtime_config
 
 DELIVERABLES = ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"]
 
@@ -34,6 +36,7 @@ class GenerateStatusResponse(BaseModel):
     data: Optional[dict] = None
     source: Optional[str] = None
     message: Optional[str] = None
+    llm_error: Optional[str] = None
 
 
 @router.get("/api/majors")
@@ -356,10 +359,12 @@ def generate(request: dict, db: Session = Depends(get_db)):
     company_intro = enterprise.company_intro if enterprise else "暂无企业简介"
     yonyou_content = enterprise.yonyou_content if enterprise else "暂无建设内容"
 
-    # 优先从数据库读取活跃配置
+    # 优先从数据库读取当前实际生效的配置：
+    # 1. 已启用链路中的当前节点
+    # 2. 否则为独立激活模型
     llm_config_id = None
     try:
-        db_llm = db.query(LLMConfig).filter(LLMConfig.is_active == True).first()
+        db_llm = normalize_runtime_state(db) or resolve_runtime_config(db)
     except Exception:
         db_llm = None
     if db_llm:
@@ -384,11 +389,21 @@ def generate(request: dict, db: Session = Depends(get_db)):
     chain_manager = get_chain_manager()
     use_chain = False
     chain_group_id = None
+    chain_timeout_seconds = None
+    chain_in_cooling = False
     max_retries = 1  # default: no chain retry
 
     if db_llm and db_llm.fallback_group_id:
         use_chain = True
         chain_group_id = db_llm.fallback_group_id
+        chain_setting = (
+            db.query(ModelFallbackSetting)
+            .join(LLMConfig, ModelFallbackSetting.primary_llm_config_id == LLMConfig.id)
+            .filter(LLMConfig.fallback_group_id == chain_group_id)
+            .first()
+        )
+        if chain_setting:
+            chain_timeout_seconds = chain_setting.timeout_seconds
         chain_config = chain_manager.get_active_config(db, chain_group_id)
         if chain_config:
             active_config = chain_config
@@ -397,13 +412,15 @@ def generate(request: dict, db: Session = Depends(get_db)):
             model = active_config.model
             temperature = active_config.temperature or 0.7
             max_tokens = active_config.max_tokens or 4000
-            timeout = active_config.timeout or 60
+            timeout = max(chain_timeout_seconds or 0, active_config.timeout or 60)
             llm_config_id = active_config.id
             # Count total models in chain for max retries
             chain_size = db.query(LLMConfig).filter(
                 LLMConfig.fallback_group_id == chain_group_id
             ).count()
             max_retries = chain_size
+        else:
+            chain_in_cooling = True
 
     # 防止 max_tokens 被误设为模型上下文窗口大小等超大值
     max_tokens = min(max_tokens, 16384)
@@ -415,8 +432,23 @@ def generate(request: dict, db: Session = Depends(get_db)):
         model = next_config.model
         temperature = next_config.temperature or 0.7
         max_tokens = min(next_config.max_tokens or 4000, 16384)
-        timeout = next_config.timeout or 60
+        timeout = chain_timeout_seconds or next_config.timeout or 60
         llm_config_id = next_config.id
+
+    attempted_config_ids: set[int] = set()
+
+    def _try_chain_failover(is_timeout: bool) -> bool:
+        if not use_chain or not chain_group_id or llm_config_id is None:
+            return False
+        previous_config_id = llm_config_id
+        switched = chain_manager.record_failure(db, chain_group_id, is_timeout=is_timeout)
+        if not switched:
+            return False
+        next_config = chain_manager.get_active_config(db, chain_group_id)
+        if not next_config or next_config.id == previous_config_id or next_config.id in attempted_config_ids:
+            return False
+        _switch_chain_config(next_config)
+        return True
 
     # 对数据库字段做长度限制，防止提示注入
     def _safe(text: str, max_len: int = 500) -> str:
@@ -550,8 +582,12 @@ def generate(request: dict, db: Session = Depends(get_db)):
 4. 仅输出 JSON，不要输出其他内容。
 5. introduction 中需要强调的动态内容（企业名、行业名、专业名、课时数等），请用 HTML 标签包裹：<b class="highlight">xxx</b>，使其加粗并使用特殊颜色显示。"""
 
-    last_error = None
+    last_error = RuntimeError("降级链处于冷却期，暂不调用大模型") if chain_in_cooling else None
     for attempt in range(max_retries):
+        if chain_in_cooling:
+            break
+        if llm_config_id is not None:
+            attempted_config_ids.add(llm_config_id)
         try:
             if api_key and api_key != "sk-xxx":
                 # 自动补全 /v1 路径：兼容用户填写域名或完整 URL 两种情况
@@ -622,43 +658,27 @@ def generate(request: dict, db: Session = Depends(get_db)):
                     else:
                         _logger.warning("LLM 返回 JSON 解析失败，回退到模板")
                         last_error = ValueError("LLM 返回 JSON 解析失败")
-                        if use_chain:
-                            chain_manager.record_failure(db, chain_group_id, is_timeout=False)
-                            next_config = chain_manager.get_active_config(db, chain_group_id)
-                            if next_config:
-                                _switch_chain_config(next_config)
-                                continue
+                        if _try_chain_failover(is_timeout=False):
+                            continue
                         break
                 else:
                     _logger.warning("LLM API 返回非 200 状态码: %d, body: %s",
                                     response.status_code, response.text[:500])
                     last_error = RuntimeError(f"LLM API status {response.status_code}")
-                    if use_chain:
-                        chain_manager.record_failure(db, chain_group_id, is_timeout=False)
-                        next_config = chain_manager.get_active_config(db, chain_group_id)
-                        if next_config:
-                            _switch_chain_config(next_config)
-                            continue
+                    if _try_chain_failover(is_timeout=False):
+                        continue
                     break
         except httpx.TimeoutException as e:
             last_error = e
             _logger.warning("LLM API call timeout (attempt %d/%d): %s", attempt + 1, max_retries, e)
-            if use_chain:
-                chain_manager.record_failure(db, chain_group_id, is_timeout=True)
-                next_config = chain_manager.get_active_config(db, chain_group_id)
-                if next_config:
-                    _switch_chain_config(next_config)
-                    continue
+            if _try_chain_failover(is_timeout=True):
+                continue
             break
         except Exception as e:
             last_error = e
             _logger.error("AI API call failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
-            if use_chain:
-                chain_manager.record_failure(db, chain_group_id, is_timeout=False)
-                next_config = chain_manager.get_active_config(db, chain_group_id)
-                if next_config:
-                    _switch_chain_config(next_config)
-                    continue
+            if _try_chain_failover(is_timeout=False):
+                continue
             break
 
     # 回退到模板生成（JSON 格式）
@@ -712,7 +732,8 @@ def get_generate_status(client_request_id: str, db: Session = Depends(get_db)):
 
         if plan_json:
             # 已成功生成的方案始终可查，不受过期限制
-            return GenerateStatusResponse(status="completed", data=plan_json, source=plan.source)
+            llm_error = "大模型调用失败，已使用模板生成方案。请检查大模型配置（API Key、Base URL）是否正确。" if plan.source == "template" else None
+            return GenerateStatusResponse(status="completed", data=plan_json, source=plan.source, llm_error=llm_error)
 
         # 尚未生成完成的方案，超过 5 分钟视为过期
         now = datetime.now(timezone.utc)
