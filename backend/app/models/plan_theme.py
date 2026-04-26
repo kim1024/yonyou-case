@@ -1,12 +1,21 @@
 """方案样式主题表。"""
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Index, func, text
 from app.database import Base
 
 
 class PlanTheme(Base):
     """方案样式主题"""
     __tablename__ = "plan_themes"
+
+    __table_args__ = (
+        Index(
+            "uq_plan_themes_active",
+            "is_active",
+            unique=True,
+            postgresql_where=text("is_active = true"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(200), nullable=False)                     # 主题名称

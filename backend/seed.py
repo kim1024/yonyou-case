@@ -18,7 +18,7 @@ _logger = logging.getLogger(__name__)
 import yaml
 from openpyxl import load_workbook
 
-from app.database import Base, engine, SessionLocal
+from app.database import SessionLocal
 from app.models.enterprise import Enterprise
 from app.models.admin import AdminUser
 from app.models.major import Major, Industry, MajorIndustry, Region, Hour
@@ -188,8 +188,7 @@ def seed_default_theme(db):
 
 
 def seed_database():
-    """主入口：建表 + 导入数据。"""
-    Base.metadata.create_all(bind=engine)
+    """主入口：导入数据。"""
     db = SessionLocal()
     try:
         seed_enterprises(db)
