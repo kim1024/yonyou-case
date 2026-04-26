@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, isNavigationFailure } from 'vue-router'
 import { ArrowRight, RotateCcw, Loader2 } from 'lucide-vue-next'
 import { useWizard } from '@/composables/useWizard'
 import { wizardApi } from '@/api/wizard'
@@ -58,9 +58,19 @@ async function pollStatus() {
       }
       stopTimer()
       setTimeout(async () => {
-        await router.push({ name: 'result', query: { source: statusData.source } })
-        loading.generating = false
-        clearGeneration()
+        try {
+          const navResult = await router.push({ name: 'result', query: { source: statusData.source } })
+          if (isNavigationFailure(navResult)) {
+            console.error('[pollStatus] 导航被阻止:', navResult)
+            window.location.href = `/result?source=${encodeURIComponent(statusData.source)}`
+          }
+        } catch (e) {
+          console.error('[pollStatus] 导航异常:', e)
+          window.location.href = `/result?source=${encodeURIComponent(statusData.source)}`
+        } finally {
+          loading.generating = false
+          clearGeneration()
+        }
       }, 1500)
     } else if (statusData.status === 'failed' || statusData.status === 'expired') {
       stopTimer()
@@ -125,7 +135,16 @@ onMounted(async () => {
     if (savedSelections) {
       sessionStorage.setItem('resultSelections', savedSelections)
     }
-    router.push({ name: 'result', query: { source: result.source } })
+    try {
+      const navResult = await router.push({ name: 'result', query: { source: result.source } })
+      if (isNavigationFailure(navResult)) {
+        console.error('[restoreGeneration] 导航被阻止:', navResult)
+        window.location.href = `/result?source=${encodeURIComponent(result.source)}`
+      }
+    } catch (e) {
+      console.error('[restoreGeneration] 导航异常:', e)
+      window.location.href = `/result?source=${encodeURIComponent(result.source)}`
+    }
   }
 })
 
@@ -136,9 +155,11 @@ onUnmounted(() => {
 
 async function handleSubmit() {
   if (!canSubmit.value || loading.generating) return
+  console.log('[handleSubmit] 开始生成...')
   startTimer()
   const result = await generate()
   stopTimer()
+  console.log('[handleSubmit] generate 返回:', result ? '成功' : '失败', 'stage:', generationStage.value)
   if (result) {
     sessionStorage.setItem('resultContent', JSON.stringify(result.data))
     sessionStorage.setItem('resultSource', result.source)
@@ -155,9 +176,22 @@ async function handleSubmit() {
     }))
     // 阶段4完成动画展示1.5秒后跳转
     setTimeout(async () => {
-      await router.push({ name: 'result', query: { source: result.source } })
-      loading.generating = false
-      clearGeneration()
+      console.log('[handleSubmit] 开始导航到结果页, source:', result.source)
+      try {
+        const navResult = await router.push({ name: 'result', query: { source: result.source } })
+        if (isNavigationFailure(navResult)) {
+          console.error('[handleSubmit] 导航被阻止:', navResult)
+          window.location.href = `/result?source=${encodeURIComponent(result.source)}`
+        } else {
+          console.log('[handleSubmit] 导航成功')
+        }
+      } catch (e) {
+        console.error('[handleSubmit] 导航异常:', e)
+        window.location.href = `/result?source=${encodeURIComponent(result.source)}`
+      } finally {
+        loading.generating = false
+        clearGeneration()
+      }
     }, 1500)
   } else {
     loading.generating = false

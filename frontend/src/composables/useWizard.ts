@@ -249,6 +249,7 @@ export function useWizard() {
         client_request_id: clientRequestId,
       }, { signal: abortController.signal })
       generationStage.value = 4
+      console.log('[generate] 成功, source:', res.data?.source)
       // clearGeneration() is called by the caller after the stage-4 animation
       return res.data
     } catch (e) {
@@ -256,7 +257,7 @@ export function useWizard() {
         // 请求被取消（用户点击重新开始），不报错
         return null
       }
-      console.error('生成失败:', e)
+      console.error('[generate] API调用失败:', (e as Error).message, e)
       clearGeneration()
       return null
     } finally {
