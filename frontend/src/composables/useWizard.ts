@@ -249,7 +249,7 @@ export function useWizard() {
         client_request_id: clientRequestId,
       }, { signal: abortController.signal })
       generationStage.value = 4
-      clearGeneration()
+      // clearGeneration() is called by the caller after the stage-4 animation
       return res.data
     } catch (e) {
       if ((e as Error).name === 'CanceledError' || (e as Error).name === 'AbortError') {

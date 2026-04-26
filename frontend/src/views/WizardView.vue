@@ -47,7 +47,6 @@ async function pollStatus() {
     const statusData = res.data
     if (statusData.status === 'completed') {
       generationStage.value = 4
-      clearGeneration()
       sessionStorage.setItem('resultContent', JSON.stringify(statusData.data))
       sessionStorage.setItem('resultSource', statusData.source)
       if (statusData.llm_error) {
@@ -58,9 +57,10 @@ async function pollStatus() {
         sessionStorage.setItem('resultSelections', savedSelections)
       }
       stopTimer()
-      setTimeout(() => {
+      setTimeout(async () => {
+        await router.push({ name: 'result', query: { source: statusData.source } })
         loading.generating = false
-        router.push({ name: 'result', query: { source: statusData.source } })
+        clearGeneration()
       }, 1500)
     } else if (statusData.status === 'failed' || statusData.status === 'expired') {
       stopTimer()
@@ -154,9 +154,10 @@ async function handleSubmit() {
       hour: state.hour,
     }))
     // 阶段4完成动画展示1.5秒后跳转
-    setTimeout(() => {
+    setTimeout(async () => {
+      await router.push({ name: 'result', query: { source: result.source } })
       loading.generating = false
-      router.push({ name: 'result', query: { source: result.source } })
+      clearGeneration()
     }, 1500)
   } else {
     loading.generating = false
