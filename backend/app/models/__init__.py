@@ -10,11 +10,14 @@ from app.models.province_city import Province, City
 from app.models.generated_plan import GeneratedPlan
 from app.models.plan_theme import PlanTheme
 from app.models.plan_theme_version import PlanThemeVersion
+from app.models.security_setting import SecuritySetting
+from app.models.model_fallback_setting import ModelFallbackSetting
 
 __all__ = [
     "Enterprise", "AdminUser", "VisitLog",
     "Major", "Industry", "MajorIndustry", "Region", "Hour",
     "LLMConfig", "TokenUsageLog", "PromptTemplate", "PromptVersion",
     "Province", "City", "GeneratedPlan",
-    "PlanTheme", "PlanThemeVersion",
+    "PlanTheme", "PlanThemeVersion", "SecuritySetting",
+    "ModelFallbackSetting",
 ]

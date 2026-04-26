@@ -6,6 +6,8 @@ import type {
   PromptTemplateCreate, PromptVersionCreate, PromptListParams,
   PlanListParams,
   PlanThemeListParams, PlanThemeCreate, PlanThemeVersionCreate, PlanThemeStyleConfig,
+  ChainCreateRequest, ChainUpdateRequest, ChainData, ChainListResponse,
+  FallbackAddRequest, FallbackReorderRequest,
 } from '@/types'
 
 export const adminApi = {
@@ -231,5 +233,35 @@ export const adminApi = {
   },
   getActiveTheme() {
     return http.get('/api/themes/active')
+  },
+
+  // ── 安全设置 ──
+  getSecuritySettings() { return http.get('/api/admin/security/settings') },
+  updateSecuritySettings(data: Record<string, number>) { return http.put('/api/admin/security/settings', data) },
+
+  // ── Fallback Chain 管理 ──
+  getChains() {
+    return http.get<ChainListResponse>('/api/admin/llm-chains/')
+  },
+  getChain(chainId: number) {
+    return http.get<ChainData>(`/api/admin/llm-chains/${chainId}`)
+  },
+  createChain(data: ChainCreateRequest) {
+    return http.post<ChainData>('/api/admin/llm-chains/', data)
+  },
+  updateChain(chainId: number, data: ChainUpdateRequest) {
+    return http.put<ChainData>(`/api/admin/llm-chains/${chainId}`, data)
+  },
+  deleteChain(chainId: number) {
+    return http.delete(`/api/admin/llm-chains/${chainId}`)
+  },
+  addFallback(chainId: number, data: FallbackAddRequest) {
+    return http.post(`/api/admin/llm-chains/${chainId}/fallbacks`, data)
+  },
+  removeFallback(chainId: number, configId: number) {
+    return http.delete(`/api/admin/llm-chains/${chainId}/fallbacks/${configId}`)
+  },
+  reorderFallbacks(chainId: number, data: FallbackReorderRequest) {
+    return http.put(`/api/admin/llm-chains/${chainId}/fallbacks/reorder`, data)
   },
 }

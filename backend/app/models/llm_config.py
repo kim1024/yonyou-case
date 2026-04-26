@@ -17,5 +17,8 @@ class LLMConfig(Base):
     max_tokens = Column(Integer, default=2000)                # 最大 token 数
     timeout = Column(Integer, default=60)                     # 超时秒数
     is_active = Column(Boolean, default=False)                # 是否为当前使用的配置
+    role = Column(String(20), default="standalone", nullable=False)  # "primary" | "fallback" | "standalone"
+    fallback_order = Column(Integer, default=0, nullable=False)      # 0=primary/standalone, 1..N for fallbacks
+    fallback_group_id = Column(String(50), nullable=True)            # UUID-like string grouping a chain; NULL=standalone
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

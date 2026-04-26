@@ -161,6 +161,57 @@ def delete_config(config_id: int, db: Session = Depends(get_db), current_user: d
     if not config:
         raise HTTPException(status_code=404, detail="配置不存在")
 
+    # Dissolve chain if this config is part of one
+    from app.services.llm_chain_manager import get_chain_manager
+    from app.models.model_fallback_setting import ModelFallbackSetting
+
+    if config.role == "primary" and config.fallback_group_id:
+        # Dissolve entire chain
+        group_id = config.fallback_group_id
+        setting = db.query(ModelFallbackSetting).filter(
+            ModelFallbackSetting.primary_llm_config_id == config.id
+        ).first()
+        siblings = db.query(LLMConfig).filter(
+            LLMConfig.fallback_group_id == group_id,
+            LLMConfig.id != config.id
+        ).all()
+        for s in siblings:
+            s.role = "standalone"
+            s.fallback_order = 0
+            s.fallback_group_id = None
+        if setting:
+            db.delete(setting)
+        get_chain_manager().reset_chain(group_id)
+
+    elif config.role == "fallback" and config.fallback_group_id:
+        # Remove from chain, renumber remaining
+        group_id = config.fallback_group_id
+        remaining = db.query(LLMConfig).filter(
+            LLMConfig.fallback_group_id == group_id,
+            LLMConfig.role == "fallback",
+            LLMConfig.id != config.id
+        ).order_by(LLMConfig.fallback_order).all()
+
+        if not remaining:
+            # Last fallback being deleted — dissolve chain
+            primary = db.query(LLMConfig).filter(
+                LLMConfig.fallback_group_id == group_id,
+                LLMConfig.role == "primary"
+            ).first()
+            setting = db.query(ModelFallbackSetting).filter(
+                ModelFallbackSetting.primary_llm_config_id == (primary.id if primary else -1)
+            ).first()
+            if primary:
+                primary.role = "standalone"
+                primary.fallback_order = 0
+                primary.fallback_group_id = None
+            if setting:
+                db.delete(setting)
+            get_chain_manager().reset_chain(group_id)
+        else:
+            for i, fb in enumerate(remaining, start=1):
+                fb.fallback_order = i
+
     was_active = config.is_active
     db.delete(config)
     db.commit()
@@ -177,8 +228,14 @@ def activate_config(config_id: int, db: Session = Depends(get_db), current_user:
     if not config:
         raise HTTPException(status_code=404, detail="配置不存在")
 
-    # 全部取消激活
-    db.query(LLMConfig).filter(LLMConfig.is_active == True).update({"is_active": False})
+    if config.role != "standalone":
+        raise HTTPException(status_code=400, detail="链路中的配置不能单独激活，请通过链路管理操作")
+
+    # 全部取消激活（排除链路成员）
+    db.query(LLMConfig).filter(
+        LLMConfig.is_active == True,
+        LLMConfig.fallback_group_id.is_(None)
+    ).update({"is_active": False})
     # 激活目标
     config.is_active = True
     db.commit()

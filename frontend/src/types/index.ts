@@ -252,6 +252,9 @@ export interface LlmConfig {
   is_active: boolean
   created_at: string | null
   updated_at: string | null
+  role?: string
+  fallback_order?: number
+  fallback_group_id?: string | null
 }
 
 export interface LlmConfigCreate {
@@ -274,6 +277,52 @@ export interface LlmConfigUpdate {
   max_tokens?: number
   timeout?: number
   is_active?: boolean
+}
+
+// ── Fallback Chain 管理 ──
+export interface FallbackModel {
+  config_id: number
+  order: number
+  config: LlmConfig
+}
+
+export interface ChainData {
+  id: number
+  primary_config_id: number
+  primary_config: LlmConfig
+  fallbacks: FallbackModel[]
+  failure_threshold: number
+  timeout_threshold: number
+  cooldown_seconds: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ChainListResponse {
+  chains: ChainData[]
+}
+
+export interface ChainCreateRequest {
+  primary_config_id: number
+  fallback_config_ids: number[]
+  failure_threshold: number
+  timeout_threshold: number
+  cooldown_seconds: number
+}
+
+export interface ChainUpdateRequest {
+  failure_threshold?: number
+  timeout_threshold?: number
+  cooldown_seconds?: number
+  fallback_config_ids?: number[]
+}
+
+export interface FallbackAddRequest {
+  config_id: number
+}
+
+export interface FallbackReorderRequest {
+  config_ids: number[]
 }
 
 // ── Token 统计 ──
@@ -473,4 +522,11 @@ export interface PlanThemeListParams {
   page: number
   page_size: number
   keyword?: string
+}
+
+// 安全设置
+export interface SecuritySetting {
+  key: string
+  value: number
+  description: string
 }
