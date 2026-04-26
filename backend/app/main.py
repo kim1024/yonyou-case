@@ -26,6 +26,7 @@ from app.middleware.analytics_middleware import AnalyticsMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware, rate_limit_config
 from seed import seed_database
+from app.services.llm_runtime import normalize_runtime_state
 
 # 导入所有模型以确保 create_all 能发现它们
 from app.models import Enterprise, AdminUser, VisitLog  # noqa: F401
@@ -84,6 +85,7 @@ def startup():
     from app.database import SessionLocal
     db = SessionLocal()
     try:
+        normalize_runtime_state(db)
         rate_limit_config.load_from_db(db)
     finally:
         db.close()

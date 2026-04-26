@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick, onBeforeUnmount, h } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import {
   Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight,
   Inbox, Cpu, ArrowLeft, RotateCcw, Sparkles, X, Search,
@@ -331,14 +331,23 @@ const chainDrawerVisible = ref(false)
 const chainDrawerConfig = ref<LlmConfig | null>(null)
 const chainDrawerMode = ref<'unassigned' | 'editing'>('unassigned')
 const chainAssignmentChoice = ref<'primary' | 'join'>('primary')
+const chainSelectedConfigId = ref<number | null>(null)
 const joinTargetChainId = ref<number | null>(null)
+const initialFallbackId = ref<number | null>(null)
 const chainData = ref<ChainData | null>(null)
-const chainThresholds = ref({ failure_threshold: 3, timeout_threshold: 5, cooldown_seconds: 300 })
+const chainThresholds = ref({ failure_threshold: 3, timeout_seconds: 5, cooldown_seconds: 300 })
 const chainSaving = ref(false)
 const addFallbackId = ref<number | null>(null)
 
 const availableForChain = computed(() =>
   llmItems.value.filter(c => c.role === 'standalone' || !c.role)
+)
+
+const availableStandaloneOptions = computed(() =>
+  availableForChain.value.map(c => ({
+    label: `${c.name} (${c.model})`,
+    value: c.id,
+  }))
 )
 
 const existingChainOptions = computed(() =>
@@ -347,6 +356,13 @@ const existingChainOptions = computed(() =>
     value: c.id,
   }))
 )
+
+const availablePrimaryFallbackOptions = computed(() => {
+  if (!chainSelectedConfigId.value) return []
+  return availableForChain.value
+    .filter(c => c.id !== chainSelectedConfigId.value)
+    .map(c => ({ label: `${c.name} (${c.model})`, value: c.id }))
+})
 
 const availableFallbackOptions = computed(() => {
   if (!chainData.value) return []
@@ -370,8 +386,10 @@ async function loadChains() {
 
 async function openChainDrawer(config: LlmConfig) {
   chainDrawerConfig.value = config
+  chainSelectedConfigId.value = config.id
   chainAssignmentChoice.value = 'primary'
   joinTargetChainId.value = null
+  initialFallbackId.value = null
   addFallbackId.value = null
 
   if (config.role === 'standalone' || !config.role) {
@@ -387,7 +405,7 @@ async function openChainDrawer(config: LlmConfig) {
       chainData.value = JSON.parse(JSON.stringify(chain))
       chainThresholds.value = {
         failure_threshold: chain.failure_threshold,
-        timeout_threshold: chain.timeout_threshold,
+        timeout_seconds: chain.timeout_seconds,
         cooldown_seconds: chain.cooldown_seconds,
       }
     }
@@ -396,27 +414,57 @@ async function openChainDrawer(config: LlmConfig) {
   chainDrawerVisible.value = true
 }
 
+watch(chainSelectedConfigId, (configId) => {
+  if (!configId) {
+    chainDrawerConfig.value = null
+    initialFallbackId.value = null
+    return
+  }
+
+  const selected = llmItems.value.find(c => c.id === configId) ?? null
+  chainDrawerConfig.value = selected
+
+  if (initialFallbackId.value === configId) {
+    initialFallbackId.value = null
+  }
+
+  const hasSelectedFallback = availablePrimaryFallbackOptions.value.some(opt => opt.value === initialFallbackId.value)
+  if (!hasSelectedFallback) {
+    initialFallbackId.value = null
+  }
+})
+
 async function handleChainAssignment() {
+  const selectedConfig = llmItems.value.find(c => c.id === chainSelectedConfigId.value) ?? chainDrawerConfig.value
+  if (!selectedConfig) {
+    showToast('请选择模型配置', 'error')
+    return
+  }
+
   if (chainAssignmentChoice.value === 'primary') {
+    if (!initialFallbackId.value) {
+      showToast('请至少选择 1 个备用模型', 'error')
+      return
+    }
     try {
       await adminApi.createChain({
-        primary_config_id: chainDrawerConfig.value!.id,
-        fallback_config_ids: [],
+        primary_config_id: selectedConfig.id,
+        fallback_config_ids: [initialFallbackId.value],
         failure_threshold: 3,
-        timeout_threshold: 5,
+        timeout_seconds: 5,
         cooldown_seconds: 300,
       })
-      showToast('链路已创建，请添加备用模型', 'success')
+      showToast('链路已创建并立即生效', 'success')
       await loadChains()
       await loadLlmConfigs()
-      const updatedConfig = llmItems.value.find(c => c.id === chainDrawerConfig.value!.id)
+      const updatedConfig = llmItems.value.find(c => c.id === selectedConfig.id)
       if (updatedConfig) openChainDrawer(updatedConfig)
     } catch (e: any) {
       showToast(e.response?.data?.detail || '创建失败', 'error')
     }
   } else if (chainAssignmentChoice.value === 'join' && joinTargetChainId.value) {
     try {
-      await adminApi.addFallback(joinTargetChainId.value, { config_id: chainDrawerConfig.value!.id })
+      await adminApi.addFallback(joinTargetChainId.value, { config_id: selectedConfig.id })
       showToast('已加入链路', 'success')
       await loadChains()
       await loadLlmConfigs()
@@ -481,7 +529,7 @@ async function handleSaveChain() {
     const fallbackIds = chainData.value.fallbacks.map(f => f.config_id)
     await adminApi.updateChain(chainData.value.id, {
       failure_threshold: chainThresholds.value.failure_threshold,
-      timeout_threshold: chainThresholds.value.timeout_threshold,
+      timeout_seconds: chainThresholds.value.timeout_seconds,
       cooldown_seconds: chainThresholds.value.cooldown_seconds,
       fallback_config_ids: fallbackIds,
     })
@@ -1144,18 +1192,26 @@ void promptNameRef
                   <td class="px-4 py-3 text-center tabular-nums">{{ item.temperature }}</td>
                   <td class="px-4 py-3 text-center tabular-nums">{{ item.max_tokens.toLocaleString() }}</td>
                   <td class="px-4 py-3 text-center">
-                    <button
-                      v-if="!item.is_active"
-                      class="btn-activate"
-                      @click="handleActivateLlm(item)"
-                    >
-                      <Check :size="13" :stroke-width="2.5" />
-                      设为当前
-                    </button>
-                    <span v-else class="active-indicator">
-                      <span class="active-dot" />
-                      当前使用
-                    </span>
+                    <template v-if="item.role === 'standalone' || !item.role">
+                      <button
+                        v-if="!item.is_active"
+                        class="btn-activate"
+                        @click="handleActivateLlm(item)"
+                      >
+                        <Check :size="13" :stroke-width="2.5" />
+                        设为当前
+                      </button>
+                      <span v-else class="active-indicator">
+                        <span class="active-dot" />
+                        当前使用
+                      </span>
+                    </template>
+                    <template v-else>
+                      <span class="inline-flex items-center gap-1.5 text-xs text-neutral-500">
+                        <span class="inline-block w-2 h-2 rounded-full bg-blue-400" />
+                        链路中
+                      </span>
+                    </template>
                   </td>
                   <!-- 角色列 -->
                   <td class="px-4 py-3 text-center">
@@ -1193,7 +1249,6 @@ void promptNameRef
                   <td class="px-4 py-3 text-center">
                     <div class="flex items-center justify-center gap-1">
                       <button
-                        v-if="item.role === 'primary' || item.role === 'fallback'"
                         class="btn-ghost text-emerald-600"
                         title="链路管理"
                         @click="openChainDrawer(item)"
@@ -1783,9 +1838,12 @@ void promptNameRef
                 <input
                   v-model="llmForm.is_active"
                   type="checkbox"
+                  :disabled="!!editLlmItem && editLlmItem.role !== 'standalone'"
                   class="w-4 h-4 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
                 />
-                <span class="text-sm text-neutral-700">设为当前激活配置</span>
+                <span class="text-sm text-neutral-700">
+                  {{ editLlmItem && editLlmItem.role !== 'standalone' ? '链路成员通过主备链路自动切换' : '设为当前激活配置' }}
+                </span>
               </label>
             </div>
           </form>
@@ -2014,15 +2072,24 @@ void promptNameRef
             <!-- MODE: 未分配 -->
             <div v-if="chainDrawerMode === 'unassigned'">
               <p class="text-sm text-neutral-600 mb-4">
-                该配置尚未加入任何链路，请选择操作方式：
+                调用链路至少需要 2 个模型。启用链路后，独立模型设置将自动失效，系统只按链路中的主备顺序调用。
               </p>
+              <div class="mt-4">
+                <label class="ef-label">选择模型配置</label>
+                <select v-model="chainSelectedConfigId" class="input-macos mt-1">
+                  <option :value="null" disabled>请选择</option>
+                  <option v-for="opt in availableStandaloneOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </div>
               <div class="space-y-3">
                 <label class="chain-radio-card" :class="{ 'chain-radio-card--active': chainAssignmentChoice === 'primary' }">
                   <input type="radio" v-model="chainAssignmentChoice" value="primary" class="sr-only" />
                   <div class="chain-radio-dot" :class="{ 'chain-radio-dot--active': chainAssignmentChoice === 'primary' }" />
                   <div>
                     <div class="text-sm font-medium text-neutral-800">设为主模型</div>
-                    <div class="text-xs text-neutral-500 mt-0.5">创建故障转移链路，可后续添加备用模型</div>
+                    <div class="text-xs text-neutral-500 mt-0.5">创建链路并立即生效，需同时选择至少 1 个备用模型</div>
                   </div>
                 </label>
                 <label class="chain-radio-card" :class="{ 'chain-radio-card--active': chainAssignmentChoice === 'join' }">
@@ -2033,6 +2100,16 @@ void promptNameRef
                     <div class="text-xs text-neutral-500 mt-0.5">加入已有的主模型链路，作为故障转移备选</div>
                   </div>
                 </label>
+              </div>
+
+              <div v-if="chainAssignmentChoice === 'primary'" class="mt-4">
+                <label class="ef-label">选择备用模型</label>
+                <select v-model="initialFallbackId" class="input-macos mt-1">
+                  <option :value="null" disabled>请选择</option>
+                  <option v-for="opt in availablePrimaryFallbackOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
               </div>
 
               <div v-if="chainAssignmentChoice === 'join'" class="mt-4">
@@ -2049,7 +2126,7 @@ void promptNameRef
                 <button class="btn-secondary" @click="chainDrawerVisible = false">取消</button>
                 <button
                   class="btn-primary"
-                  :disabled="chainAssignmentChoice === 'join' && !joinTargetChainId"
+                  :disabled="!chainSelectedConfigId || (chainAssignmentChoice === 'join' && !joinTargetChainId) || (chainAssignmentChoice === 'primary' && !initialFallbackId)"
                   @click="handleChainAssignment"
                 >确认</button>
               </div>
@@ -2133,15 +2210,15 @@ void promptNameRef
                   <span class="text-xs text-neutral-400 ml-1">次</span>
                 </div>
                 <div class="chain-threshold-row">
-                  <label class="text-xs text-neutral-600 w-24 shrink-0">超时次数</label>
+                  <label class="text-xs text-neutral-600 w-24 shrink-0">超时阈值</label>
                   <input
-                    v-model.number="chainThresholds.timeout_threshold"
+                    v-model.number="chainThresholds.timeout_seconds"
                     type="number"
                     min="1"
                     max="20"
                     class="input-macos w-20 text-center text-sm"
                   />
-                  <span class="text-xs text-neutral-400 ml-1">次</span>
+                  <span class="text-xs text-neutral-400 ml-1">秒</span>
                 </div>
                 <div class="chain-threshold-row">
                   <label class="text-xs text-neutral-600 w-24 shrink-0">冷却恢复</label>

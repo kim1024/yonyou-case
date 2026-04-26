@@ -42,7 +42,7 @@ WORKERS        ?= 4
 SERVICE_NAME   := yonyou-case
 DB_NAME        ?= yonyou_case
 DB_USER        ?= yonyou
-BACKUP_DIR     := $(BACKEND_DIR)/data
+BACKUP_DIR     := $(BACKEND_DIR)/data/backups
 
 # ---------- 颜色 ----------
 C_RESET  := \033[0m

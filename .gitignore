@@ -52,3 +52,6 @@ old/
 
 # 临时产物
 deliverable-icons/
+
+# Claude Code team metadata
+.claude-team/

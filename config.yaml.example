@@ -27,5 +27,12 @@ llm:
 pricing:
   rate_per_hour: 2000
 
+# 速率限制配置（优先级低于管理后台设置，仅作为数据库无记录时的 fallback）
+rate_limit:
+  generate_max_requests: 10       # 每小时最大生成次数（per IP）
+  generate_window_seconds: 3600   # 滑动窗口时长（秒）
+  generate_cooldown_seconds: 30   # 两次请求最小间隔（秒）
+  max_concurrent: 3               # 同时进行的最大 LLM 请求数（全局）
+
 frontend:
   title: "用友产业案例教学项目课程定制系统"

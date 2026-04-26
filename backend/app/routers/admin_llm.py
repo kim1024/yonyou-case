@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
 from app.dependencies import get_current_user
+from app.services.llm_runtime import deactivate_all_configs, normalize_runtime_state
 
 router = APIRouter(prefix="/api/admin/llm", tags=["llm-configs"])
 
@@ -84,6 +85,7 @@ def list_configs(
     current_user: dict = Depends(get_current_user),
 ):
     """列出所有大模型配置（分页），API Key 脱敏显示。"""
+    normalize_runtime_state(db)
     total = db.query(LLMConfig).count()
     items = (
         db.query(LLMConfig)
@@ -104,6 +106,9 @@ def list_configs(
                 "max_tokens": c.max_tokens,
                 "timeout": c.timeout,
                 "is_active": c.is_active,
+                "role": c.role,
+                "fallback_order": c.fallback_order,
+                "fallback_group_id": c.fallback_group_id,
                 "created_at": utc_isoformat(c.created_at),
                 "updated_at": utc_isoformat(c.updated_at),
             }
@@ -119,7 +124,7 @@ def list_configs(
 def create_config(data: LLMConfigCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """新建大模型配置。若标记为 is_active=True，先将其他配置设为非激活。"""
     if data.is_active:
-        db.query(LLMConfig).filter(LLMConfig.is_active == True).update({"is_active": False})
+        deactivate_all_configs(db)
 
     config = LLMConfig(**data.model_dump())
     db.add(config)
@@ -141,11 +146,12 @@ def update_config(config_id: int, data: LLMConfigUpdate, db: Session = Depends(g
     if "api_key" in update_data and update_data["api_key"] == "":
         del update_data["api_key"]
 
+    if config.role != "standalone" and "is_active" in update_data and update_data["is_active"] != config.is_active:
+        raise HTTPException(status_code=400, detail="链路中的配置不能单独修改激活状态，请通过链路管理操作")
+
     # 若标记为激活，先将其他配置取消激活
     if update_data.get("is_active"):
-        db.query(LLMConfig).filter(
-            LLMConfig.is_active == True, LLMConfig.id != config_id
-        ).update({"is_active": False})
+        deactivate_all_configs(db, exclude_config_id=config_id)
 
     for key, value in update_data.items():
         setattr(config, key, value)
@@ -186,6 +192,7 @@ def delete_config(config_id: int, db: Session = Depends(get_db), current_user: d
     elif config.role == "fallback" and config.fallback_group_id:
         # Remove from chain, renumber remaining
         group_id = config.fallback_group_id
+        was_active = config.is_active
         remaining = db.query(LLMConfig).filter(
             LLMConfig.fallback_group_id == group_id,
             LLMConfig.role == "fallback",
@@ -205,10 +212,21 @@ def delete_config(config_id: int, db: Session = Depends(get_db), current_user: d
                 primary.role = "standalone"
                 primary.fallback_order = 0
                 primary.fallback_group_id = None
+                if was_active:
+                    deactivate_all_configs(db, exclude_config_id=primary.id)
+                primary.is_active = was_active
             if setting:
                 db.delete(setting)
             get_chain_manager().reset_chain(group_id)
         else:
+            if was_active:
+                primary = db.query(LLMConfig).filter(
+                    LLMConfig.fallback_group_id == group_id,
+                    LLMConfig.role == "primary"
+                ).first()
+                if primary:
+                    deactivate_all_configs(db, exclude_config_id=primary.id)
+                    primary.is_active = True
             for i, fb in enumerate(remaining, start=1):
                 fb.fallback_order = i
 
@@ -231,11 +249,8 @@ def activate_config(config_id: int, db: Session = Depends(get_db), current_user:
     if config.role != "standalone":
         raise HTTPException(status_code=400, detail="链路中的配置不能单独激活，请通过链路管理操作")
 
-    # 全部取消激活（排除链路成员）
-    db.query(LLMConfig).filter(
-        LLMConfig.is_active == True,
-        LLMConfig.fallback_group_id.is_(None)
-    ).update({"is_active": False})
+    # 独立模型启用后，链路与其他独立模型都必须全部失效
+    deactivate_all_configs(db, exclude_config_id=config.id)
     # 激活目标
     config.is_active = True
     db.commit()

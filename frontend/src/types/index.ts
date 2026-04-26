@@ -292,7 +292,7 @@ export interface ChainData {
   primary_config: LlmConfig
   fallbacks: FallbackModel[]
   failure_threshold: number
-  timeout_threshold: number
+  timeout_seconds: number
   cooldown_seconds: number
   created_at: string
   updated_at: string
@@ -306,13 +306,13 @@ export interface ChainCreateRequest {
   primary_config_id: number
   fallback_config_ids: number[]
   failure_threshold: number
-  timeout_threshold: number
+  timeout_seconds: number
   cooldown_seconds: number
 }
 
 export interface ChainUpdateRequest {
   failure_threshold?: number
-  timeout_threshold?: number
+  timeout_seconds?: number
   cooldown_seconds?: number
   fallback_config_ids?: number[]
 }

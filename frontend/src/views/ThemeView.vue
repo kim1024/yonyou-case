@@ -3,7 +3,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { Palette, Search, Inbox, Trash2, ChevronLeft, ChevronRight, Plus, Pencil, Zap, Copy, AlertTriangle, ArrowUp, ArrowDown, Eye, EyeOff } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
 import { formatDateTime } from '@/utils/date'
-import type { PlanTheme, PlanThemeStyleConfig, DisplayTemplateConfig, DisplayBlockConfig } from '@/types'
+import type { PlanTheme, PlanThemeStyleConfig, DisplayTemplateConfig } from '@/types'
 
 /* ── 默认样式配置 ── */
 const DEFAULT_STYLE_CONFIG: PlanThemeStyleConfig = {
@@ -56,7 +56,7 @@ const GRID_COLS_BLOCKS = ['modules', 'positions', 'deliverables']
 
 /* ── 颜色配置项定义 ── */
 interface ColorField {
-  key: keyof PlanThemeStyleConfig
+  key: Exclude<keyof PlanThemeStyleConfig, 'display_template'>
   label: string
   desc: string
 }
@@ -75,6 +75,14 @@ const pricingColorFields: ColorField[] = [
   { key: 'pricingCardBg', label: '卡片背景色', desc: '价格卡片渐变起始色' },
   { key: 'pricingNumberGradient', label: '数字渐变色', desc: '价格数字渐变起始色' },
 ]
+
+function getStyleField(key: ColorField['key']): string {
+  return formStyle[key]
+}
+
+function setStyleField(key: ColorField['key'], value: string) {
+  formStyle[key] = value
+}
 
 /* ── 列表数据 ── */
 const items = ref<PlanTheme[]>([])
@@ -648,16 +656,16 @@ onMounted(() => {
                   <div class="theme-color-input-wrap">
                     <input
                       type="color"
-                      :value="(formStyle as Record<string, string>)[field.key]"
+                      :value="getStyleField(field.key)"
                       class="theme-color-picker"
-                      @input="(formStyle as Record<string, string>)[field.key] = ($event.target as HTMLInputElement).value"
+                      @input="setStyleField(field.key, ($event.target as HTMLInputElement).value)"
                     />
                     <input
                       type="text"
-                      :value="(formStyle as Record<string, string>)[field.key]"
+                      :value="getStyleField(field.key)"
                       class="theme-color-hex"
                       maxlength="7"
-                      @input="(formStyle as Record<string, string>)[field.key] = ($event.target as HTMLInputElement).value"
+                      @input="setStyleField(field.key, ($event.target as HTMLInputElement).value)"
                     />
                   </div>
                 </div>
@@ -677,9 +685,9 @@ onMounted(() => {
                   <div class="theme-color-input-wrap">
                     <input
                       type="text"
-                      :value="(formStyle as Record<string, string>)[field.key]"
+                      :value="getStyleField(field.key)"
                       class="theme-color-hex gradient-input"
-                      @input="(formStyle as Record<string, string>)[field.key] = ($event.target as HTMLInputElement).value"
+                      @input="setStyleField(field.key, ($event.target as HTMLInputElement).value)"
                     />
                   </div>
                 </div>

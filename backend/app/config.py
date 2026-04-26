@@ -33,6 +33,12 @@ DEFAULT_CONFIG = {
     "pricing": {
         "rate_per_hour": 2000,
     },
+    "rate_limit": {
+        "generate_max_requests": 10,
+        "generate_window_seconds": 3600,
+        "generate_cooldown_seconds": 30,
+        "max_concurrent": 3,
+    },
     "frontend": {
         "title": "用友产业案例教学项目课程定制系统",
     },

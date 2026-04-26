@@ -657,8 +657,9 @@ onUnmounted(() => {
           <tr
             v-for="(item, index) in items"
             :key="item.id"
-            class="border-t border-neutral-100 transition-colors duration-100 group"
+            class="border-t border-neutral-100 transition-colors duration-100 group cursor-pointer"
             :class="index % 2 === 1 ? 'bg-neutral-50/50' : ''"
+            @click="handleViewDetail(item)"
           >
             <td class="px-4 py-3 text-neutral-500 text-xs font-mono">{{ formatDateTime(item.created_at) }}</td>
             <td class="px-4 py-3">
@@ -682,7 +683,7 @@ onUnmounted(() => {
             <td class="px-4 py-3 text-neutral-500 truncate max-w-[110px]" :title="item.province">{{ item.province }}</td>
             <td class="px-4 py-3 text-neutral-700 truncate" :title="item.plan_title">{{ item.plan_title }}</td>
             <td class="px-4 py-3 text-center">
-              <div class="inline-flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+              <div class="inline-flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity" @click.stop>
                 <button class="btn-ghost text-primary-500 !px-1.5 !py-1.5" title="查看详情" @click="handleViewDetail(item)">
                   <Eye :size="14" />
                 </button>

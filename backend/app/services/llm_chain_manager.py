@@ -15,7 +15,7 @@ _logger = logging.getLogger(__name__)
 class _ChainState:
     """Runtime state for a single chain."""
 
-    def __init__(self, current_config_id: int, group_id: str):
+    def __init__(self, current_config_id: int | None, group_id: str):
         self.current_config_id = current_config_id
         self.group_id = group_id
         self.failure_count = 0
@@ -48,35 +48,28 @@ class LLMChainManager:
             state = self._states.get(group_id)
 
         if state is None:
-            # First access - use the primary (role=primary)
-            primary = db.query(LLMConfig).filter(
-                LLMConfig.fallback_group_id == group_id,
-                LLMConfig.role == "primary",
-            ).first()
-            if not primary:
+            current = self._get_current_chain_config(db, group_id)
+            if not current:
                 return None
             with self._lock:
-                self._states[group_id] = _ChainState(primary.id, group_id)
-            return primary
+                self._states[group_id] = _ChainState(current.id, group_id)
+            return current
 
-        # Check if a cooling model has recovered
         now = time.time()
-        if state.cooling_until > 0 and now >= state.cooling_until:
-            # Cooldown expired - reset to primary and try again
-            primary = db.query(LLMConfig).filter(
-                LLMConfig.fallback_group_id == group_id,
-                LLMConfig.role == "primary",
-            ).first()
+        if state.cooling_until > 0:
+            if now < state.cooling_until:
+                return None
+            primary = self._restore_primary(db, group_id, state)
             if primary:
-                with self._lock:
-                    state.current_config_id = primary.id
-                    state.failure_count = 0
-                    state.timeout_count = 0
-                    state.cooling_until = 0.0
                 return primary
 
+        if state.current_config_id is None:
+            return self._get_current_chain_config(db, group_id)
+
         config = db.query(LLMConfig).filter(LLMConfig.id == state.current_config_id).first()
-        return config
+        if config:
+            return config
+        return self._get_current_chain_config(db, group_id)
 
     def record_success(self, group_id: str):
         """Reset failure counters on success."""
@@ -86,8 +79,13 @@ class LLMChainManager:
                 state.failure_count = 0
                 state.timeout_count = 0
 
-    def record_failure(self, db: Session, group_id: str, is_timeout: bool = False):
-        """Record a failure.  If threshold exceeded, switch to next fallback."""
+    def record_failure(self, db: Session, group_id: str, is_timeout: bool = False) -> bool:
+        """Record a failure and advance to the next model in the chain.
+
+        The chain behaves like an ordered failover list: any timeout/error
+        moves the runtime pointer to the next model immediately. If the chain
+        is exhausted, we enter cooldown before trying the primary again.
+        """
         setting = (
             db.query(ModelFallbackSetting)
             .join(LLMConfig, ModelFallbackSetting.primary_llm_config_id == LLMConfig.id)
@@ -96,25 +94,17 @@ class LLMChainManager:
         )
 
         if not setting:
-            return
+            return False
 
         with self._lock:
             state = self._states.get(group_id)
             if not state:
-                return
+                return False
 
             if is_timeout:
                 state.timeout_count += 1
             state.failure_count += 1
-            # Snapshot values so we can release the lock before DB work
-            fc = state.failure_count
-            tc = state.timeout_count
-
-        # Check thresholds (outside lock to avoid holding it during DB ops)
-        should_switch = fc >= setting.failure_threshold or tc >= setting.timeout_threshold
-
-        if should_switch:
-            self._switch_to_next(db, group_id, setting)
+        return self._switch_to_next(db, group_id, setting)
 
     def reset_chain(self, group_id: str):
         """Remove chain from tracking (e.g., when chain is dissolved)."""
@@ -158,12 +148,12 @@ class LLMChainManager:
     # Internal
     # ------------------------------------------------------------------
 
-    def _switch_to_next(self, db: Session, group_id: str, setting: ModelFallbackSetting):
+    def _switch_to_next(self, db: Session, group_id: str, setting: ModelFallbackSetting) -> bool:
         """Switch to the next fallback in the chain."""
         with self._lock:
             state = self._states.get(group_id)
             if not state:
-                return
+                return False
             old_config_id = state.current_config_id
 
         # Find all configs in chain ordered by fallback_order
@@ -182,31 +172,21 @@ class LLMChainManager:
                 break
 
         if current_idx is None:
-            return
+            return False
 
         # Try next config
         next_idx = current_idx + 1
         if next_idx >= len(all_configs):
-            # All models exhausted - set cooling on current, will try primary after cooldown
-            with self._lock:
-                state.cooling_until = time.time() + setting.cooldown_seconds
-                state.failure_count = 0
-                state.timeout_count = 0
+            self._enter_cooldown(db, group_id, setting.cooldown_seconds)
             _logger.warning(
                 "Chain %s: all models exhausted, entering cooldown for %ds",
                 group_id,
                 setting.cooldown_seconds,
             )
-            return
+            return False
 
         next_config = all_configs[next_idx]
-
-        # Update DB active status
-        old_config = db.query(LLMConfig).filter(LLMConfig.id == old_config_id).first()
-        if old_config:
-            old_config.is_active = False
-        next_config.is_active = True
-        db.commit()
+        self._set_chain_active_config(db, group_id, next_config.id)
 
         _logger.info(
             "Chain %s: switched from config %d to config %d (fallback order %d)",
@@ -218,6 +198,59 @@ class LLMChainManager:
 
         with self._lock:
             state.current_config_id = next_config.id
+            state.failure_count = 0
+            state.timeout_count = 0
+            state.cooling_until = 0.0
+        return True
+
+    def _get_primary_config(self, db: Session, group_id: str) -> LLMConfig | None:
+        return (
+            db.query(LLMConfig)
+            .filter(
+                LLMConfig.fallback_group_id == group_id,
+                LLMConfig.role == "primary",
+            )
+            .first()
+        )
+
+    def _get_current_chain_config(self, db: Session, group_id: str) -> LLMConfig | None:
+        current = (
+            db.query(LLMConfig)
+            .filter(
+                LLMConfig.fallback_group_id == group_id,
+                LLMConfig.is_active == True,  # noqa: E712
+            )
+            .order_by(LLMConfig.fallback_order, LLMConfig.id)
+            .first()
+        )
+        if current:
+            return current
+        return self._get_primary_config(db, group_id)
+
+    def _set_chain_active_config(self, db: Session, group_id: str, active_config_id: int | None):
+        configs = db.query(LLMConfig).filter(LLMConfig.fallback_group_id == group_id).all()
+        for cfg in configs:
+            cfg.is_active = cfg.id == active_config_id
+        db.commit()
+
+    def _restore_primary(self, db: Session, group_id: str, state: _ChainState) -> LLMConfig | None:
+        primary = self._get_primary_config(db, group_id)
+        if not primary:
+            return None
+        self._set_chain_active_config(db, group_id, primary.id)
+        with self._lock:
+            state.current_config_id = primary.id
+            state.failure_count = 0
+            state.timeout_count = 0
+            state.cooling_until = 0.0
+        return primary
+
+    def _enter_cooldown(self, db: Session, group_id: str, cooldown_seconds: int):
+        with self._lock:
+            state = self._states.get(group_id)
+            if not state:
+                return
+            state.cooling_until = time.time() + cooldown_seconds
             state.failure_count = 0
             state.timeout_count = 0
 
