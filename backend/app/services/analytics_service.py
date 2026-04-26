@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, timezone, date
 from sqlalchemy import cast, Date, func
 from sqlalchemy.orm import Session
 from app.models.analytics import VisitLog
@@ -9,7 +9,7 @@ def get_summary(db: Session):
     total_visits = db.query(VisitLog).count()
     total_enterprises = db.query(Enterprise).count()
 
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_visits = db.query(VisitLog).filter(VisitLog.request_timestamp >= today).count()
 
     week_ago = today - timedelta(days=today.weekday())  # 本周一
@@ -25,7 +25,7 @@ def get_summary(db: Session):
 
 def get_visit_trends(db: Session, days: int = 30):
     """按天统计访问量趋势（PV / UV）"""
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     start = today - timedelta(days=days)
 
     results = db.query(
@@ -51,7 +51,7 @@ def get_visit_trends(db: Session, days: int = 30):
 
 
 def get_province_distribution(db: Session, days: int = 30):
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     start = today - timedelta(days=days)
 
     results = db.query(
@@ -67,7 +67,7 @@ def get_province_distribution(db: Session, days: int = 30):
 
 
 def get_case_frequency(db: Session, days: int = 30):
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     start = today - timedelta(days=days)
 
     results = db.query(
@@ -86,7 +86,7 @@ def get_case_frequency(db: Session, days: int = 30):
 
 
 def get_industry_distribution(db: Session, days: int = 30):
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     start = today - timedelta(days=days)
 
     results = db.query(

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
+import { formatMonthDay } from '@/utils/date'
 import type { VisitTrend } from '@/types'
 
 const props = defineProps<{ data: VisitTrend[] }>()
@@ -231,7 +232,7 @@ function hideTooltip() {
         :x="px(i)" :y="H-PAD+20"
         text-anchor="middle"
         class="text-[10px] fill-neutral-400"
-      >{{ data[i].date.slice(5) }}</text>
+      >{{ formatMonthDay(data[i].date) }}</text>
     </svg>
     <SvgTooltip v-bind="tooltip" :container-width="containerWidth" />
   </div>

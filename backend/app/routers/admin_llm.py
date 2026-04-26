@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case, cast, Date
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, timezone, date
+from app.utils.datetime import utc_isoformat
 from app.database import get_db
 from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
@@ -103,8 +104,8 @@ def list_configs(
                 "max_tokens": c.max_tokens,
                 "timeout": c.timeout,
                 "is_active": c.is_active,
-                "created_at": c.created_at.isoformat() if c.created_at else None,
-                "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+                "created_at": utc_isoformat(c.created_at),
+                "updated_at": utc_isoformat(c.updated_at),
             }
             for c in items
         ],
@@ -193,7 +194,7 @@ def get_token_stats(
     current_user: dict = Depends(get_current_user),
 ):
     """Token 消耗统计面板。返回近 N 天的汇总数据。"""
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     start_date = now - timedelta(days=days)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 

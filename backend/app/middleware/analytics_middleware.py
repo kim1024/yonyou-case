@@ -2,7 +2,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from app.database import SessionLocal
 from app.models.analytics import VisitLog
@@ -64,7 +64,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             try:
                 _JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
                 backup_data = {
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     **log_data,
                 }
                 with open(_JSONL_PATH, "a", encoding="utf-8") as f:

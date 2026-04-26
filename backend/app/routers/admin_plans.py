@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.generated_plan import GeneratedPlan
+from app.utils.datetime import utc_isoformat
 
 router = APIRouter(prefix="/api/admin/plans", tags=["admin-plans"])
 
@@ -87,21 +88,23 @@ def list_plans(
         )
 
     if date_from:
-        from datetime import datetime as dt
         try:
-            dt_from = dt.fromisoformat(date_from)
+            dt_from = datetime.fromisoformat(date_from)
+            if dt_from.tzinfo is None:
+                dt_from = dt_from.replace(tzinfo=timezone.utc)
             query = query.filter(GeneratedPlan.created_at >= dt_from)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
 
     if date_to:
-        from datetime import datetime as dt
         try:
-            dt_to = dt.fromisoformat(date_to)
+            dt_to = datetime.fromisoformat(date_to)
+            if dt_to.tzinfo is None:
+                dt_to = dt_to.replace(tzinfo=timezone.utc)
             # 包含 date_to 当天：小于 date_to 的下一天
             dt_to_end = dt_to + timedelta(days=1)
             query = query.filter(GeneratedPlan.created_at < dt_to_end)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
 
     total = query.count()
@@ -123,7 +126,7 @@ def list_plans(
                 "hour": p.hour,
                 "source": p.source or "",
                 "plan_title": p.plan_title or "",
-                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "created_at": utc_isoformat(p.created_at),
             }
             for p in items
         ],
@@ -160,7 +163,7 @@ def get_plan(
         "source": plan.source or "",
         "plan_title": plan.plan_title or "",
         "plan_data": plan_data,
-        "created_at": plan.created_at.isoformat() if plan.created_at else None,
+        "created_at": utc_isoformat(plan.created_at),
     }
 
 

@@ -14,6 +14,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.plan_theme import PlanTheme
 from app.models.plan_theme_version import PlanThemeVersion
+from app.utils.datetime import utc_isoformat
 
 _logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ def _serialize_version(v: PlanThemeVersion) -> dict:
         "style_config": json.loads(v.style_config) if v.style_config else None,
         "remark": v.remark,
         "created_by": v.created_by,
-        "created_at": v.created_at.isoformat() if v.created_at else None,
+        "created_at": utc_isoformat(v.created_at),
     }
 
 
@@ -135,8 +136,8 @@ def list_themes(
             "is_active": t.is_active,
             "current_version_id": t.current_version_id,
             "current_version_number": current_version_number,
-            "created_at": t.created_at.isoformat() if t.created_at else None,
-            "updated_at": t.updated_at.isoformat() if t.updated_at else None,
+            "created_at": utc_isoformat(t.created_at),
+            "updated_at": utc_isoformat(t.updated_at),
         })
 
     return {
@@ -210,8 +211,8 @@ def get_theme(
         "description": theme.description,
         "is_active": theme.is_active,
         "current_version_id": theme.current_version_id,
-        "created_at": theme.created_at.isoformat() if theme.created_at else None,
-        "updated_at": theme.updated_at.isoformat() if theme.updated_at else None,
+        "created_at": utc_isoformat(theme.created_at),
+        "updated_at": utc_isoformat(theme.updated_at),
         "current_version": _serialize_version(current_version) if current_version else None,
     }
 

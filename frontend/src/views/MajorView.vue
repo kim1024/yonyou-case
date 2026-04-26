@@ -2,6 +2,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { Plus, Search, Inbox, Pencil, Trash2, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
+import { formatDate } from '@/utils/date'
 import type { Major, Industry } from '@/types'
 
 /* ── 列表数据 ── */
@@ -234,7 +235,7 @@ function handleBackdropClick(e: MouseEvent) {
               </button>
             </td>
             <td class="px-4 py-3 text-neutral-500">{{ item.sort_order }}</td>
-            <td class="px-4 py-3 text-neutral-500">{{ item.created_at?.slice(0, 10) }}</td>
+            <td class="px-4 py-3 text-neutral-500">{{ formatDate(item.created_at) }}</td>
             <td class="px-4 py-3 text-center">
               <button class="btn-ghost text-primary-500" @click="handleEdit(item)">
                 <Pencil :size="14" />

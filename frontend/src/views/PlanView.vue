@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { FileStack, Search, Inbox, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, FileText, AlertTriangle, Clock, GraduationCap, Building2, MapPin, BookOpen, DollarSign, RotateCcw, Briefcase, CalendarDays } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
+import { formatDateTime, formatDate } from '@/utils/date'
 import type { GeneratedPlanListItem, GeneratedPlan, PlanListParams } from '@/types'
 
 /* ── 列表数据 ── */
@@ -332,24 +333,6 @@ function handleDeleteBackdrop(e: MouseEvent) {
   }
 }
 
-/* ── 日期格式化 ── */
-function fmtDateShort(iso: string): string {
-  if (!iso) return ''
-  const d = new Date(iso + 'T00:00:00')
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
-}
-
-function fmtDate(iso: string): string {
-  if (!iso) return '-'
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day} ${h}:${min}`
-}
-
 /* ── 价格格式化 ── */
 function fmtPrice(n: number): string {
   return n.toLocaleString('zh-CN')
@@ -544,7 +527,7 @@ onUnmounted(() => {
             @click="toggleDateFromPicker"
           >
             <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
-            <span>{{ filterDateFrom ? fmtDateShort(filterDateFrom) : '开始日期' }}</span>
+            <span>{{ filterDateFrom ? formatDate(filterDateFrom) : '开始日期' }}</span>
           </div>
           <div
             v-if="showDateFromPicker"
@@ -592,7 +575,7 @@ onUnmounted(() => {
             @click="toggleDateToPicker"
           >
             <CalendarDays :size="14" class="text-neutral-400 flex-shrink-0" />
-            <span>{{ filterDateTo ? fmtDateShort(filterDateTo) : '结束日期' }}</span>
+            <span>{{ filterDateTo ? formatDate(filterDateTo) : '结束日期' }}</span>
           </div>
           <div
             v-if="showDateToPicker"
@@ -677,7 +660,7 @@ onUnmounted(() => {
             class="border-t border-neutral-100 transition-colors duration-100 group"
             :class="index % 2 === 1 ? 'bg-neutral-50/50' : ''"
           >
-            <td class="px-4 py-3 text-neutral-500 text-xs font-mono">{{ fmtDate(item.created_at) }}</td>
+            <td class="px-4 py-3 text-neutral-500 text-xs font-mono">{{ formatDateTime(item.created_at) }}</td>
             <td class="px-4 py-3">
               <span
                 v-if="item.source === 'ai'"
@@ -745,7 +728,7 @@ onUnmounted(() => {
           <div class="ef-header">
             <div class="flex items-center gap-3 min-w-0">
               <h2 class="ef-title truncate">{{ detailItem?.plan_title || '方案详情' }}</h2>
-              <span class="text-xs text-neutral-400 flex-shrink-0">{{ detailItem ? fmtDate(detailItem.created_at) : '' }}</span>
+              <span class="text-xs text-neutral-400 flex-shrink-0">{{ detailItem ? formatDateTime(detailItem.created_at) : '' }}</span>
             </div>
             <button class="ef-close-btn" @click="closeDetail" type="button">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

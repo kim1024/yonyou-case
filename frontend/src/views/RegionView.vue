@@ -2,6 +2,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { Plus, Inbox, Pencil, Trash2, ChevronDown, MapPin } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
+import { formatDate } from '@/utils/date'
 import type { Province, City } from '@/types'
 
 /* ── 省份列表 ── */
@@ -318,7 +319,7 @@ function handleCityBackdrop(e: MouseEvent) {
                 </button>
               </td>
               <td class="px-4 py-3 text-neutral-500">{{ province.sort_order }}</td>
-              <td class="px-4 py-3 text-neutral-500">{{ province.created_at?.slice(0, 10) }}</td>
+              <td class="px-4 py-3 text-neutral-500">{{ formatDate(province.created_at) }}</td>
               <td class="px-4 py-3 text-center">
                 <div class="flex items-center justify-center gap-0.5">
                   <button class="btn-ghost text-primary-500" @click="handleEditProvince(province)">
@@ -380,7 +381,7 @@ function handleCityBackdrop(e: MouseEvent) {
                           </button>
                         </td>
                         <td class="px-3 py-2 text-neutral-500">{{ city.sort_order }}</td>
-                        <td class="px-3 py-2 text-neutral-500">{{ city.created_at?.slice(0, 10) }}</td>
+                        <td class="px-3 py-2 text-neutral-500">{{ formatDate(city.created_at) }}</td>
                         <td class="px-3 py-2 text-center">
                           <div class="flex items-center justify-center gap-0.5">
                             <button class="btn-ghost text-primary-500" @click="handleEditCity(city)">

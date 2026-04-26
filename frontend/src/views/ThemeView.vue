@@ -2,6 +2,7 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { Palette, Search, Inbox, Trash2, ChevronLeft, ChevronRight, Plus, Pencil, Zap, Copy, AlertTriangle, ArrowUp, ArrowDown, Eye, EyeOff } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin'
+import { formatDateTime } from '@/utils/date'
 import type { PlanTheme, PlanThemeStyleConfig, DisplayTemplateConfig, DisplayBlockConfig } from '@/types'
 
 /* ── 默认样式配置 ── */
@@ -153,18 +154,6 @@ async function loadData() {
 
 /* ── 统计 ── */
 const activeCount = computed(() => items.value.filter(t => t.is_active).length)
-
-/* ── 日期格式化 ── */
-function fmtDate(iso: string | null): string {
-  if (!iso) return '-'
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day} ${h}:${min}`
-}
 
 /* ── 打开创建弹窗 ── */
 async function openCreateModal() {
@@ -529,7 +518,7 @@ onMounted(() => {
               </span>
             </td>
             <!-- 创建时间 -->
-            <td class="px-4 py-3 text-neutral-500 text-xs font-mono">{{ fmtDate(item.created_at) }}</td>
+            <td class="px-4 py-3 text-neutral-500 text-xs font-mono">{{ formatDateTime(item.created_at) }}</td>
             <!-- 操作 -->
             <td class="px-4 py-3 text-center">
               <div class="inline-flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">

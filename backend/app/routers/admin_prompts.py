@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.prompt_template import PromptTemplate
 from app.models.prompt_version import PromptVersion
 from app.dependencies import get_current_user
+from app.utils.datetime import utc_isoformat
 
 router = APIRouter(prefix="/api/admin/prompts", tags=["prompts"])
 
@@ -84,8 +85,8 @@ def list_templates(
             "current_version_id": t.current_version_id,
             "current_version_number": current_version_number,
             "content_summary": content_summary,
-            "created_at": t.created_at.isoformat() if t.created_at else None,
-            "updated_at": t.updated_at.isoformat() if t.updated_at else None,
+            "created_at": utc_isoformat(t.created_at),
+            "updated_at": utc_isoformat(t.updated_at),
         })
 
     return {
@@ -156,8 +157,8 @@ def get_template(
         "description": template.description,
         "is_active": template.is_active,
         "current_version_id": template.current_version_id,
-        "created_at": template.created_at.isoformat() if template.created_at else None,
-        "updated_at": template.updated_at.isoformat() if template.updated_at else None,
+        "created_at": utc_isoformat(template.created_at),
+        "updated_at": utc_isoformat(template.updated_at),
         "current_version": {
             "id": current_version.id,
             "version_number": current_version.version_number,
@@ -165,7 +166,7 @@ def get_template(
             "variables": current_version.variables,
             "remark": current_version.remark,
             "created_by": current_version.created_by,
-            "created_at": current_version.created_at.isoformat() if current_version.created_at else None,
+            "created_at": utc_isoformat(current_version.created_at),
         } if current_version else None,
     }
 
@@ -238,7 +239,7 @@ def list_versions(
                 "version_number": v.version_number,
                 "remark": v.remark,
                 "created_by": v.created_by,
-                "created_at": v.created_at.isoformat() if v.created_at else None,
+                "created_at": utc_isoformat(v.created_at),
                 "is_current": v.id == template.current_version_id,
             }
             for v in versions
@@ -318,7 +319,7 @@ def get_version(
         "variables": version.variables,
         "remark": version.remark,
         "created_by": version.created_by,
-        "created_at": version.created_at.isoformat() if version.created_at else None,
+        "created_at": utc_isoformat(version.created_at),
         "is_current": template and version.id == template.current_version_id,
     }
 
