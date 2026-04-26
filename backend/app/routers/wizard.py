@@ -2,6 +2,9 @@ import html
 import json
 import logging
 import re
+import uuid
+from datetime import datetime, timedelta, timezone
+
 import httpx
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
@@ -325,6 +328,14 @@ def generate(request: dict, db: Session = Depends(get_db)):
     region = request.get("region", "")
     hour = request.get("hour", 8)
 
+    # 读取并验证 client_request_id（可选，UUID 格式校验）
+    client_request_id = request.get("client_request_id")
+    if client_request_id:
+        try:
+            uuid.UUID(str(client_request_id))
+        except (ValueError, TypeError):
+            client_request_id = None
+
     # 查找企业信息
     enterprise = db.query(Enterprise).filter(
         Enterprise.customer_name == enterprise_name,
@@ -546,6 +557,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
                         source="ai",
                         plan_title=plan_json.get("title", ""),
                         plan_data=json.dumps(plan_json, ensure_ascii=False),
+                        client_request_id=client_request_id,
                     )
                     db.add(plan_record)
                     try:
@@ -553,7 +565,10 @@ def generate(request: dict, db: Session = Depends(get_db)):
                     except Exception:
                         db.rollback()
                         raise
-                    return {"data": plan_json, "source": "ai"}
+                    result = {"data": plan_json, "source": "ai"}
+                    if client_request_id:
+                        result["client_request_id"] = client_request_id
+                    return result
                 else:
                     _logger.warning("LLM 返回 JSON 解析失败，回退到模板")
             else:
@@ -577,6 +592,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
         source="template",
         plan_title=fallback.get("title", ""),
         plan_data=json.dumps(fallback, ensure_ascii=False),
+        client_request_id=client_request_id,
     )
     db.add(plan_record)
     try:
@@ -584,4 +600,37 @@ def generate(request: dict, db: Session = Depends(get_db)):
     except Exception:
         db.rollback()
         raise
-    return {"data": fallback, "source": "template", "llm_error": "大模型调用失败，已使用模板生成方案。请检查大模型配置（API Key、Base URL）是否正确。"}
+    result = {"data": fallback, "source": "template", "llm_error": "大模型调用失败，已使用模板生成方案。请检查大模型配置（API Key、Base URL）是否正确。"}
+    if client_request_id:
+        result["client_request_id"] = client_request_id
+    return result
+
+
+@router.get("/api/generate/status/{client_request_id}")
+def get_generate_status(client_request_id: str, db: Session = Depends(get_db)):
+    """查询生成任务状态。"""
+    # 验证 UUID 格式
+    try:
+        uuid.UUID(client_request_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="client_request_id 不是合法的 UUID 格式")
+
+    plan = db.query(GeneratedPlan).filter(
+        GeneratedPlan.client_request_id == client_request_id
+    ).first()
+
+    if plan:
+        # 检查超时：记录创建超过 5 分钟视为超时
+        now = datetime.now(timezone.utc)
+        plan_time = plan.created_at.replace(tzinfo=timezone.utc) if plan.created_at.tzinfo is None else plan.created_at
+        if now - plan_time > timedelta(minutes=5):
+            return {"status": "failed", "message": "生成超时"}
+
+        try:
+            plan_json = json.loads(plan.plan_data)
+        except (json.JSONDecodeError, TypeError):
+            plan_json = None
+        return {"status": "completed", "data": plan_json, "source": plan.source}
+
+    # 没有找到记录，视为 pending（记录可能尚未创建）
+    return {"status": "pending"}

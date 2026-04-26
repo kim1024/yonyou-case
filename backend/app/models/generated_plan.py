@@ -14,6 +14,7 @@ class GeneratedPlan(Base):
     source = Column(String(20))  # "ai" 或 "template"
     plan_title = Column(String(500))
     plan_data = Column(Text)  # 完整方案 JSON 字符串
+    client_request_id = Column(String(36), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (
@@ -21,4 +22,5 @@ class GeneratedPlan(Base):
         Index('idx_generated_plans_created_at', 'created_at'),
         Index('idx_generated_plans_industry', 'industry'),
         Index('idx_generated_plans_province', 'province'),
+        Index('idx_generated_plans_client_request_id', 'client_request_id'),
     )
