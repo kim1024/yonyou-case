@@ -20,6 +20,7 @@ from app.models.prompt_template import PromptTemplate
 from app.models.prompt_version import PromptVersion
 from app.models.token_usage_log import TokenUsageLog
 from app.models.generated_plan import GeneratedPlan
+from app.services.llm_chain_manager import get_chain_manager
 
 DELIVERABLES = ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"]
 
@@ -379,8 +380,43 @@ def generate(request: dict, db: Session = Depends(get_db)):
         max_tokens = llm_cfg.get("max_tokens", 4000)
         timeout = llm_cfg.get("timeout", 60)
 
+    # --- Fallback chain detection ---
+    chain_manager = get_chain_manager()
+    use_chain = False
+    chain_group_id = None
+    max_retries = 1  # default: no chain retry
+
+    if db_llm and db_llm.fallback_group_id:
+        use_chain = True
+        chain_group_id = db_llm.fallback_group_id
+        chain_config = chain_manager.get_active_config(db, chain_group_id)
+        if chain_config:
+            active_config = chain_config
+            api_key = active_config.api_key
+            api_base_url = active_config.api_base_url
+            model = active_config.model
+            temperature = active_config.temperature or 0.7
+            max_tokens = active_config.max_tokens or 4000
+            timeout = active_config.timeout or 60
+            llm_config_id = active_config.id
+            # Count total models in chain for max retries
+            chain_size = db.query(LLMConfig).filter(
+                LLMConfig.fallback_group_id == chain_group_id
+            ).count()
+            max_retries = chain_size
+
     # 防止 max_tokens 被误设为模型上下文窗口大小等超大值
     max_tokens = min(max_tokens, 16384)
+
+    def _switch_chain_config(next_config):
+        nonlocal api_key, api_base_url, model, temperature, max_tokens, timeout, llm_config_id
+        api_key = next_config.api_key
+        api_base_url = next_config.api_base_url
+        model = next_config.model
+        temperature = next_config.temperature or 0.7
+        max_tokens = min(next_config.max_tokens or 4000, 16384)
+        timeout = next_config.timeout or 60
+        llm_config_id = next_config.id
 
     # 对数据库字段做长度限制，防止提示注入
     def _safe(text: str, max_len: int = 500) -> str:
@@ -514,77 +550,116 @@ def generate(request: dict, db: Session = Depends(get_db)):
 4. 仅输出 JSON，不要输出其他内容。
 5. introduction 中需要强调的动态内容（企业名、行业名、专业名、课时数等），请用 HTML 标签包裹：<b class="highlight">xxx</b>，使其加粗并使用特殊颜色显示。"""
 
-    try:
-        if api_key and api_key != "sk-xxx":
-            # 自动补全 /v1 路径：兼容用户填写域名或完整 URL 两种情况
-            base = api_base_url.rstrip("/")
-            if not base.endswith("/v1"):
-                base = f"{base}/v1"
-            response = httpx.post(
-                f"{base}/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                },
-                timeout=timeout,
-            )
-            if response.status_code == 200:
-                result = response.json()
-                content = result["choices"][0]["message"]["content"]
-                # 记录 token 消耗
-                usage = result.get("usage", {})
-                if llm_config_id:
-                    log = TokenUsageLog(
-                        llm_config_id=llm_config_id,
-                        model=model,
-                        prompt_tokens=usage.get("prompt_tokens", 0),
-                        completion_tokens=usage.get("completion_tokens", 0),
-                        total_tokens=usage.get("total_tokens", 0),
-                    )
-                    db.add(log)
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            if api_key and api_key != "sk-xxx":
+                # 自动补全 /v1 路径：兼容用户填写域名或完整 URL 两种情况
+                base = api_base_url.rstrip("/")
+                if not base.endswith("/v1"):
+                    base = f"{base}/v1"
+                response = httpx.post(
+                    f"{base}/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    },
+                    timeout=timeout,
+                )
+                if response.status_code == 200:
+                    result = response.json()
+                    content = result["choices"][0]["message"]["content"]
+                    # 记录 token 消耗
+                    usage = result.get("usage", {})
+                    if llm_config_id:
+                        log = TokenUsageLog(
+                            llm_config_id=llm_config_id,
+                            model=model,
+                            prompt_tokens=usage.get("prompt_tokens", 0),
+                            completion_tokens=usage.get("completion_tokens", 0),
+                            total_tokens=usage.get("total_tokens", 0),
+                        )
+                        db.add(log)
 
-                # 解析 LLM 返回的 JSON
-                plan_json = _parse_llm_json(content)
-                if plan_json is not None:
-                    _normalize_title_subtitle(plan_json, enterprise_name)
-                    plan_json["deliverables"] = DELIVERABLES
-                    plan_json["pricing"] = {
-                        "hour": hour,
-                        "unit_price": rate,
-                        "total_cost": total_cost,
-                    }
-                    # 持久化 AI 生成的方案
-                    plan_record = GeneratedPlan(
-                        major=major,
-                        industry=industry,
-                        enterprise=enterprise_name,
-                        province=region,
-                        hour=hour,
-                        source="ai",
-                        plan_title=plan_json.get("title", ""),
-                        plan_data=json.dumps(plan_json, ensure_ascii=False),
-                        client_request_id=client_request_id,
-                    )
-                    db.add(plan_record)
-                    try:
-                        db.commit()
-                    except Exception:
-                        db.rollback()
-                        raise
-                    result = {"data": plan_json, "source": "ai"}
-                    if client_request_id:
-                        result["client_request_id"] = client_request_id
-                    return result
+                    # 解析 LLM 返回的 JSON
+                    plan_json = _parse_llm_json(content)
+                    if plan_json is not None:
+                        _normalize_title_subtitle(plan_json, enterprise_name)
+                        plan_json["deliverables"] = DELIVERABLES
+                        plan_json["pricing"] = {
+                            "hour": hour,
+                            "unit_price": rate,
+                            "total_cost": total_cost,
+                        }
+                        # 持久化 AI 生成的方案
+                        plan_record = GeneratedPlan(
+                            major=major,
+                            industry=industry,
+                            enterprise=enterprise_name,
+                            province=region,
+                            hour=hour,
+                            source="ai",
+                            plan_title=plan_json.get("title", ""),
+                            plan_data=json.dumps(plan_json, ensure_ascii=False),
+                            client_request_id=client_request_id,
+                        )
+                        db.add(plan_record)
+                        try:
+                            db.commit()
+                        except Exception:
+                            db.rollback()
+                            raise
+                        # Chain: record success and reset
+                        if use_chain:
+                            chain_manager.record_success(chain_group_id)
+                        result = {"data": plan_json, "source": "ai"}
+                        if client_request_id:
+                            result["client_request_id"] = client_request_id
+                        return result
+                    else:
+                        _logger.warning("LLM 返回 JSON 解析失败，回退到模板")
+                        last_error = ValueError("LLM 返回 JSON 解析失败")
+                        if use_chain:
+                            chain_manager.record_failure(db, chain_group_id, is_timeout=False)
+                            next_config = chain_manager.get_active_config(db, chain_group_id)
+                            if next_config:
+                                _switch_chain_config(next_config)
+                                continue
+                        break
                 else:
-                    _logger.warning("LLM 返回 JSON 解析失败，回退到模板")
-            else:
-                _logger.warning("LLM API 返回非 200 状态码: %d, body: %s",
-                                response.status_code, response.text[:500])
-    except Exception as e:
-        _logger.error("AI API call failed: %s", e)
+                    _logger.warning("LLM API 返回非 200 状态码: %d, body: %s",
+                                    response.status_code, response.text[:500])
+                    last_error = RuntimeError(f"LLM API status {response.status_code}")
+                    if use_chain:
+                        chain_manager.record_failure(db, chain_group_id, is_timeout=False)
+                        next_config = chain_manager.get_active_config(db, chain_group_id)
+                        if next_config:
+                            _switch_chain_config(next_config)
+                            continue
+                    break
+        except httpx.TimeoutException as e:
+            last_error = e
+            _logger.warning("LLM API call timeout (attempt %d/%d): %s", attempt + 1, max_retries, e)
+            if use_chain:
+                chain_manager.record_failure(db, chain_group_id, is_timeout=True)
+                next_config = chain_manager.get_active_config(db, chain_group_id)
+                if next_config:
+                    _switch_chain_config(next_config)
+                    continue
+            break
+        except Exception as e:
+            last_error = e
+            _logger.error("AI API call failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
+            if use_chain:
+                chain_manager.record_failure(db, chain_group_id, is_timeout=False)
+                next_config = chain_manager.get_active_config(db, chain_group_id)
+                if next_config:
+                    _switch_chain_config(next_config)
+                    continue
+            break
 
     # 回退到模板生成（JSON 格式）
     fallback = _build_fallback_json(enterprise_name, major, industry,
