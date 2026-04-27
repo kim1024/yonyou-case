@@ -21,6 +21,7 @@ DEFAULT_CONFIG = {
         "username": "admin",
         "password": "changeme",
         "jwt_secret": "change-me-in-production",
+        "token_expire_hours": 4,
     },
     "llm": {
         "api_key": "sk-xxx",
@@ -43,6 +44,38 @@ DEFAULT_CONFIG = {
         "title": "用友产业案例教学项目课程定制系统",
     },
 }
+
+
+class AdminSettings:
+    """管理后台配置段的类型安全访问器。"""
+
+    # token_expire_hours 的有效范围
+    _TOKEN_EXPIRE_MIN: int = 1
+    _TOKEN_EXPIRE_MAX: int = 720
+    _TOKEN_EXPIRE_DEFAULT: int = 4
+
+    def __init__(self, admin_config: dict) -> None:
+        self._config = admin_config
+
+    @property
+    def token_expire_hours(self) -> int:
+        """登录Token过期时间（小时），范围 1-720，默认 4。"""
+        raw = self._config.get("token_expire_hours", self._TOKEN_EXPIRE_DEFAULT)
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            _logger.warning(
+                "admin.token_expire_hours 值无效 (%r)，使用默认值 %d",
+                raw, self._TOKEN_EXPIRE_DEFAULT,
+            )
+            return self._TOKEN_EXPIRE_DEFAULT
+        if not (self._TOKEN_EXPIRE_MIN <= value <= self._TOKEN_EXPIRE_MAX):
+            _logger.warning(
+                "admin.token_expire_hours 超出范围 (%d)，有效范围 %d-%d，使用默认值 %d",
+                value, self._TOKEN_EXPIRE_MIN, self._TOKEN_EXPIRE_MAX, self._TOKEN_EXPIRE_DEFAULT,
+            )
+            return self._TOKEN_EXPIRE_DEFAULT
+        return value
 
 
 class Settings:
@@ -78,6 +111,11 @@ class Settings:
     def get(self, key, default=None):
         """按顶层 key 获取配置段。"""
         return self._config.get(key, default)
+
+    @property
+    def admin(self) -> AdminSettings:
+        """管理后台配置段，支持属性访问和自动验证。"""
+        return AdminSettings(self._config.get("admin", {}))
 
     @property
     def config(self):

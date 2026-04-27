@@ -15,6 +15,7 @@ admin:
   username: "admin"
   password: "changeme"  # 首次启动后建议修改
   jwt_secret: "change-me-in-production"
+  token_expire_hours: 4  # 登录Token过期时间（小时），范围 1-720，默认4小时
 
 llm:
   api_key: "sk-xxx"

@@ -25,7 +25,7 @@ if not _base_secret or _base_secret in _INSECURE_DEFAULTS:
 # 基于配置密钥派生 JWT 签名密钥（多进程/重启保持一致）
 SECRET_KEY = hashlib.sha256(_base_secret.encode()).hexdigest()
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+ACCESS_TOKEN_EXPIRE_HOURS = settings.admin.token_expire_hours
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -39,7 +39,7 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(data: dict) -> str:
-    """创建 JWT token，24 小时后过期。"""
+    """创建 JWT token，过期时间由 admin.token_expire_hours 配置（默认4小时）。"""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     to_encode.update({"exp": expire})
