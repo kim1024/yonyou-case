@@ -7,6 +7,15 @@ const GEN_START_KEY = 'generating_start_time'
 const GEN_REQUEST_KEY = 'generating_request_id'
 const GEN_SELECTIONS_KEY = 'generating_selections'
 
+function generateUUID(): string {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40 // Version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80 // Variant 1
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export function useWizard() {
   const state = reactive<WizardState>({
     major: null,
@@ -253,7 +262,7 @@ export function useWizard() {
   async function generate(): Promise<{ client_request_id: string } | { templateData: CoursePlan; source: string; llm_error?: string } | null> {
     if (!canSubmit.value) return null
 
-    const clientRequestId = crypto.randomUUID()
+    const clientRequestId = generateUUID()
 
     generationStage.value = 1
     generationStartTime.value = Date.now()
