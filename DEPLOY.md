@@ -599,3 +599,8 @@ sudo systemctl reload nginx
 | Nginx 返回 403 Forbidden | SELinux 阻止访问，运行 `sudo setenforce 0` 临时关闭测试，确认后按 5.2 节设置 SELinux 上下文 |
 | Nginx 无法启动，端口被占用 | 检查 `sudo ss -tlnp | grep :80`，停止占用端口的进程 |
 | CentOS 7 Node.js 版本过低 | 按 5.0 节安装 NodeSource 仓库获取 Node.js 18+ |
+
+## 线上资源
+
+- PostgreSQL user/password:`yonyou/cp5QWaS8WzaMWTaCXZU25hYTXWUhXZzA`
+- SSL Cert:`/etc/letsencrypt/live/yonyou-caseedu.hongyaa.com.cn`
