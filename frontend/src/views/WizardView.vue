@@ -652,8 +652,8 @@ async function handleSubmit() {
   inset: -20%;
   background: linear-gradient(
     135deg,
-    rgba(192,57,43,0.03) 0%,
-    rgba(212,160,106,0.02) 40%,
+    rgba(192,57,43,0.08) 0%,
+    rgba(212,160,106,0.06) 40%,
     transparent 70%
   );
   pointer-events: none;
@@ -974,7 +974,7 @@ async function handleSubmit() {
   transition: opacity 0.5s ease 0.1s;
 }
 .hero-entering .hero-glow {
-  opacity: 0.6;
+  opacity: 0.8;
   transform: translate(-50%, -50%) scale(1);
   transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s;
 }
@@ -1018,10 +1018,10 @@ async function handleSubmit() {
   height: 240px;
   background: radial-gradient(
     ellipse at center,
-    rgba(192,57,43,0.06) 0%,
-    rgba(192,57,43,0.03) 25%,
-    rgba(212,160,106,0.04) 50%,
-    rgba(212,160,106,0.01) 70%,
+    rgba(192,57,43,0.15) 0%,
+    rgba(192,57,43,0.08) 25%,
+    rgba(212,160,106,0.10) 50%,
+    rgba(212,160,106,0.04) 70%,
     transparent 85%
   );
   border-radius: 50%;
@@ -1042,9 +1042,9 @@ async function handleSubmit() {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(212,160,106,0.03) 30%,
-    rgba(192,57,43,0.02) 50%,
-    rgba(212,160,106,0.03) 70%,
+    rgba(212,160,106,0.08) 30%,
+    rgba(192,57,43,0.06) 50%,
+    rgba(212,160,106,0.08) 70%,
     transparent 100%
   );
   border-radius: 50%;
