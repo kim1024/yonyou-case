@@ -23,6 +23,7 @@ from app.models.token_usage_log import TokenUsageLog
 from app.models.generated_plan import GeneratedPlan
 from app.services.llm_chain_manager import get_chain_manager
 from app.services.llm_runtime import normalize_runtime_state, resolve_runtime_config
+from app.services.token_quota_service import enforce_quota
 
 DELIVERABLES = ["PPT", "视频", "指导书", "数据集", "代码包", "实操环境"]
 
@@ -389,6 +390,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
     chain_manager = get_chain_manager()
     use_chain = False
     chain_group_id = None
+    chain_primary_config_id = None  # 主模型 config_id，用于 token 限额统计
     chain_timeout_seconds = None
     chain_in_cooling = False
     max_retries = 1  # default: no chain retry
@@ -404,6 +406,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
         )
         if chain_setting:
             chain_timeout_seconds = chain_setting.timeout_seconds
+            chain_primary_config_id = chain_setting.primary_llm_config_id
         chain_config = chain_manager.get_active_config(db, chain_group_id)
         if chain_config:
             active_config = chain_config
@@ -448,6 +451,8 @@ def generate(request: dict, db: Session = Depends(get_db)):
         if not next_config or next_config.id == previous_config_id or next_config.id in attempted_config_ids:
             return False
         _switch_chain_config(next_config)
+        # 链路共享限额，failover 后再次检查链路限额
+        enforce_quota(db, llm_config_id)
         return True
 
     # 对数据库字段做长度限制，防止提示注入
@@ -582,6 +587,10 @@ def generate(request: dict, db: Session = Depends(get_db)):
 4. 仅输出 JSON，不要输出其他内容。
 5. introduction 中需要强调的动态内容（企业名、行业名、专业名、课时数等），请用 HTML 标签包裹：<b class="highlight">xxx</b>，使其加粗并使用特殊颜色显示。"""
 
+    # --- 限额检查：在调用 LLM API 之前强制执行 ---
+    if llm_config_id is not None:
+        enforce_quota(db, llm_config_id)
+
     last_error = RuntimeError("降级链处于冷却期，暂不调用大模型") if chain_in_cooling else None
     for attempt in range(max_retries):
         if chain_in_cooling:
@@ -608,11 +617,12 @@ def generate(request: dict, db: Session = Depends(get_db)):
                 if response.status_code == 200:
                     result = response.json()
                     content = result["choices"][0]["message"]["content"]
-                    # 记录 token 消耗
+                    # 记录 token 消耗（链路模式下统一记到主模型，确保限额累计准确）
                     usage = result.get("usage", {})
-                    if llm_config_id:
+                    quota_config_id = chain_primary_config_id if use_chain and chain_primary_config_id else llm_config_id
+                    if quota_config_id:
                         log = TokenUsageLog(
-                            llm_config_id=llm_config_id,
+                            llm_config_id=quota_config_id,
                             model=model,
                             prompt_tokens=usage.get("prompt_tokens", 0),
                             completion_tokens=usage.get("completion_tokens", 0),

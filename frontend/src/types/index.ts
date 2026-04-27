@@ -250,6 +250,7 @@ export interface LlmConfig {
   max_tokens: number
   timeout: number
   is_active: boolean
+  daily_token_quota?: number
   created_at: string | null
   updated_at: string | null
   role?: string
@@ -266,6 +267,7 @@ export interface LlmConfigCreate {
   max_tokens: number
   timeout: number
   is_active: boolean
+  daily_token_quota?: number
 }
 
 export interface LlmConfigUpdate {
@@ -277,6 +279,7 @@ export interface LlmConfigUpdate {
   max_tokens?: number
   timeout?: number
   is_active?: boolean
+  daily_token_quota?: number
 }
 
 // ── Fallback Chain 管理 ──
@@ -296,6 +299,11 @@ export interface ChainData {
   cooldown_seconds: number
   created_at: string
   updated_at: string
+  quota_info?: {
+    limit: number
+    used: number
+    remaining: number
+  }
 }
 
 export interface ChainListResponse {
@@ -326,6 +334,17 @@ export interface FallbackReorderRequest {
 }
 
 // ── Token 统计 ──
+export interface QuotaStatus {
+  config_id: number
+  config_name: string
+  model: string
+  is_chain: boolean
+  fallback_group_id?: string
+  limit: number
+  used: number
+  remaining: number
+}
+
 export interface TokenStats {
   total_tokens: number
   total_calls: number
@@ -334,6 +353,7 @@ export interface TokenStats {
   avg_tokens_per_call: number
   by_model: { model: string; total_tokens: number; calls: number }[]
   daily_trend: { date: string; tokens: number; calls: number }[]
+  quota_status: QuotaStatus[]
 }
 
 // ── 提示词模板 ──

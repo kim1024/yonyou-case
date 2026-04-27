@@ -28,6 +28,27 @@ from app.middleware.rate_limit import RateLimitMiddleware, rate_limit_config
 from seed import seed_database
 from app.services.llm_runtime import normalize_runtime_state
 
+
+def _ensure_daily_token_quota_column():
+    """Auto-migrate: add daily_token_quota column if it doesn't exist."""
+    try:
+        from sqlalchemy import text
+        from app.database import engine
+        with engine.connect() as conn:
+            result = conn.execute(
+                text(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name = 'llm_configs' AND column_name = 'daily_token_quota'"
+                )
+            )
+            if not result.fetchone():
+                conn.execute(
+                    text("ALTER TABLE llm_configs ADD COLUMN daily_token_quota INTEGER NOT NULL DEFAULT 0")
+                )
+                conn.commit()
+    except Exception:
+        pass  # Silently skip if migration fails (e.g., table doesn't exist yet)
+
 # 导入所有模型以确保 create_all 能发现它们
 from app.models import Enterprise, AdminUser, VisitLog  # noqa: F401
 from app.models import Major, Industry, MajorIndustry, Region, Hour  # noqa: F401
@@ -78,6 +99,7 @@ app.add_middleware(AnalyticsMiddleware)
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    _ensure_daily_token_quota_column()
     recover_visit_logs()
     seed_database()
 

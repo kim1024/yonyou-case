@@ -12,6 +12,7 @@ from app.models.llm_config import LLMConfig
 from app.models.model_fallback_setting import ModelFallbackSetting
 from app.dependencies import get_current_user
 from app.services.llm_runtime import deactivate_all_configs
+from app.services.token_quota_service import get_effective_quota
 from app.utils.datetime import utc_isoformat
 from app.routers.admin_llm import mask_api_key
 
@@ -82,11 +83,21 @@ def _config_dict(c: LLMConfig) -> dict:
         "role": c.role,
         "fallback_order": c.fallback_order,
         "fallback_group_id": c.fallback_group_id,
+        "daily_token_quota": c.daily_token_quota,
     }
 
 
-def _chain_dict(setting: ModelFallbackSetting, primary: LLMConfig, fallbacks: List[LLMConfig]) -> dict:
+def _chain_dict(setting: ModelFallbackSetting, primary: LLMConfig, fallbacks: List[LLMConfig], db: Session = None) -> dict:
     """Build the full chain response dict."""
+    # 限额信息（链路级别，取主模型的限额，统计链路总用量）
+    quota_info = None
+    if db is not None:
+        quota = get_effective_quota(db, primary.id)
+        quota_info = {
+            "limit": quota["limit"],
+            "used": quota["used"],
+            "remaining": quota["remaining"],
+        }
     return {
         "id": setting.id,
         "primary_config_id": primary.id,
@@ -101,6 +112,7 @@ def _chain_dict(setting: ModelFallbackSetting, primary: LLMConfig, fallbacks: Li
         "cooldown_seconds": setting.cooldown_seconds,
         "created_at": utc_isoformat(setting.created_at),
         "updated_at": utc_isoformat(setting.updated_at),
+        "quota_info": quota_info,
     }
 
 
@@ -139,7 +151,7 @@ def list_chains(
             )
             .all()
         )
-        chains.append(_chain_dict(s, primary, fallbacks))
+        chains.append(_chain_dict(s, primary, fallbacks, db))
     if cleaned:
         db.commit()
     return {"chains": chains}
@@ -192,7 +204,7 @@ def get_chain(
         )
         .all()
     )
-    return _chain_dict(setting, primary, fallbacks)
+    return _chain_dict(setting, primary, fallbacks, db)
 
 
 # ─── 3. Create chain ─────────────────────────────────────────────────────
@@ -258,7 +270,7 @@ def create_chain(
     db.commit()
     db.refresh(setting)
 
-    return _chain_dict(setting, primary, fallbacks)
+    return _chain_dict(setting, primary, fallbacks, db)
 
 
 # ─── 4. Update chain (thresholds + optional fallback reorder) ─────────────
@@ -362,7 +374,7 @@ def update_chain(
         )
         .all()
     )
-    return _chain_dict(setting, primary, fallbacks)
+    return _chain_dict(setting, primary, fallbacks, db)
 
 
 # ─── 5. Delete chain (dissolve) ──────────────────────────────────────────

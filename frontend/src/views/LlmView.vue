@@ -4,15 +4,16 @@ import {
   Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight,
   Inbox, Cpu, ArrowLeft, RotateCcw, Sparkles, X, Search,
   Layers, Activity, Zap, Hash, Copy, Info, Maximize2, Minimize2, Eye,
-  Shield, Loader2, Link2,
+  Shield, Loader2, Link2, AlertTriangle, Gauge, Infinity as InfinityIcon,
 } from 'lucide-vue-next'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import ModelConsumptionChart from '@/components/admin/ModelConsumptionChart.vue'
 import { adminApi } from '@/api/admin'
+import { quotaExceededEvent } from '@/api/http'
 import { formatDate, formatDateTime, formatMonthDay } from '@/utils/date'
 import type {
   LlmConfig, LlmConfigCreate, LlmConfigUpdate,
-  TokenStats,
+  TokenStats, QuotaStatus,
   PromptTemplate, PromptVersion,
   PromptTemplateCreate, PromptVersionCreate,
   ChainData,
@@ -153,6 +154,7 @@ const llmForm = ref<Omit<LlmConfigCreate, 'is_active'> & { is_active: boolean }>
   max_tokens: 2000,
   timeout: 60,
   is_active: false,
+  daily_token_quota: 0,
 })
 
 const modelList = ref<string[]>([])
@@ -162,8 +164,17 @@ const modelInputMode = ref<'select' | 'manual'>('select')
 async function fetchModels() {
   const url = llmForm.value.api_base_url.trim()
   const key = llmForm.value.api_key.trim()
-  if (!url || !key) {
-    showToast('请先填写 Base URL 和 API Key', 'error')
+  if (!url) {
+    showToast('请先填写 Base URL', 'error')
+    return
+  }
+  if (!key) {
+    if (editLlmItem.value) {
+      showToast('编辑模式下需填写 API Key 才能拉取模型列表，也可手动输入模型名称', 'info')
+      modelInputMode.value = 'manual'
+    } else {
+      showToast('请先填写 API Key', 'error')
+    }
     return
   }
   modelListLoading.value = true
@@ -196,6 +207,8 @@ async function loadLlmConfigs() {
     const res = await adminApi.getLlmConfigs({ page: llmPage.value, page_size: llmPageSize })
     llmItems.value = res.data.items
     llmTotal.value = res.data.total
+    // 同步加载限额状态
+    loadQuotaStatus()
   } finally {
     llmLoading.value = false
   }
@@ -207,6 +220,7 @@ function handleAddLlm() {
   llmForm.value = {
     name: '', model: '', api_base_url: '', api_key: '',
     temperature: 0.7, max_tokens: 2000, timeout: 60, is_active: false,
+    daily_token_quota: 0,
   }
   modelList.value = []
   modelInputMode.value = 'select'
@@ -225,14 +239,11 @@ function handleEditLlm(item: LlmConfig) {
     max_tokens: item.max_tokens,
     timeout: item.timeout,
     is_active: item.is_active,
+    daily_token_quota: item.daily_token_quota ?? 0,
   }
   modelList.value = []
   modelInputMode.value = 'select'
   showLlmModal.value = true
-  // 编辑模式自动拉取模型列表（需用户提供 api_key）
-  nextTick(() => {
-    fetchModels()
-  })
 }
 
 function validateLlmForm(): boolean {
@@ -258,6 +269,7 @@ async function handleSaveLlm() {
         max_tokens: llmForm.value.max_tokens,
         timeout: llmForm.value.timeout,
         is_active: llmForm.value.is_active,
+        daily_token_quota: llmForm.value.daily_token_quota ?? 0,
       }
       if (llmForm.value.api_key.trim()) payload.api_key = llmForm.value.api_key
       await adminApi.updateLlmConfig(editLlmItem.value.id, payload)
@@ -271,6 +283,7 @@ async function handleSaveLlm() {
         max_tokens: llmForm.value.max_tokens,
         timeout: llmForm.value.timeout,
         is_active: llmForm.value.is_active,
+        daily_token_quota: llmForm.value.daily_token_quota ?? 0,
       })
     }
     showLlmModal.value = false
@@ -565,6 +578,98 @@ async function handleCreateChain() {
   }
   // Open drawer for the first standalone config
   openChainDrawer(availableForChain.value[0])
+}
+
+/* ═══════════════════════════════════════════════
+   限额相关状态与工具函数
+   ═══════════════════════════════════════════════ */
+const quotaStatusList = ref<QuotaStatus[]>([])
+
+async function loadQuotaStatus() {
+  try {
+    const res = await adminApi.getQuotaStatus()
+    quotaStatusList.value = res.data.quota_status ?? []
+  } catch {
+    // silently ignore
+  }
+}
+
+/** 查找某个 config 的限额状态 */
+function getQuotaForConfig(configId: number): QuotaStatus | undefined {
+  return quotaStatusList.value.find(q => q.config_id === configId)
+}
+
+/** 限额使用百分比 */
+function quotaPercent(q: QuotaStatus): number {
+  if (!q.limit || q.limit <= 0) return 0
+  return Math.min(100, (q.used / q.limit) * 100)
+}
+
+/** 限额进度条颜色 class */
+function quotaBarColor(q: QuotaStatus): string {
+  const pct = quotaPercent(q)
+  if (pct >= 95) return 'bg-red-500'
+  if (pct >= 80) return 'bg-amber-500'
+  return 'bg-emerald-500'
+}
+
+/** 限额状态标签 */
+function quotaStatusLabel(q: QuotaStatus): { text: string; color: string } {
+  const pct = quotaPercent(q)
+  if (pct >= 100) return { text: '已耗尽', color: 'bg-red-50 text-red-600 border-red-200' }
+  if (pct >= 95) return { text: '即将耗尽', color: 'bg-red-50 text-red-500 border-red-200' }
+  if (pct >= 80) return { text: '告警', color: 'bg-amber-50 text-amber-600 border-amber-200' }
+  return { text: '正常', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' }
+}
+
+/** 格式化 token 数值为可读字符串 */
+function formatQuotaNumber(val: number): string {
+  if (val >= 1_000_000) return (val / 1_000_000).toFixed(val % 1_000_000 === 0 ? 0 : 1) + 'M'
+  if (val >= 1_000) return (val / 1_000).toFixed(val % 1_000 === 0 ? 0 : 1) + 'K'
+  return val.toLocaleString('zh-CN')
+}
+
+/** 是否有设置了限额的配置 */
+const hasQuotaLimits = computed(() => quotaStatusList.value.some(q => q.limit > 0))
+
+/** 总体限额状态 */
+const overallQuotaStatus = computed(() => {
+  const items = quotaStatusList.value.filter(q => q.limit > 0)
+  if (items.length === 0) return { text: '无限制', color: 'bg-neutral-50 text-neutral-400 border-neutral-200' }
+  const worstPct = Math.max(...items.map(q => quotaPercent(q)))
+  if (worstPct >= 100) return { text: '已耗尽', color: 'bg-red-50 text-red-600 border-red-200' }
+  if (worstPct >= 95) return { text: '即将耗尽', color: 'bg-red-50 text-red-500 border-red-200' }
+  if (worstPct >= 80) return { text: '告警', color: 'bg-amber-50 text-amber-600 border-amber-200' }
+  return { text: '全部正常', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' }
+})
+
+/** 百分比文字颜色 */
+function percentTextColor(q: QuotaStatus): string {
+  const pct = quotaPercent(q)
+  if (pct >= 95) return 'text-red-500'
+  if (pct >= 80) return 'text-amber-600'
+  return 'text-emerald-600'
+}
+
+/** 限额快捷按钮值 */
+const quotaPresets = [
+  { label: '100K', value: 100_000 },
+  { label: '500K', value: 500_000 },
+  { label: '1M', value: 1_000_000 },
+  { label: '5M', value: 5_000_000 },
+  { label: '不限制', value: 0 },
+]
+
+/** 429 TOKEN_QUOTA_EXCEEDED 事件监听 */
+function handleQuotaExceeded(e: Event) {
+  const detail = (e as CustomEvent).detail
+  const quota = detail.quota
+  const resetAt = quota?.reset_at
+    ? new Date(quota.reset_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    : '明日'
+  const used = quota ? formatQuotaNumber(quota.used) : '?'
+  const limit = quota ? formatQuotaNumber(quota.limit) : '?'
+  showToast(`Token 配额已用完 (${used}/${limit})，将在 ${resetAt} 重置`, 'error')
 }
 
 /* ═══════════════════════════════════════════════
@@ -990,6 +1095,8 @@ onMounted(() => {
   loadChains()
   loadTokenStats()
   loadPromptTemplates()
+  loadQuotaStatus()
+  quotaExceededEvent.addEventListener('quota-exceeded', handleQuotaExceeded)
 })
 
 /* ResizeObserver: 用 watch 而非 onMounted，处理 v-if 隐藏的 tab 切换后元素才挂载的情况 */
@@ -1005,13 +1112,17 @@ watch(trendContainerEl, (el) => {
 onBeforeUnmount(() => {
   trendResizeObs?.disconnect()
   if (toastTimer) clearTimeout(toastTimer)
+  quotaExceededEvent.removeEventListener('quota-exceeded', handleQuotaExceeded)
 })
 
 /* Tab 切换时按需加载 */
 function switchTab(tab: 'llm' | 'token' | 'prompt' | 'security') {
   activeTab.value = tab
   if (tab === 'llm' && llmItems.value.length === 0) loadLlmConfigs()
-  if (tab === 'token' && !tokenStats.value) loadTokenStats()
+  if (tab === 'token') {
+    if (!tokenStats.value) loadTokenStats()
+    loadQuotaStatus()
+  }
   if (tab === 'prompt' && promptItems.value.length === 0) loadPromptTemplates()
   if (tab === 'security' && securitySettings.value.length === 0) loadSecuritySettings()
 }
@@ -1154,6 +1265,7 @@ void promptNameRef
                   <th class="px-4 py-3 text-left text-neutral-500 font-medium">API Key</th>
                   <th class="px-4 py-3 text-center text-neutral-500 font-medium">Temperature</th>
                   <th class="px-4 py-3 text-center text-neutral-500 font-medium">Max Tokens</th>
+                  <th class="px-4 py-3 text-center text-neutral-500 font-medium">每日限额</th>
                   <th class="px-4 py-3 text-center text-neutral-500 font-medium">当前使用</th>
                   <th class="px-4 py-3 text-center text-neutral-500 font-medium">角色</th>
                   <th class="px-4 py-3 text-center text-neutral-500 font-medium">链路状态</th>
@@ -1191,6 +1303,37 @@ void promptNameRef
                   <td class="px-4 py-3 text-neutral-400 font-mono text-xs">{{ item.api_key_masked }}</td>
                   <td class="px-4 py-3 text-center tabular-nums">{{ item.temperature }}</td>
                   <td class="px-4 py-3 text-center tabular-nums">{{ item.max_tokens.toLocaleString() }}</td>
+                  <!-- 每日限额列 -->
+                  <td class="px-4 py-3 text-center">
+                    <template v-if="!item.daily_token_quota || item.daily_token_quota <= 0">
+                      <span class="text-neutral-400 text-xs">不限制</span>
+                    </template>
+                    <template v-else-if="getQuotaForConfig(item.id)">
+                      <div class="inline-flex flex-col items-center gap-1">
+                        <span class="text-xs tabular-nums text-neutral-600">
+                          {{ formatQuotaNumber(getQuotaForConfig(item.id).used) }}/{{ formatQuotaNumber(getQuotaForConfig(item.id).limit) }}
+                        </span>
+                        <div class="relative w-20 h-1 rounded-full bg-neutral-100 overflow-hidden">
+                          <div
+                            class="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
+                            :class="quotaBarColor(getQuotaForConfig(item.id))"
+                            :style="{ width: Math.min(100, quotaPercent(getQuotaForConfig(item.id))) + '%' }"
+                          />
+                        </div>
+                        <template v-if="quotaPercent(getQuotaForConfig(item.id)) >= 95">
+                          <span class="inline-flex items-center gap-0.5 text-[10px] text-red-500 font-medium">
+                            <AlertTriangle :size="10" />
+                            {{ quotaPercent(getQuotaForConfig(item.id)) >= 100 ? '已耗尽' : '即将耗尽' }}
+                          </span>
+                        </template>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <span class="text-xs tabular-nums text-neutral-500">
+                        {{ formatQuotaNumber(item.daily_token_quota) }}/天
+                      </span>
+                    </template>
+                  </td>
                   <td class="px-4 py-3 text-center">
                     <template v-if="item.role === 'standalone' || !item.role">
                       <button
@@ -1265,7 +1408,7 @@ void promptNameRef
                   </td>
                 </tr>
                 <tr v-if="llmItems.length === 0">
-                  <td colspan="11" class="px-4 py-16 text-center">
+                  <td colspan="12" class="px-4 py-16 text-center">
                     <div class="flex flex-col items-center gap-2 text-neutral-400">
                       <Inbox :size="36" />
                       <span>暂无模型配置</span>
@@ -1346,7 +1489,49 @@ void promptNameRef
           </div>
         </div>
 
-        <!-- 图表区域 -->
+        <!-- 限额使用概览 - 紧凑满宽行 -->
+        <div
+          v-if="hasQuotaLimits"
+          class="gradient-card px-5 py-3 relative overflow-hidden mb-6"
+          style="animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) 240ms both"
+        >
+          <div class="flex items-center gap-2 mb-2.5">
+            <Gauge :size="14" class="text-indigo-500" />
+            <h3 class="text-sm font-semibold text-neutral-700">限额使用概览</h3>
+            <span
+              class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border"
+              :class="overallQuotaStatus.color"
+            >{{ overallQuotaStatus.text }}</span>
+          </div>
+          <div class="space-y-2">
+            <div
+              v-for="qs in quotaStatusList.filter(q => q.limit > 0)"
+              :key="qs.config_id"
+              class="flex items-center gap-4"
+            >
+              <div class="flex items-center gap-1.5 min-w-0 shrink-0" style="width: 160px">
+                <span class="text-[13px] font-medium text-neutral-800 truncate">{{ qs.config_name }}</span>
+                <span v-if="qs.is_chain" class="shrink-0 text-[9px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-500 font-medium">链路</span>
+              </div>
+              <span class="text-[11px] text-neutral-400 truncate shrink-0" style="width: 120px">{{ qs.model }}</span>
+              <div class="flex-1 h-[5px] rounded-full bg-neutral-100 overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :class="quotaBarColor(qs)"
+                  :style="{ width: Math.min(100, quotaPercent(qs)) + '%' }"
+                />
+              </div>
+              <span class="text-[12px] font-bold tabular-nums shrink-0 w-10 text-right" :class="percentTextColor(qs)">
+                {{ quotaPercent(qs).toFixed(0) }}%
+              </span>
+              <span class="text-[11px] text-neutral-400 tabular-nums shrink-0 w-24 text-right">
+                {{ formatQuotaNumber(qs.used) }} / {{ formatQuotaNumber(qs.limit) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图表区域 - 始终 2 列 -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- 趋势折线图 -->
           <div
@@ -1833,6 +2018,38 @@ void promptNameRef
                 <input v-model.number="llmForm.timeout" type="number" min="1" class="input-macos" />
               </div>
             </div>
+            <!-- 每日 Token 限额 -->
+            <div class="ef-field">
+              <label class="ef-label">每日 Token 限额</label>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model.number="llmForm.daily_token_quota"
+                  type="number"
+                  min="0"
+                  class="input-macos flex-1 tabular-nums"
+                  placeholder="0 = 不限制"
+                />
+                <span class="inline-block px-2.5 py-1.5 rounded-lg text-xs font-medium bg-neutral-100 text-neutral-600 whitespace-nowrap">
+                  tokens/天
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                <button
+                  v-for="preset in quotaPresets"
+                  :key="preset.value"
+                  type="button"
+                  class="quota-preset-btn"
+                  :class="{ 'quota-preset-btn--active': llmForm.daily_token_quota === preset.value }"
+                  @click="llmForm.daily_token_quota = preset.value"
+                >
+                  {{ preset.label }}
+                </button>
+              </div>
+              <p class="text-[11px] text-neutral-400 mt-1.5 leading-relaxed">
+                <Info :size="11" class="inline -mt-px" />
+                设为 0 表示不限制。限额按 UTC+8 每日 00:00 重置。链路模式下主备共享限额。
+              </p>
+            </div>
             <div class="ef-field">
               <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -2142,6 +2359,42 @@ void promptNameRef
                 </div>
                 <div class="text-xs text-neutral-500 mt-1">
                   {{ chainData.primary_config?.model }} · temp={{ chainData.primary_config?.temperature }}
+                </div>
+              </div>
+
+              <!-- 链路限额概览卡片 -->
+              <div v-if="chainData.quota_info && chainData.quota_info.limit > 0" class="chain-quota-card">
+                <div class="flex items-center gap-2 mb-3">
+                  <Gauge :size="15" class="text-indigo-500" />
+                  <span class="text-sm font-semibold text-neutral-700">链路限额概览</span>
+                  <span class="text-[10px] text-neutral-400 ml-auto">主备模型共享此限额</span>
+                </div>
+                <div class="grid grid-cols-3 gap-3 mb-3">
+                  <div class="text-center">
+                    <div class="text-[11px] text-neutral-400 mb-0.5">每日限额</div>
+                    <div class="text-sm font-semibold text-neutral-800 tabular-nums">{{ formatQuotaNumber(chainData.quota_info.limit) }}</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-[11px] text-neutral-400 mb-0.5">今日已用</div>
+                    <div class="text-sm font-semibold text-neutral-800 tabular-nums">{{ formatQuotaNumber(chainData.quota_info.used) }}</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-[11px] text-neutral-400 mb-0.5">剩余额度</div>
+                    <div class="text-sm font-semibold tabular-nums" :class="chainData.quota_info.remaining <= 0 ? 'text-red-500' : 'text-emerald-600'">
+                      {{ formatQuotaNumber(chainData.quota_info.remaining) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
+                  <div
+                    class="h-full rounded-full transition-all duration-300"
+                    :class="
+                      (chainData.quota_info.used / chainData.quota_info.limit) >= 0.95 ? 'bg-red-500' :
+                      (chainData.quota_info.used / chainData.quota_info.limit) >= 0.8 ? 'bg-amber-500' :
+                      'bg-emerald-500'
+                    "
+                    :style="{ width: Math.min(100, (chainData.quota_info.used / chainData.quota_info.limit) * 100) + '%' }"
+                  />
                 </div>
               </div>
 
@@ -3041,5 +3294,43 @@ void promptNameRef
 
 .btn-danger-ghost:hover {
   background: rgba(239, 68, 68, 0.06);
+}
+
+/* ── 限额快捷按钮 ── */
+.quota-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-neutral-500);
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  white-space: nowrap;
+}
+
+.quota-preset-btn:hover {
+  border-color: var(--color-primary-300);
+  color: var(--color-primary-600);
+  background: var(--color-primary-50);
+}
+
+.quota-preset-btn--active {
+  border-color: var(--color-primary-400);
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+/* ── 链路限额概览卡片 ── */
+.chain-quota-card {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: 10px;
 }
 </style>

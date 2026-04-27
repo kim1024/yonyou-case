@@ -11,6 +11,7 @@ from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
 from app.dependencies import get_current_user
 from app.services.llm_runtime import deactivate_all_configs, normalize_runtime_state
+from app.services.token_quota_service import get_effective_quota, get_primary_config
 
 router = APIRouter(prefix="/api/admin/llm", tags=["llm-configs"])
 
@@ -35,6 +36,7 @@ class LLMConfigCreate(BaseModel):
     max_tokens: int = Field(default=2000, ge=1, le=16384)
     timeout: int = 60
     is_active: bool = False
+    daily_token_quota: int = Field(default=0, ge=0, description="每日 token 限额，0=不限制")
 
 
 class LLMConfigUpdate(BaseModel):
@@ -46,6 +48,7 @@ class LLMConfigUpdate(BaseModel):
     max_tokens: Optional[int] = Field(default=None, ge=1, le=16384)
     timeout: Optional[int] = None
     is_active: Optional[bool] = None
+    daily_token_quota: Optional[int] = Field(default=None, ge=0, description="每日 token 限额，0=不限制")
 
 
 class ModelStats(BaseModel):
@@ -109,6 +112,7 @@ def list_configs(
                 "role": c.role,
                 "fallback_order": c.fallback_order,
                 "fallback_group_id": c.fallback_group_id,
+                "daily_token_quota": c.daily_token_quota,
                 "created_at": utc_isoformat(c.created_at),
                 "updated_at": utc_isoformat(c.updated_at),
             }
@@ -343,6 +347,9 @@ def get_token_stats(
             "calls": int(row.calls) if row else 0,
         })
 
+    # 限额状态：收集所有有限额的模型/链路
+    quota_status = _collect_quota_status(db)
+
     return {
         "total_tokens": total_tokens,
         "total_calls": total_calls,
@@ -351,7 +358,60 @@ def get_token_stats(
         "avg_tokens_per_call": avg_tokens,
         "by_model": by_model,
         "daily_trend": daily_trend,
+        "quota_status": quota_status,
     }
+
+
+# ─── 限额状态辅助函数 ──────────────────────────────────────────────────────────
+
+
+def _collect_quota_status(db: Session) -> list:
+    """收集所有有限额的模型/链路的限额状态，去重（链路只返回主模型）。"""
+    all_configs = db.query(LLMConfig).filter(LLMConfig.daily_token_quota > 0).all()
+    seen_groups: set[str] = set()
+    result = []
+    for c in all_configs:
+        if c.fallback_group_id:
+            if c.fallback_group_id in seen_groups:
+                continue
+            seen_groups.add(c.fallback_group_id)
+            # 取主模型的限额信息
+            primary = get_primary_config(db, c.fallback_group_id)
+            if not primary:
+                continue
+            quota = get_effective_quota(db, primary.id)
+            result.append({
+                "config_id": primary.id,
+                "config_name": primary.name,
+                "model": primary.model,
+                "is_chain": True,
+                "fallback_group_id": c.fallback_group_id,
+                "limit": quota["limit"],
+                "used": quota["used"],
+                "remaining": quota["remaining"],
+            })
+        else:
+            quota = get_effective_quota(db, c.id)
+            result.append({
+                "config_id": c.id,
+                "config_name": c.name,
+                "model": c.model,
+                "is_chain": False,
+                "fallback_group_id": None,
+                "limit": quota["limit"],
+                "used": quota["used"],
+                "remaining": quota["remaining"],
+            })
+    return result
+
+
+@router.get("/quota-status")
+def get_quota_status(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """返回所有限额状态（每个有限额的模型/链路）。"""
+    return {"quota_status": _collect_quota_status(db)}
 
 
 # ─── 模型列表代理 ──────────────────────────────────────────────────────────────

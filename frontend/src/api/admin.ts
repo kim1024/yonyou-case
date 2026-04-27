@@ -150,6 +150,9 @@ export const adminApi = {
   getTokenStats(days: number = 30) {
     return http.get('/api/admin/llm/token-stats', { params: { days } })
   },
+  getQuotaStatus() {
+    return http.get('/api/admin/llm/quota-status')
+  },
   fetchModels(apiBaseUrl: string, apiKey: string) {
     return http.post('/api/admin/llm/models', { api_base_url: apiBaseUrl, api_key: apiKey })
   },

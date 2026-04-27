@@ -20,5 +20,6 @@ class LLMConfig(Base):
     role = Column(String(20), default="standalone", nullable=False)  # "primary" | "fallback" | "standalone"
     fallback_order = Column(Integer, default=0, nullable=False)      # 0=primary/standalone, 1..N for fallbacks
     fallback_group_id = Column(String(50), nullable=True)            # UUID-like string grouping a chain; NULL=standalone
+    daily_token_quota = Column(Integer, default=0, nullable=False)   # 每日 token 限额，0=不限制
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
