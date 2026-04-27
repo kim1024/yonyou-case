@@ -70,7 +70,7 @@ const router = createRouter({
         },
         {
           path: '',
-          redirect: '/admin/enterprises',
+          redirect: '/admin/analytics',
         },
       ],
     },
@@ -111,7 +111,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.name === 'login' && token && isTokenValid(token)) {
-    next({ name: 'enterprises' })
+    next({ name: 'analytics' })
   } else {
     next()
   }
