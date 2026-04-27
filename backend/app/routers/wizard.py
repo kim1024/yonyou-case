@@ -392,6 +392,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
     chain_group_id = None
     chain_primary_config_id = None  # 主模型 config_id，用于 token 限额统计
     chain_timeout_seconds = None
+    chain_failure_threshold = 1
     chain_in_cooling = False
     max_retries = 1  # default: no chain retry
 
@@ -407,6 +408,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
         if chain_setting:
             chain_timeout_seconds = chain_setting.timeout_seconds
             chain_primary_config_id = chain_setting.primary_llm_config_id
+            chain_failure_threshold = max(1, chain_setting.failure_threshold or 1)
         chain_config = chain_manager.get_active_config(db, chain_group_id)
         if chain_config:
             active_config = chain_config
@@ -421,7 +423,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
             chain_size = db.query(LLMConfig).filter(
                 LLMConfig.fallback_group_id == chain_group_id
             ).count()
-            max_retries = chain_size
+            max_retries = max(1, chain_size * chain_failure_threshold)
         else:
             chain_in_cooling = True
 
@@ -444,8 +446,10 @@ def generate(request: dict, db: Session = Depends(get_db)):
         if not use_chain or not chain_group_id or llm_config_id is None:
             return False
         previous_config_id = llm_config_id
-        switched = chain_manager.record_failure(db, chain_group_id, is_timeout=is_timeout)
-        if not switched:
+        action = chain_manager.record_failure(db, chain_group_id, is_timeout=is_timeout)
+        if action == "retry":
+            return True
+        if action != "switched":
             return False
         next_config = chain_manager.get_active_config(db, chain_group_id)
         if not next_config or next_config.id == previous_config_id or next_config.id in attempted_config_ids:

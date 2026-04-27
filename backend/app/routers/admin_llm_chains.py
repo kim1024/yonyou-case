@@ -68,7 +68,28 @@ class ReorderFallbacks(BaseModel):
 # ─── Helpers ──────────────────────────────────────────────────────────────
 
 
-def _config_dict(c: LLMConfig) -> dict:
+def _build_chain_runtime(db: Session | None, group_id: str | None) -> dict | None:
+    if db is None or not group_id:
+        return None
+
+    from app.services.llm_chain_manager import get_chain_manager
+
+    return get_chain_manager().get_chain_status(db, group_id)
+
+
+def _chain_runtime_status_for_config(c: LLMConfig, runtime: dict | None) -> str | None:
+    if not c.fallback_group_id:
+        return None
+    if not runtime or not runtime.get("is_enabled"):
+        return "inactive"
+    if runtime.get("status") == "cooling":
+        return "cooling"
+    if runtime.get("active_config_id") == c.id:
+        return "running"
+    return "standby"
+
+
+def _config_dict(c: LLMConfig, runtime: dict | None = None) -> dict:
     """Serialize an LLMConfig with masked API key."""
     return {
         "id": c.id,
@@ -84,6 +105,9 @@ def _config_dict(c: LLMConfig) -> dict:
         "fallback_order": c.fallback_order,
         "fallback_group_id": c.fallback_group_id,
         "daily_token_quota": c.daily_token_quota,
+        "is_current_runtime": bool(runtime and runtime.get("active_config_id") == c.id),
+        "is_chain_enabled": bool(runtime and runtime.get("is_enabled")),
+        "chain_runtime_status": _chain_runtime_status_for_config(c, runtime),
     }
 
 
@@ -98,12 +122,13 @@ def _chain_dict(setting: ModelFallbackSetting, primary: LLMConfig, fallbacks: Li
             "used": quota["used"],
             "remaining": quota["remaining"],
         }
+    runtime = _build_chain_runtime(db, primary.fallback_group_id)
     return {
         "id": setting.id,
         "primary_config_id": primary.id,
-        "primary_config": _config_dict(primary),
+        "primary_config": _config_dict(primary, runtime),
         "fallbacks": [
-            {"config_id": f.id, "order": f.fallback_order, "config": _config_dict(f)}
+            {"config_id": f.id, "order": f.fallback_order, "config": _config_dict(f, runtime)}
             for f in sorted(fallbacks, key=lambda x: x.fallback_order)
         ],
         "failure_threshold": setting.failure_threshold,
@@ -113,6 +138,7 @@ def _chain_dict(setting: ModelFallbackSetting, primary: LLMConfig, fallbacks: Li
         "created_at": utc_isoformat(setting.created_at),
         "updated_at": utc_isoformat(setting.updated_at),
         "quota_info": quota_info,
+        "runtime": runtime,
     }
 
 
@@ -176,7 +202,7 @@ def get_chain_status(
 
     from app.services.llm_chain_manager import get_chain_manager
 
-    status = get_chain_manager().get_chain_status(primary.fallback_group_id)
+    status = get_chain_manager().get_chain_status(db, primary.fallback_group_id)
     return status
 
 

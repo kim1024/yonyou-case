@@ -256,6 +256,9 @@ export interface LlmConfig {
   role?: string
   fallback_order?: number
   fallback_group_id?: string | null
+  is_current_runtime?: boolean
+  is_chain_enabled?: boolean
+  chain_runtime_status?: 'running' | 'standby' | 'cooling' | 'inactive' | null
 }
 
 export interface LlmConfigCreate {
@@ -303,6 +306,14 @@ export interface ChainData {
     limit: number
     used: number
     remaining: number
+  }
+  runtime?: {
+    active_config_id: number | null
+    failure_count: number
+    timeout_count: number
+    status: 'idle' | 'normal' | 'degraded' | 'cooling'
+    next_available_at: number | null
+    is_enabled: boolean
   }
 }
 

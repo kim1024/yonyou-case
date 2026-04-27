@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
 from app.dependencies import get_current_user
-from app.services.llm_runtime import deactivate_all_configs, normalize_runtime_state
+from app.services.llm_runtime import deactivate_all_configs, normalize_runtime_state, resolve_runtime_config
 from app.services.token_quota_service import get_effective_quota, get_primary_config
 
 router = APIRouter(prefix="/api/admin/llm", tags=["llm-configs"])
@@ -78,6 +78,29 @@ class TokenStatsResponse(BaseModel):
     daily_trend: List[DailyTrend]
 
 
+def _build_chain_runtime_map(db: Session, configs: List[LLMConfig]) -> dict[str, dict]:
+    group_ids = sorted({c.fallback_group_id for c in configs if c.fallback_group_id})
+    if not group_ids:
+        return {}
+
+    from app.services.llm_chain_manager import get_chain_manager
+
+    manager = get_chain_manager()
+    return {group_id: manager.get_chain_status(db, group_id) for group_id in group_ids}
+
+
+def _chain_runtime_status_for_config(config: LLMConfig, chain_runtime: dict | None) -> str | None:
+    if not config.fallback_group_id:
+        return None
+    if not chain_runtime or not chain_runtime.get("is_enabled"):
+        return "inactive"
+    if chain_runtime.get("status") == "cooling":
+        return "cooling"
+    if chain_runtime.get("active_config_id") == config.id:
+        return "running"
+    return "standby"
+
+
 # ─── LLM 配置 CRUD ─────────────────────────────────────────────────────────────
 
 @router.get("/configs")
@@ -97,6 +120,10 @@ def list_configs(
         .limit(page_size)
         .all()
     )
+    chain_runtime_map = _build_chain_runtime_map(db, items)
+    runtime_config = resolve_runtime_config(db)
+    runtime_config_id = runtime_config.id if runtime_config else None
+
     return {
         "items": [
             {
@@ -113,6 +140,15 @@ def list_configs(
                 "fallback_order": c.fallback_order,
                 "fallback_group_id": c.fallback_group_id,
                 "daily_token_quota": c.daily_token_quota,
+                "is_current_runtime": c.id == runtime_config_id,
+                "is_chain_enabled": bool(
+                    c.fallback_group_id
+                    and chain_runtime_map.get(c.fallback_group_id, {}).get("is_enabled")
+                ),
+                "chain_runtime_status": _chain_runtime_status_for_config(
+                    c,
+                    chain_runtime_map.get(c.fallback_group_id) if c.fallback_group_id else None,
+                ),
                 "created_at": utc_isoformat(c.created_at),
                 "updated_at": utc_isoformat(c.updated_at),
             }

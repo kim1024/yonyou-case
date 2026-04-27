@@ -50,7 +50,15 @@ def resolve_runtime_config(db: Session) -> LLMConfig | None:
     Chain members take precedence over standalone configs so historical
     dirty data does not break the runtime routing rules.
     """
-    return get_enabled_chain_member(db) or get_active_standalone_config(db)
+    enabled_chain_member = get_enabled_chain_member(db)
+    if enabled_chain_member and enabled_chain_member.fallback_group_id:
+        from app.services.llm_chain_manager import get_chain_manager
+
+        runtime_config = get_chain_manager().get_active_config(db, enabled_chain_member.fallback_group_id)
+        if runtime_config:
+            return runtime_config
+
+    return get_active_standalone_config(db)
 
 
 def normalize_runtime_state(db: Session) -> LLMConfig | None:
@@ -61,7 +69,22 @@ def normalize_runtime_state(db: Session) -> LLMConfig | None:
     2. An active standalone config
     3. Otherwise no active config
     """
-    winner = resolve_runtime_config(db)
+    winner = None
+    enabled_chain_member = get_enabled_chain_member(db)
+    if enabled_chain_member and enabled_chain_member.fallback_group_id:
+        from app.services.llm_chain_manager import get_chain_manager
+
+        chain_status = get_chain_manager().get_chain_status(db, enabled_chain_member.fallback_group_id)
+        active_config_id = chain_status.get("active_config_id")
+        if active_config_id is not None:
+            winner = db.query(LLMConfig).filter(LLMConfig.id == active_config_id).first()
+        else:
+            # 冷却期仍保留当前链路的启用标记，避免管理端把链路误判为已失效。
+            winner = get_enabled_chain_member(db)
+
+    if not winner:
+        winner = get_active_standalone_config(db)
+
     active_count = db.query(LLMConfig).filter(LLMConfig.is_active == True).count()  # noqa: E712
 
     if not winner:

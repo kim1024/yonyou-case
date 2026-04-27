@@ -4,7 +4,7 @@ import {
   Plus, Pencil, Trash2, Check, ChevronLeft, ChevronRight,
   Inbox, Cpu, ArrowLeft, RotateCcw, Sparkles, X, Search,
   Layers, Activity, Zap, Hash, Copy, Info, Maximize2, Minimize2, Eye,
-  Shield, Loader2, Link2, AlertTriangle, Gauge, Infinity as InfinityIcon,
+  Shield, Loader2, Link2, AlertTriangle, Gauge,
 } from 'lucide-vue-next'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import ModelConsumptionChart from '@/components/admin/ModelConsumptionChart.vue'
@@ -214,6 +214,116 @@ async function loadLlmConfigs() {
   }
 }
 
+function isRuntimeActive(item: LlmConfig): boolean {
+  const runtime = chainRuntimeMap.value.get(item.id)
+  if (runtime) return runtime.isRuntimeActive
+  return !!item.is_current_runtime
+}
+
+function isChainAssigned(item: LlmConfig): boolean {
+  return chainRuntimeMap.value.has(item.id) || !!item.fallback_group_id || (item.role != null && item.role !== 'standalone')
+}
+
+function resolvedRole(item: LlmConfig): 'primary' | 'fallback' | 'standalone' {
+  if (item.role === 'primary' || item.role === 'fallback') return item.role
+  for (const chain of chains.value) {
+    if (chain.primary_config_id === item.id) return 'primary'
+    if (chain.fallbacks.some(f => f.config_id === item.id)) return 'fallback'
+  }
+  return 'standalone'
+}
+
+function resolvedFallbackOrder(item: LlmConfig): number {
+  if (item.fallback_order && item.fallback_order > 0) return item.fallback_order
+  for (const chain of chains.value) {
+    const fallback = chain.fallbacks.find(f => f.config_id === item.id)
+    if (fallback) return fallback.order
+  }
+  return 0
+}
+
+function isChainEnabled(item: LlmConfig): boolean {
+  const runtime = chainRuntimeMap.value.get(item.id)
+  if (runtime) return runtime.isEnabled
+  return !!item.is_chain_enabled
+}
+
+function isChainManagedEditTarget(item: LlmConfig | null): boolean {
+  return !!item && isChainAssigned(item)
+}
+
+function chainUsageText(item: LlmConfig): string {
+  if (isRuntimeActive(item)) return '当前使用'
+  if (isChainEnabled(item)) return '链路已启用'
+  return '链路未启用'
+}
+
+function chainStatusMeta(item: LlmConfig): { dot: string; text: string; tone: string } {
+  const runtime = chainRuntimeMap.value.get(item.id)
+  const status = runtime?.status ?? item.chain_runtime_status
+  switch (status) {
+    case 'running':
+      return { dot: 'bg-emerald-500', text: '运行中', tone: 'text-emerald-600' }
+    case 'standby':
+      return { dot: 'bg-sky-400', text: '待机', tone: 'text-sky-600' }
+    case 'cooling':
+      return { dot: 'bg-amber-500', text: '冷却中', tone: 'text-amber-600' }
+    case 'inactive':
+      return { dot: 'bg-neutral-300', text: '未启用', tone: 'text-neutral-500' }
+    default:
+      return { dot: 'bg-neutral-300', text: '—', tone: 'text-neutral-400' }
+  }
+}
+
+function getEffectiveChainRuntime(chain: ChainData | null): {
+  active_config_id: number | null
+  status: 'idle' | 'normal' | 'degraded' | 'cooling'
+  is_enabled: boolean
+} | null {
+  if (!chain) return null
+  if (chain.runtime) return chain.runtime
+
+  const primary = chain.primary_config
+  const fallbackConfigs = chain.fallbacks.map(f => f.config)
+  const activeMember =
+    [primary, ...fallbackConfigs].find(config => config?.is_current_runtime || config?.is_active) ?? primary
+
+  return {
+    active_config_id: activeMember?.id ?? chain.primary_config_id,
+    status: activeMember && activeMember.id !== chain.primary_config_id ? 'degraded' : 'normal',
+    is_enabled: true,
+  }
+}
+
+function chainRuntimeSummary(chain: ChainData | null): string {
+  const runtime = getEffectiveChainRuntime(chain)
+  if (!chain || !runtime) return '未读取链路运行状态'
+  if (!runtime.is_enabled) return '当前未启用'
+  if (runtime.status === 'cooling') return '链路冷却中'
+
+  const servingConfig =
+    chain.primary_config.id === runtime.active_config_id
+      ? chain.primary_config
+      : chain.fallbacks.find(f => f.config_id === runtime.active_config_id)?.config
+
+  if (!servingConfig) return '运行状态同步中'
+  if (runtime.status === 'degraded') return `已切换至 ${servingConfig.name}`
+  return `当前使用 ${servingConfig.name}`
+}
+
+function chainRuntimeBadgeClass(chain: ChainData | null): string {
+  switch (getEffectiveChainRuntime(chain)?.status) {
+    case 'degraded':
+      return 'bg-amber-50 text-amber-600'
+    case 'cooling':
+      return 'bg-red-50 text-red-600'
+    case 'normal':
+      return 'bg-emerald-50 text-emerald-600'
+    default:
+      return 'bg-neutral-100 text-neutral-500'
+  }
+}
+
 function handleAddLlm() {
   editLlmItem.value = null
   llmErrors.value = {}
@@ -238,7 +348,7 @@ function handleEditLlm(item: LlmConfig) {
     temperature: item.temperature,
     max_tokens: item.max_tokens,
     timeout: item.timeout,
-    is_active: item.is_active,
+    is_active: item.is_current_runtime ?? item.is_active,
     daily_token_quota: item.daily_token_quota ?? 0,
   }
   modelList.value = []
@@ -268,8 +378,10 @@ async function handleSaveLlm() {
         temperature: llmForm.value.temperature,
         max_tokens: llmForm.value.max_tokens,
         timeout: llmForm.value.timeout,
-        is_active: llmForm.value.is_active,
         daily_token_quota: llmForm.value.daily_token_quota ?? 0,
+      }
+      if (!isChainManagedEditTarget(editLlmItem.value)) {
+        payload.is_active = llmForm.value.is_active
       }
       if (llmForm.value.api_key.trim()) payload.api_key = llmForm.value.api_key
       await adminApi.updateLlmConfig(editLlmItem.value.id, payload)
@@ -299,11 +411,11 @@ async function handleSaveLlm() {
 }
 
 async function handleDeleteLlm(item: LlmConfig) {
-  if (item.role === 'primary') {
+  if (resolvedRole(item) === 'primary') {
     if (!confirm(`「${item.name}」是链路主模型，删除后该链路将被解散，所有备用模型将恢复为独立配置。确定删除？`)) return
-  } else if (item.role === 'fallback') {
+  } else if (resolvedRole(item) === 'fallback') {
     if (!confirm(`「${item.name}」是链路备用模型，删除后将从链路中移除。确定删除？`)) return
-  } else if (item.is_active) {
+  } else if (isRuntimeActive(item)) {
     if (!confirm('该配置当前正在使用中，确定要删除吗？删除后需要激活其他配置。')) return
   } else {
     if (!confirm('确定删除该配置？此操作不可恢复。')) return
@@ -318,7 +430,7 @@ async function handleDeleteLlm(item: LlmConfig) {
 }
 
 async function handleActivateLlm(item: LlmConfig) {
-  if (item.is_active) return
+  if (isRuntimeActive(item)) return
   try {
     await adminApi.activateLlmConfig(item.id)
     loadLlmConfigs()
@@ -353,7 +465,7 @@ const chainSaving = ref(false)
 const addFallbackId = ref<number | null>(null)
 
 const availableForChain = computed(() =>
-  llmItems.value.filter(c => c.role === 'standalone' || !c.role)
+  llmItems.value.filter(c => resolvedRole(c) === 'standalone')
 )
 
 const availableStandaloneOptions = computed(() =>
@@ -370,6 +482,44 @@ const existingChainOptions = computed(() =>
   }))
 )
 
+const chainRuntimeMap = computed(() => {
+  const map = new Map<number, { isAssigned: boolean; isEnabled: boolean; isRuntimeActive: boolean; status: 'running' | 'standby' | 'cooling' | 'inactive' }>()
+
+  for (const chain of chains.value) {
+    const runtime = getEffectiveChainRuntime(chain)
+    const isEnabled = !!runtime?.is_enabled
+    const activeId = runtime?.active_config_id ?? chain.primary_config_id
+    const overallStatus = runtime?.status ?? 'normal'
+
+    const memberIds = [
+      chain.primary_config_id,
+      ...chain.fallbacks.map(f => f.config_id),
+    ]
+
+    for (const memberId of memberIds) {
+      let status: 'running' | 'standby' | 'cooling' | 'inactive'
+      if (!isEnabled) {
+        status = 'inactive'
+      } else if (overallStatus === 'cooling') {
+        status = 'cooling'
+      } else if (activeId === memberId) {
+        status = 'running'
+      } else {
+        status = 'standby'
+      }
+
+      map.set(memberId, {
+        isAssigned: true,
+        isEnabled,
+        isRuntimeActive: activeId === memberId,
+        status,
+      })
+    }
+  }
+
+  return map
+})
+
 const availablePrimaryFallbackOptions = computed(() => {
   if (!chainSelectedConfigId.value) return []
   return availableForChain.value
@@ -384,7 +534,7 @@ const availableFallbackOptions = computed(() => {
     ...chainData.value.fallbacks.map(f => f.config_id),
   ])
   return llmItems.value
-    .filter(c => !chainConfigIds.has(c.id) && (c.role === 'standalone' || !c.role))
+    .filter(c => !chainConfigIds.has(c.id) && resolvedRole(c) === 'standalone')
     .map(c => ({ label: `${c.name} (${c.model})`, value: c.id }))
 })
 
@@ -405,7 +555,7 @@ async function openChainDrawer(config: LlmConfig) {
   initialFallbackId.value = null
   addFallbackId.value = null
 
-  if (config.role === 'standalone' || !config.role) {
+  if (!isChainAssigned(config)) {
     chainDrawerMode.value = 'unassigned'
     chainData.value = null
   } else {
@@ -599,6 +749,16 @@ function getQuotaForConfig(configId: number): QuotaStatus | undefined {
   return quotaStatusList.value.find(q => q.config_id === configId)
 }
 
+function quotaPercentForConfig(configId: number): number {
+  const quota = getQuotaForConfig(configId)
+  return quota ? quotaPercent(quota) : 0
+}
+
+function quotaBarColorForConfig(configId: number): string {
+  const quota = getQuotaForConfig(configId)
+  return quota ? quotaBarColor(quota) : 'bg-neutral-200'
+}
+
 /** 限额使用百分比 */
 function quotaPercent(q: QuotaStatus): number {
   if (!q.limit || q.limit <= 0) return 0
@@ -611,15 +771,6 @@ function quotaBarColor(q: QuotaStatus): string {
   if (pct >= 95) return 'bg-red-500'
   if (pct >= 80) return 'bg-amber-500'
   return 'bg-emerald-500'
-}
-
-/** 限额状态标签 */
-function quotaStatusLabel(q: QuotaStatus): { text: string; color: string } {
-  const pct = quotaPercent(q)
-  if (pct >= 100) return { text: '已耗尽', color: 'bg-red-50 text-red-600 border-red-200' }
-  if (pct >= 95) return { text: '即将耗尽', color: 'bg-red-50 text-red-500 border-red-200' }
-  if (pct >= 80) return { text: '告警', color: 'bg-amber-50 text-amber-600 border-amber-200' }
-  return { text: '正常', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' }
 }
 
 /** 格式化 token 数值为可读字符串 */
@@ -1279,14 +1430,14 @@ void promptNameRef
                   class="border-t border-neutral-100 transition-colors duration-100 llm-row"
                   :class="[
                     index % 2 === 1 ? 'bg-neutral-50/50' : '',
-                    item.is_active ? 'llm-row--active' : '',
+                    isRuntimeActive(item) ? 'llm-row--active' : '',
                   ]"
                 >
                   <td class="px-4 py-3 text-neutral-400">{{ (llmPage - 1) * llmPageSize + index + 1 }}</td>
                   <td class="px-4 py-3 font-medium text-neutral-800">
                     <div class="flex items-center gap-2">
                       <span>{{ item.name }}</span>
-                      <span v-if="item.is_active" class="active-badge">
+                      <span v-if="isRuntimeActive(item)" class="active-badge">
                         <Zap :size="10" :stroke-width="2.5" />
                         使用中
                       </span>
@@ -1311,19 +1462,19 @@ void promptNameRef
                     <template v-else-if="getQuotaForConfig(item.id)">
                       <div class="inline-flex flex-col items-center gap-1">
                         <span class="text-xs tabular-nums text-neutral-600">
-                          {{ formatQuotaNumber(getQuotaForConfig(item.id).used) }}/{{ formatQuotaNumber(getQuotaForConfig(item.id).limit) }}
+                          {{ formatQuotaNumber(getQuotaForConfig(item.id)?.used ?? 0) }}/{{ formatQuotaNumber(getQuotaForConfig(item.id)?.limit ?? 0) }}
                         </span>
                         <div class="relative w-20 h-1 rounded-full bg-neutral-100 overflow-hidden">
                           <div
                             class="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
-                            :class="quotaBarColor(getQuotaForConfig(item.id))"
-                            :style="{ width: Math.min(100, quotaPercent(getQuotaForConfig(item.id))) + '%' }"
+                            :class="quotaBarColorForConfig(item.id)"
+                            :style="{ width: Math.min(100, quotaPercentForConfig(item.id)) + '%' }"
                           />
                         </div>
-                        <template v-if="quotaPercent(getQuotaForConfig(item.id)) >= 95">
+                        <template v-if="quotaPercentForConfig(item.id) >= 95">
                           <span class="inline-flex items-center gap-0.5 text-[10px] text-red-500 font-medium">
                             <AlertTriangle :size="10" />
-                            {{ quotaPercent(getQuotaForConfig(item.id)) >= 100 ? '已耗尽' : '即将耗尽' }}
+                            {{ quotaPercentForConfig(item.id) >= 100 ? '已耗尽' : '即将耗尽' }}
                           </span>
                         </template>
                       </div>
@@ -1335,9 +1486,9 @@ void promptNameRef
                     </template>
                   </td>
                   <td class="px-4 py-3 text-center">
-                    <template v-if="item.role === 'standalone' || !item.role">
+                    <template v-if="!isChainAssigned(item)">
                       <button
-                        v-if="!item.is_active"
+                        v-if="!isRuntimeActive(item)"
                         class="btn-activate"
                         @click="handleActivateLlm(item)"
                       >
@@ -1350,22 +1501,28 @@ void promptNameRef
                       </span>
                     </template>
                     <template v-else>
-                      <span class="inline-flex items-center gap-1.5 text-xs text-neutral-500">
-                        <span class="inline-block w-2 h-2 rounded-full bg-blue-400" />
-                        链路中
+                      <span
+                        class="inline-flex items-center gap-1.5 text-xs"
+                        :class="isRuntimeActive(item) ? 'text-emerald-600' : (isChainEnabled(item) ? 'text-sky-600' : 'text-neutral-500')"
+                      >
+                        <span
+                          class="inline-block w-2 h-2 rounded-full"
+                          :class="isRuntimeActive(item) ? 'bg-emerald-500' : (isChainEnabled(item) ? 'bg-sky-400' : 'bg-neutral-300')"
+                        />
+                        {{ chainUsageText(item) }}
                       </span>
                     </template>
                   </td>
                   <!-- 角色列 -->
                   <td class="px-4 py-3 text-center">
                     <span
-                      v-if="item.role === 'primary'"
+                      v-if="resolvedRole(item) === 'primary'"
                       class="inline-block px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium"
                     >主模型</span>
                     <span
-                      v-else-if="item.role === 'fallback'"
+                      v-else-if="resolvedRole(item) === 'fallback'"
                       class="inline-block px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-xs font-medium"
-                    >备用→{{ item.fallback_order }}</span>
+                    >备用→{{ resolvedFallbackOrder(item) }}</span>
                     <span
                       v-else
                       class="inline-block px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 text-xs font-medium"
@@ -1373,17 +1530,17 @@ void promptNameRef
                   </td>
                   <!-- 链路状态列 -->
                   <td class="px-4 py-3 text-center">
-                    <template v-if="item.role === 'standalone' || !item.role">
+                    <template v-if="!isChainAssigned(item)">
                       <span class="text-neutral-400">—</span>
                     </template>
                     <template v-else>
                       <span class="inline-flex items-center gap-1.5 text-xs">
                         <span
                           class="inline-block w-2 h-2 rounded-full"
-                          :class="item.is_active ? 'bg-emerald-500' : 'bg-neutral-300'"
+                          :class="chainStatusMeta(item).dot"
                         />
-                        <span :class="item.is_active ? 'text-emerald-600' : 'text-neutral-500'">
-                          {{ item.is_active ? '运行中' : '待机' }}
+                        <span :class="chainStatusMeta(item).tone">
+                          {{ chainStatusMeta(item).text }}
                         </span>
                       </span>
                     </template>
@@ -2053,13 +2210,14 @@ void promptNameRef
             <div class="ef-field">
               <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
-                  v-model="llmForm.is_active"
+                  :checked="isChainManagedEditTarget(editLlmItem) ? true : llmForm.is_active"
                   type="checkbox"
-                  :disabled="!!editLlmItem && editLlmItem.role !== 'standalone'"
+                  :disabled="isChainManagedEditTarget(editLlmItem)"
                   class="w-4 h-4 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
+                  @change="!isChainManagedEditTarget(editLlmItem) && (llmForm.is_active = ($event.target as HTMLInputElement).checked)"
                 />
                 <span class="text-sm text-neutral-700">
-                  {{ editLlmItem && editLlmItem.role !== 'standalone' ? '链路成员通过主备链路自动切换' : '设为当前激活配置' }}
+                  {{ isChainManagedEditTarget(editLlmItem) ? '链路成员通过主备链路自动切换' : '设为当前激活配置' }}
                 </span>
               </label>
             </div>
@@ -2356,6 +2514,9 @@ void promptNameRef
                 <div class="flex items-center gap-2">
                   <span class="chain-star">★</span>
                   <span class="text-sm font-semibold text-neutral-800">主模型：{{ chainData.primary_config?.name }}</span>
+                  <span class="ml-auto px-2 py-0.5 rounded-full text-[11px] font-medium" :class="chainRuntimeBadgeClass(chainData)">
+                    {{ chainRuntimeSummary(chainData) }}
+                  </span>
                 </div>
                 <div class="text-xs text-neutral-500 mt-1">
                   {{ chainData.primary_config?.model }} · temp={{ chainData.primary_config?.temperature }}
@@ -2412,7 +2573,22 @@ void promptNameRef
               <div v-for="(fb, idx) in chainData.fallbacks" :key="fb.config_id" class="chain-fallback-row">
                 <span class="chain-fallback-order">{{ idx + 1 }}.</span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-medium text-neutral-800 truncate">{{ fb.config?.name }}</div>
+                  <div class="text-sm font-medium text-neutral-800 truncate flex items-center gap-2">
+                    <span class="truncate">{{ fb.config?.name }}</span>
+                    <span
+                      v-if="fb.config?.chain_runtime_status"
+                      class="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                      :class="fb.config.chain_runtime_status === 'running'
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : fb.config.chain_runtime_status === 'standby'
+                          ? 'bg-sky-50 text-sky-600'
+                          : fb.config.chain_runtime_status === 'cooling'
+                            ? 'bg-amber-50 text-amber-600'
+                            : 'bg-neutral-100 text-neutral-500'"
+                    >
+                      {{ chainStatusMeta(fb.config).text }}
+                    </span>
+                  </div>
                   <div class="text-xs text-neutral-400 truncate">{{ fb.config?.model }}</div>
                 </div>
                 <button
