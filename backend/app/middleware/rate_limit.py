@@ -1,5 +1,6 @@
 """速率限制中间件及配置。"""
 import asyncio
+import ipaddress
 import logging
 import time
 import threading
@@ -9,6 +10,27 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 _logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Trusted proxy networks — only forwarded headers from these peers are trusted
+# ---------------------------------------------------------------------------
+TRUSTED_PROXY_NETWORKS: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = [
+    ipaddress.ip_network("127.0.0.0/8"),       # loopback
+    ipaddress.ip_network("10.0.0.0/8"),         # private class A
+    ipaddress.ip_network("172.16.0.0/12"),      # private class B
+    ipaddress.ip_network("192.168.0.0/16"),     # private class C
+    ipaddress.ip_network("::1/128"),            # IPv6 loopback
+    ipaddress.ip_network("fc00::/7"),           # IPv6 unique local
+]
+
+
+def _is_trusted_proxy(ip_str: str) -> bool:
+    """Return True if *ip_str* belongs to any trusted proxy network."""
+    try:
+        addr = ipaddress.ip_address(ip_str)
+        return any(addr in net for net in TRUSTED_PROXY_NETWORKS)
+    except ValueError:
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -170,13 +192,28 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     # ---- IP 提取 ----
     @staticmethod
     def _get_client_ip(request: Request) -> str:
-        forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        if forwarded:
-            return forwarded
-        real_ip = request.headers.get("x-real-ip", "")
-        if real_ip:
-            return real_ip
-        return request.client.host if request.client else "unknown"
+        """Extract the real client IP.
+
+        *Always* use the TCP peer address (``request.client.host``) as the
+        authoritative source.  Only trust ``X-Forwarded-For`` / ``X-Real-IP``
+        when the direct peer is a known trusted proxy (private network range).
+        This prevents attackers from spoofing forwarded headers to bypass
+        IP-based rate limiting.
+        """
+        peer_ip = request.client.host if request.client else None
+        if peer_ip is None:
+            return "unknown"
+
+        # Only honour forwarded headers when the TCP peer is a trusted proxy
+        if _is_trusted_proxy(peer_ip):
+            forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+            if forwarded:
+                return forwarded
+            real_ip = request.headers.get("x-real-ip", "")
+            if real_ip:
+                return real_ip
+
+        return peer_ip
 
     # ---- 主调度 ----
     async def dispatch(self, request: Request, call_next):

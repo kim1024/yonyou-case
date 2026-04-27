@@ -1,0 +1,134 @@
+/* ══════════════════════════════════════════════════
+   Shared dialog/overlay styles for LLM admin tabs
+   Import this in any sub-component that uses modals
+   ══════════════════════════════════════════════════ */
+
+/* ── 弹窗覆盖层 ── */
+.ef-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: ef-fade-in 200ms ease-out forwards;
+}
+
+.ef-dialog {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  background: #FFFFFF;
+  border-radius: 14px;
+  box-shadow: var(--shadow-overlay);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ef-scale-in 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ef-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--color-neutral-200);
+  flex-shrink: 0;
+}
+
+.ef-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  line-height: 1;
+}
+
+.ef-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--color-neutral-400);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+
+.ef-close-btn:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+}
+
+.ef-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ef-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ef-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-neutral-700);
+  line-height: 1;
+}
+
+.ef-required {
+  color: var(--color-danger);
+  margin-left: 2px;
+  font-weight: 500;
+}
+
+.ef-input-error {
+  border-color: var(--color-danger) !important;
+  box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.12) !important;
+}
+
+.ef-error-text {
+  font-size: 12px;
+  color: var(--color-danger);
+  line-height: 1;
+}
+
+.ef-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-neutral-200);
+  flex-shrink: 0;
+}
+
+@keyframes ef-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes ef-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

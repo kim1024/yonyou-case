@@ -22,7 +22,7 @@ from app.routers import admin_prompts, admin_llm, admin_provinces
 from app.routers import admin_llm_chains
 from app.routers import admin_plans
 from app.routers import admin_themes
-from app.middleware.analytics_middleware import AnalyticsMiddleware
+from app.middleware.analytics_middleware import AnalyticsMiddleware, shutdown_log_worker
 from app.middleware.logging_middleware import LoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware, rate_limit_config
 from seed import seed_database
@@ -117,6 +117,11 @@ def startup():
         uvicorn_logger = logging.getLogger(logger_name)
         uvicorn_logger.handlers.clear()
         uvicorn_logger.propagate = True
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await shutdown_log_worker()
 
 
 @app.get("/api/health")
