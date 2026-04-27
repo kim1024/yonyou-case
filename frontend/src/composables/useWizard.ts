@@ -249,8 +249,8 @@ export function useWizard() {
     state.hour = hour
   }
 
-  // 生成课程方案
-  async function generate(): Promise<{ data: CoursePlan; source: string; llm_error?: string } | null> {
+  // 生成课程方案 — POST /api/generate returns 202 immediately (async pattern)
+  async function generate(): Promise<{ client_request_id: string } | null> {
     if (!canSubmit.value) return null
 
     const clientRequestId = crypto.randomUUID()
@@ -282,18 +282,17 @@ export function useWizard() {
         hour: state.hour!,
         client_request_id: clientRequestId,
       }, { signal: abortController.signal })
-      generationStage.value = 4
-      console.log('[generate] 成功, source:', res.data?.source)
-      // clearGeneration() is called by the caller after the stage-4 animation
-      return res.data
+      // 202 accepted — generation is running in the background, not done yet
+      console.log('[generate] 已接受, client_request_id:', res.data?.client_request_id)
+      return { client_request_id: res.data.client_request_id }
     } catch (e) {
       if ((e as Error).name === 'CanceledError' || (e as Error).name === 'AbortError') {
         // 请求被取消（用户点击重新开始），不报错
         return null
       }
       // Rate limit detection
-      if ((e as any).rateLimitInfo) {
-        handleRateLimit((e as any).rateLimitInfo)
+      if ((e as { rateLimitInfo?: unknown }).rateLimitInfo) {
+        handleRateLimit((e as { rateLimitInfo: { detail: string; message: string; retryAfter: number } }).rateLimitInfo)
         loading.generating = false
         clearGeneration()
         return null
@@ -309,7 +308,7 @@ export function useWizard() {
   }
 
   // 恢复进行中的生成
-  async function restoreGeneration(): Promise<{ status: 'pending' } | { data: CoursePlan; source: string; llm_error?: string } | null> {
+  async function restoreGeneration(): Promise<{ status: 'pending' } | { status: 'failed'; message?: string } | { data: CoursePlan; source: string; llm_error?: string } | null> {
     const requestId = localStorage.getItem(GEN_REQUEST_KEY)
     if (!requestId) return null
 
@@ -324,6 +323,11 @@ export function useWizard() {
         return { data: statusData.data, source: statusData.source, llm_error: statusData.llm_error }
       }
 
+      if (statusData.status === 'failed') {
+        clearGeneration()
+        return { status: 'failed', message: statusData.message }
+      }
+
       if (statusData.status === 'pending' || statusData.status === 'processing') {
         if (savedStartTime) {
           generationStartTime.value = parseInt(savedStartTime, 10)
@@ -335,7 +339,7 @@ export function useWizard() {
         return { status: 'pending' }
       }
 
-      // failed or unknown
+      // unknown status
       clearGeneration()
       return null
     } catch (e) {

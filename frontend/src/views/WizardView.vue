@@ -78,8 +78,9 @@ async function pollStatus() {
       }, 1500)
     } else if (statusData.status === 'failed' || statusData.status === 'expired') {
       stopTimer()
-      clearGeneration()
+      error.value = statusData.message || '生成失败，请重试'
       loading.generating = false
+      clearGeneration()
     }
     // pending → keep polling
   } catch {
@@ -114,6 +115,7 @@ function stopTimer() {
     clearInterval(timerInterval)
     timerInterval = null
   }
+  isRestorePolling = false
 }
 
 function handleBeforeUnload(e: BeforeUnloadEvent) {
@@ -162,42 +164,14 @@ async function handleSubmit() {
   console.log('[handleSubmit] 开始生成...')
   startTimer()
   const result = await generate()
-  stopTimer()
-  console.log('[handleSubmit] generate 返回:', result ? '成功' : '失败', 'stage:', generationStage.value)
+  console.log('[handleSubmit] generate 返回:', result ? '已接受 (202)' : '失败', 'stage:', generationStage.value)
   if (result) {
-    sessionStorage.setItem('resultContent', JSON.stringify(result.data))
-    sessionStorage.setItem('resultSource', result.source)
-    if (result.llm_error) {
-      sessionStorage.setItem('resultLlmError', result.llm_error)
-    } else {
-      sessionStorage.removeItem('resultLlmError')
-    }
-    sessionStorage.setItem('resultSelections', JSON.stringify({
-      major: state.major,
-      industry: state.industry,
-      enterprise: state.enterprise,
-      hour: state.hour,
-    }))
-    // 阶段4完成动画展示1.5秒后跳转
-    setTimeout(async () => {
-      console.log('[handleSubmit] 开始导航到结果页, source:', result.source)
-      try {
-        const navResult = await router.push({ name: 'result', query: { source: result.source } })
-        if (isNavigationFailure(navResult)) {
-          console.error('[handleSubmit] 导航被阻止:', navResult)
-          window.location.href = `/result?source=${encodeURIComponent(result.source)}`
-        } else {
-          console.log('[handleSubmit] 导航成功')
-        }
-      } catch (e) {
-        console.error('[handleSubmit] 导航异常:', e)
-        window.location.href = `/result?source=${encodeURIComponent(result.source)}`
-      } finally {
-        loading.generating = false
-        clearGeneration()
-      }
-    }, 1500)
+    // 202 accepted — keep timer running, start polling for completion
+    isRestorePolling = true
+    pollStatus()
   } else {
+    // Error or cancelled — stop timer, reset loading
+    stopTimer()
     loading.generating = false
   }
 }

@@ -1,5 +1,4 @@
 """速率限制中间件及配置。"""
-import asyncio
 import ipaddress
 import logging
 import time
@@ -44,7 +43,6 @@ class RateLimitConfig:
         "generate_max_requests": 10,
         "generate_window_seconds": 3600,
         "generate_cooldown_seconds": 30,
-        "max_concurrent": 3,
     }
 
     def __init__(self):
@@ -146,44 +144,17 @@ class SlidingWindowRateLimiter:
 
 
 # ---------------------------------------------------------------------------
-# 3. ConcurrentRequestLimiter — 全局并发控制
-# ---------------------------------------------------------------------------
-
-class ConcurrentRequestLimiter:
-    """异步全局并发请求限制器（基于 asyncio.Lock 计数）。"""
-
-    def __init__(self, max_concurrent: int = 3):
-        self._max = max_concurrent
-        self._active = 0
-        self._lock = asyncio.Lock()
-
-    async def try_acquire(self) -> bool:
-        async with self._lock:
-            if self._active >= self._max:
-                return False
-            self._active += 1
-            return True
-
-    async def release(self):
-        async with self._lock:
-            self._active = max(0, self._active - 1)
-
-
-# ---------------------------------------------------------------------------
-# 4. RateLimitMiddleware — Starlette 中间件
+# 3. RateLimitMiddleware — Starlette 中间件
 # ---------------------------------------------------------------------------
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """拦截 POST /api/generate，依次执行滑动窗口 → 冷却 → 并发检查。"""
+    """拦截 POST /api/generate，依次执行滑动窗口 → 冷却检查。"""
 
     TARGET_PATH = "/api/generate"
 
     def __init__(self, app):
         super().__init__(app)
         self._limiter = SlidingWindowRateLimiter()
-        self._concurrent = ConcurrentRequestLimiter(
-            max_concurrent=rate_limit_config.get("max_concurrent", 3)
-        )
         # 记录每个 IP 上次成功请求的时间，用于冷却检查
         self._last_request: dict[str, float] = {}
         self._cooldown_lock = threading.Lock()
@@ -225,11 +196,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         max_requests = rate_limit_config.get("generate_max_requests", 10)
         window = rate_limit_config.get("generate_window_seconds", 3600)
         cooldown = rate_limit_config.get("generate_cooldown_seconds", 30)
-
-        # 动态更新并发限制
-        new_max = rate_limit_config.get("max_concurrent", 3)
-        if new_max != self._concurrent._max:
-            self._concurrent._max = new_max
 
         # --- Stage 1: 滑动窗口限流 ---
         limited, retry_after = self._limiter.is_rate_limited(
@@ -281,30 +247,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 for ip in expired_ips:
                     del self._last_request[ip]
 
-        # --- Stage 3: 并发检查 ---
-        acquired = await self._concurrent.try_acquire()
-        if not acquired:
-            _logger.warning(
-                "Concurrency limit hit IP=%s path=%s",
-                client_ip, self.TARGET_PATH,
-            )
-            retry_concurrent = cooldown  # 给出一个合理的重试时间
-            return JSONResponse(
-                status_code=503,
-                content={
-                    "detail": "Service temporarily unavailable",
-                    "message": "当前并发请求已满，请稍后重试",
-                    "retry_after": retry_concurrent,
-                },
-                headers={"Retry-After": str(retry_concurrent)},
-            )
-
         # --- 执行请求 ---
-        try:
-            response = await call_next(request)
-            # 记录成功请求时间（用于冷却检查）
-            with self._cooldown_lock:
-                self._last_request[client_ip] = time.time()
-            return response
-        finally:
-            await self._concurrent.release()
+        response = await call_next(request)
+        # 记录成功请求时间（用于冷却检查）
+        with self._cooldown_lock:
+            self._last_request[client_ip] = time.time()
+        return response
