@@ -39,7 +39,7 @@ from app.models.chain_runtime_state import ChainRuntimeState  # noqa: F401
 
 # ---------- 路径 ----------
 PROJECT_ROOT = BACKEND_DIR.parent
-EXCEL_PATH = PROJECT_ROOT / "old" / "data" / "data.xlsx"
+EXCEL_PATH = BACKEND_DIR / "data" / "data.xlsx"
 CONFIG_PATH = PROJECT_ROOT / "config.yaml"
 
 # Excel 中文列名 → 模型字段映射

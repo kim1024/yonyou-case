@@ -14,6 +14,7 @@ from app.models.enterprise import Enterprise
 from app.models.major import Major, Industry, MajorIndustry, Region, Hour
 from app.models.generated_plan import GeneratedPlan
 from app.services.generation_service import run_generation_background
+from app.services.generation_utils import _build_fallback_json
 
 _logger = logging.getLogger(__name__)
 
@@ -313,3 +314,68 @@ def get_generate_status(client_request_id: str, db: Session = Depends(get_db)):
             return GenerateStatusResponse(status="expired", message="生成超时")
 
     return GenerateStatusResponse(status="pending")
+
+
+@router.post("/api/generate/template")
+def generate_template(request: dict, db: Session = Depends(get_db)):
+    """同步生成模板方案（兜底），不依赖大模型。"""
+    major = request.get("major", "")
+    industry = request.get("industry", "")
+    enterprise_name = request.get("enterprise", "")
+    region = request.get("region", "")
+    hour = request.get("hour", 8)
+
+    # 查询企业
+    enterprise = db.query(Enterprise).filter(
+        Enterprise.customer_name == enterprise_name,
+        Enterprise.industry == industry,
+        Enterprise.province == region
+    ).first()
+    if not enterprise:
+        raise HTTPException(status_code=404, detail="未找到匹配的企业信息")
+
+    # 查询课时单价
+    hour_record = db.query(Hour).filter(Hour.hour == hour).first()
+    rate = hour_record.unit_price if hour_record and hour_record.unit_price else 2000
+    total_cost = rate * hour
+
+    # 计算课时分配
+    hour_block1 = max(1, hour // 8)
+    hour_block2 = max(1, hour // 8)
+    hour_block3 = hour // 2
+    hour_block4 = hour - hour_block1 - hour_block2 - hour_block3
+
+    # 构建模板 JSON
+    fallback = _build_fallback_json(
+        enterprise_name, major, industry,
+        hour, hour_block1, hour_block2,
+        hour_block3, hour_block4,
+        rate, total_cost,
+    )
+
+    # 写入数据库
+    client_request_id = str(uuid.uuid4())
+    plan_record = GeneratedPlan(
+        major=major,
+        industry=industry,
+        enterprise=enterprise_name,
+        province=region,
+        hour=hour,
+        source="template",
+        plan_title=fallback.get("title", ""),
+        plan_data=json.dumps(fallback, ensure_ascii=False),
+        client_request_id=client_request_id,
+        status="completed",
+    )
+    db.add(plan_record)
+    db.commit()
+    db.refresh(plan_record)
+
+    return {
+        "client_request_id": client_request_id,
+        "plan_id": plan_record.id,
+        "status": "completed",
+        "source": "template",
+        "data": fallback,
+        "llm_error": "大模型调用失败，已使用模板生成方案。请检查大模型配置（API Key、Base URL）是否正确。",
+    }

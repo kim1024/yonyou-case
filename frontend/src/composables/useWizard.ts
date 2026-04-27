@@ -250,7 +250,7 @@ export function useWizard() {
   }
 
   // 生成课程方案 — POST /api/generate returns 202 immediately (async pattern)
-  async function generate(): Promise<{ client_request_id: string } | null> {
+  async function generate(): Promise<{ client_request_id: string } | { templateData: CoursePlan; source: string; llm_error?: string } | null> {
     if (!canSubmit.value) return null
 
     const clientRequestId = crypto.randomUUID()
@@ -297,10 +297,45 @@ export function useWizard() {
         clearGeneration()
         return null
       }
-      console.error('[generate] API调用失败:', (e as Error).message, e)
-      error.value = '生成失败，请检查网络连接或大模型配置后重试'
-      clearGeneration()
-      return null
+      console.error('[generate] API调用失败，2秒后自动重试:', (e as Error).message, e)
+      // 自动重试一次（网络抖动等临时故障）
+      await new Promise(r => setTimeout(r, 2000))
+      try {
+        const retryRes = await wizardApi.generate({
+          major: state.major!,
+          industry: state.industry!,
+          enterprise: state.enterprise!,
+          region: state.region!,
+          hour: state.hour!,
+          client_request_id: clientRequestId,
+        })
+        console.log('[generate] 重试成功, client_request_id:', retryRes.data?.client_request_id)
+        return { client_request_id: retryRes.data.client_request_id }
+      } catch (retryErr) {
+        console.error('[generate] 重试仍然失败，尝试模板兜底:', (retryErr as Error).message)
+        // 最终兜底：调用模板生成接口
+        try {
+          const templateRes = await wizardApi.generateTemplate({
+            major: state.major!,
+            industry: state.industry!,
+            enterprise: state.enterprise!,
+            region: state.region!,
+            hour: state.hour!,
+          })
+          console.log('[generate] 模板兜底成功')
+          clearGeneration()
+          return {
+            templateData: templateRes.data.data,
+            source: 'template',
+            llm_error: templateRes.data.llm_error,
+          }
+        } catch (templateErr) {
+          console.error('[generate] 模板兜底也失败:', (templateErr as Error).message)
+          error.value = '生成失败，请检查网络连接或大模型配置后重试'
+          clearGeneration()
+          return null
+        }
+      }
     } finally {
       abortController = null
       // 注意：loading.generating 由调用方管理，不在这里设置 false

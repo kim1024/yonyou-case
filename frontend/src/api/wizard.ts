@@ -21,4 +21,7 @@ export const wizardApi = {
   getGenerateStatus(client_request_id: string) {
     return http.get(`/api/generate/status/${client_request_id}`)
   },
+  generateTemplate(data: { major: string; industry: string; enterprise: string; region: string; hour: number }) {
+    return http.post('/api/generate/template', data, { timeout: 15000 })
+  },
 }

@@ -42,6 +42,7 @@ const {
 
 let timerInterval: ReturnType<typeof setInterval> | null = null
 let isRestorePolling = false
+let hasRetriedGeneration = false
 
 async function pollStatus() {
   const requestId = currentRequestId.value
@@ -77,10 +78,41 @@ async function pollStatus() {
         }
       }, 1500)
     } else if (statusData.status === 'failed' || statusData.status === 'expired') {
+      if (!hasRetriedGeneration) {
+        // 首次失败，自动重新发起生成（后端模板兜底）
+        hasRetriedGeneration = true
+        console.warn('[pollStatus] 生成失败，自动重试:', statusData.message)
+        clearGeneration()
+        const retryResult = await generate()
+        if (retryResult && 'templateData' in retryResult) {
+          // 模板兜底成功 — 直接展示结果
+          stopTimer()
+          loading.generating = false
+          sessionStorage.setItem('resultContent', JSON.stringify(retryResult.templateData))
+          sessionStorage.setItem('resultSource', retryResult.source)
+          if (retryResult.llm_error) {
+            sessionStorage.setItem('resultLlmError', retryResult.llm_error)
+          }
+          const savedSelections = localStorage.getItem('generating_selections')
+          if (savedSelections) {
+            sessionStorage.setItem('resultSelections', savedSelections)
+          }
+          clearGeneration()
+          hasRetriedGeneration = false
+          router.push({ name: 'result', query: { source: retryResult.source } })
+          return
+        } else if (retryResult && 'client_request_id' in retryResult) {
+          // 重试成功（202），继续轮询新请求
+          pollStatus()
+          return
+        }
+      }
+      // 重试也失败，或已经是第二次失败
       stopTimer()
       error.value = statusData.message || '生成失败，请重试'
       loading.generating = false
       clearGeneration()
+      hasRetriedGeneration = false
     }
     // pending → keep polling
   } catch {
@@ -161,11 +193,27 @@ onUnmounted(() => {
 
 async function handleSubmit() {
   if (!canSubmit.value || loading.generating) return
+  hasRetriedGeneration = false
   console.log('[handleSubmit] 开始生成...')
   startTimer()
   const result = await generate()
-  console.log('[handleSubmit] generate 返回:', result ? '已接受 (202)' : '失败', 'stage:', generationStage.value)
-  if (result) {
+  console.log('[handleSubmit] generate 返回:', result ? '成功' : '失败', 'stage:', generationStage.value)
+  if (result && 'templateData' in result) {
+    // 模板兜底 — 直接展示结果
+    stopTimer()
+    loading.generating = false
+    sessionStorage.setItem('resultContent', JSON.stringify(result.templateData))
+    sessionStorage.setItem('resultSource', result.source)
+    if (result.llm_error) {
+      sessionStorage.setItem('resultLlmError', result.llm_error)
+    }
+    const savedSelections = localStorage.getItem('generating_selections')
+    if (savedSelections) {
+      sessionStorage.setItem('resultSelections', savedSelections)
+    }
+    clearGeneration()
+    router.push({ name: 'result', query: { source: result.source } })
+  } else if (result && 'client_request_id' in result) {
     // 202 accepted — keep timer running, start polling for completion
     isRestorePolling = true
     pollStatus()

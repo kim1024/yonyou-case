@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Index, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, Index, func, text
 from app.database import Base
 
 
@@ -16,7 +16,7 @@ class GeneratedPlan(Base):
     plan_data = Column(Text)  # 完整方案 JSON 字符串
     client_request_id = Column(String(36), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
-    status = Column(String(20), nullable=False, default='pending')  # pending → processing → completed | failed
+    status = Column(String(20), nullable=False, default='pending', server_default=text("'pending'"))  # pending → processing → completed | failed
     error_message = Column(Text, nullable=True)
     started_at = Column(DateTime, nullable=True)
 
