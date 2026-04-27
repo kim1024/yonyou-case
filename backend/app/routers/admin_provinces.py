@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.province_city import Province, City
 from app.models.enterprise import Enterprise
 from app.dependencies import get_current_user
+from app.utils.datetime import utc_isoformat
 
 router = APIRouter(prefix="/api/admin", tags=["admin-provinces"])
 
@@ -61,7 +62,7 @@ def list_provinces(
                 "name": p.name,
                 "is_active": p.is_active,
                 "sort_order": p.sort_order,
-                "created_at": p.created_at,
+                "created_at": utc_isoformat(p.created_at),
                 "city_count": len(p.cities),
             }
             for p in provinces
@@ -177,7 +178,7 @@ def list_cities_by_province(
                 "province_id": c.province_id,
                 "is_active": c.is_active,
                 "sort_order": c.sort_order,
-                "created_at": c.created_at,
+                "created_at": utc_isoformat(c.created_at),
             }
             for c in cities
         ],

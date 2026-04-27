@@ -8,6 +8,7 @@ from typing import Optional
 from app.database import get_db
 from app.models.major import Hour
 from app.dependencies import get_current_user
+from app.utils.datetime import utc_isoformat
 
 router = APIRouter(prefix="/api/admin/hours", tags=["admin-hours"])
 
@@ -58,6 +59,7 @@ def list_hours(
                 "unit_price": h.unit_price or 2000,
                 "is_active": h.is_active,
                 "sort_order": h.sort_order,
+                "created_at": utc_isoformat(h.created_at),
             }
             for h in items
         ],

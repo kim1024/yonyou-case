@@ -8,6 +8,7 @@ from typing import Optional
 from app.database import get_db
 from app.models.major import Major, Industry, MajorIndustry
 from app.dependencies import get_current_user
+from app.utils.datetime import utc_isoformat
 
 router = APIRouter(prefix="/api/admin/majors", tags=["admin-majors"])
 
@@ -65,6 +66,8 @@ def list_majors(
                 "icon": m.icon or "",
                 "is_active": m.is_active,
                 "sort_order": m.sort_order,
+                "created_at": utc_isoformat(m.created_at),
+                "updated_at": utc_isoformat(m.updated_at),
             }
             for m in items
         ],

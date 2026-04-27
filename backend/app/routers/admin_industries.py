@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.major import Industry
 from app.models.enterprise import Enterprise
 from app.dependencies import get_current_user
+from app.utils.datetime import utc_isoformat
 
 router = APIRouter(prefix="/api/admin/industries", tags=["admin-industries"])
 
@@ -72,6 +73,8 @@ def list_industries(
                 "is_active": ind.is_active,
                 "sort_order": ind.sort_order,
                 "enterprise_count": db.query(Enterprise).filter(Enterprise.industry == ind.name).count(),
+                "created_at": utc_isoformat(ind.created_at),
+                "updated_at": utc_isoformat(ind.updated_at),
             }
             for ind in items
         ],
