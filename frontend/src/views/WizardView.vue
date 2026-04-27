@@ -595,7 +595,7 @@ async function handleSubmit() {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(192,57,43,0.06) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(160,140,155,0.07) 1px, transparent 1px);
   background-size: 28px 28px;
   pointer-events: none;
   z-index: 0;
@@ -609,7 +609,7 @@ async function handleSubmit() {
   right: -80px;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(192,57,43,0.04) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(175,130,125,0.05) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
@@ -629,7 +629,7 @@ async function handleSubmit() {
   left: -60px;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(212,160,106,0.05) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(155,145,165,0.06) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
@@ -645,20 +645,22 @@ async function handleSubmit() {
   overflow: hidden;
 }
 
-/* Diagonal gradient wash (background layer) */
+/* Ambient horizontal light wash */
 .ai-hero::before {
   content: '';
   position: absolute;
-  inset: -20%;
+  inset: -30% -10%;
   background: linear-gradient(
-    135deg,
-    rgba(192,57,43,0.08) 0%,
-    rgba(212,160,106,0.06) 40%,
-    transparent 70%
+    180deg,
+    transparent 0%,
+    rgba(180,130,120,0.04) 30%,
+    rgba(160,140,160,0.05) 50%,
+    rgba(180,130,120,0.04) 70%,
+    transparent 100%
   );
   pointer-events: none;
   z-index: -2;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
 }
 
 @media (min-width: 640px) {
@@ -687,7 +689,7 @@ async function handleSubmit() {
 .circuit-line-left {
   right: 100%;
   margin-right: 16px;
-  background: linear-gradient(90deg, transparent, rgba(192,57,43,0.12));
+  background: linear-gradient(90deg, transparent, rgba(160,140,155,0.10));
 }
 .circuit-line-left::after {
   content: '';
@@ -697,13 +699,13 @@ async function handleSubmit() {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(192,57,43,0.15);
+  background: rgba(160,140,155,0.12);
 }
 
 .circuit-line-right {
   left: 100%;
   margin-left: 16px;
-  background: linear-gradient(90deg, rgba(212,160,106,0.12), transparent);
+  background: linear-gradient(90deg, rgba(175,130,125,0.10), transparent);
 }
 .circuit-line-right::after {
   content: '';
@@ -713,7 +715,7 @@ async function handleSubmit() {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(212,160,106,0.15);
+  background: rgba(175,130,125,0.12);
 }
 
 /* Badge above title */
@@ -723,9 +725,9 @@ async function handleSubmit() {
   gap: 6px;
   padding: 5px 14px;
   border-radius: 100px;
-  background: linear-gradient(135deg, rgba(192,57,43,0.06), rgba(212,160,106,0.08));
-  border: 1px solid rgba(192,57,43,0.08);
-  color: #C0392B;
+  background: linear-gradient(135deg, rgba(175,115,105,0.07), rgba(160,135,155,0.08));
+  border: 1px solid rgba(175,115,105,0.08);
+  color: #9B6B63;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -904,17 +906,14 @@ async function handleSubmit() {
   50%      { transform: translateX(8px); opacity: 0.4; }
 }
 
-@keyframes auroraRotate {
-  0%   { transform: translate(-50%,-50%) rotate(0deg)   scale(1);    }
-  33%  { transform: translate(-50%,-50%) rotate(3deg)   scale(1.06); }
-  66%  { transform: translate(-50%,-50%) rotate(-2deg)  scale(0.97); }
-  100% { transform: translate(-50%,-50%) rotate(0deg)   scale(1);    }
+@keyframes ambientBreathe {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1;    }
 }
 
-@keyframes shimmerDrift {
-  0%   { transform: translateX(-10%); }
-  50%  { transform: translateX(10%);  }
-  100% { transform: translateX(-10%); }
+@keyframes accentBreathe {
+  0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1;   transform: translateX(-50%) scale(1.04); }
 }
 
 /* ── Exit State ── */
@@ -986,13 +985,13 @@ async function handleSubmit() {
 }
 .hero-idle .hero-glow {
   opacity: 1;
-  animation: auroraRotate 8s ease-in-out infinite;
-  animation-delay: 0.5s;
+  animation: ambientBreathe 6s ease-in-out infinite;
+  animation-delay: 0.3s;
 }
 .hero-idle .hero-glow::after {
   opacity: 1;
-  animation: shimmerDrift 10s ease-in-out infinite;
-  animation-delay: 1s;
+  animation: accentBreathe 7s ease-in-out infinite;
+  animation-delay: 0.8s;
 }
 .hero-idle .circuit-line-left {
   animation: idleCircuitPulse 5s ease-in-out infinite;
@@ -1007,49 +1006,46 @@ async function handleSubmit() {
   animation: idleCircuitDotTravel 5s ease-in-out infinite reverse;
 }
 
-/* ── Ambient Glow Element ── */
+/* ── Ambient Glow: Horizontal Light Band ── */
 
 .hero-glow {
   position: absolute;
-  top: 50%;
+  top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 480px;
-  height: 240px;
+  width: 120%;
+  height: 65%;
   background: radial-gradient(
-    ellipse at center,
-    rgba(192,57,43,0.15) 0%,
-    rgba(192,57,43,0.08) 25%,
-    rgba(212,160,106,0.10) 50%,
-    rgba(212,160,106,0.04) 70%,
-    transparent 85%
+    ellipse 60% 50% at 50% 50%,
+    rgba(180,120,115,0.10) 0%,
+    rgba(160,135,155,0.07) 30%,
+    rgba(150,145,165,0.05) 55%,
+    transparent 80%
   );
-  border-radius: 50%;
   pointer-events: none;
   z-index: -1;
   opacity: 0;
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-/* Secondary shimmer band */
+/* Soft warm accent glow — positioned below center */
 .hero-glow::after {
   content: '';
   position: absolute;
-  top: 30%;
-  left: -20%;
-  width: 140%;
-  height: 40%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(212,160,106,0.08) 30%,
-    rgba(192,57,43,0.06) 50%,
-    rgba(212,160,106,0.08) 70%,
-    transparent 100%
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 35%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(175,115,105,0.07) 0%,
+    rgba(170,130,120,0.04) 40%,
+    transparent 75%
   );
   border-radius: 50%;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
 }
 
 /* ── Reduced Motion ── */
@@ -1086,6 +1082,9 @@ async function handleSubmit() {
     animation: none !important;
   }
   .hero-idle .hero-glow {
+    opacity: 0.6 !important;
+  }
+  .hero-idle .hero-glow::after {
     opacity: 0.5 !important;
   }
 
