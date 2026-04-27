@@ -642,6 +642,23 @@ async function handleSubmit() {
   z-index: 1;
   padding: 32px 16px 24px;
   text-align: center;
+  overflow: hidden;
+}
+
+/* Diagonal gradient wash (background layer) */
+.ai-hero::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    135deg,
+    rgba(192,57,43,0.03) 0%,
+    rgba(212,160,106,0.02) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: -2;
+  transition: opacity 0.4s ease;
 }
 
 @media (min-width: 640px) {
@@ -874,21 +891,6 @@ async function handleSubmit() {
 
 /* ── Keyframes: Idle ── */
 
-@keyframes idleBadgeBreathe {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(192,57,43,0); }
-  50%      { transform: scale(1.02); box-shadow: 0 0 12px 0 rgba(192,57,43,0.06); }
-}
-
-@keyframes idleTitleShimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-@keyframes idleSubtitleFloat {
-  0%, 100% { transform: translateY(0); opacity: 1; }
-  50%      { transform: translateY(-1px); opacity: 0.85; }
-}
-
 @keyframes idleCircuitPulse {
   0%   { transform: scaleX(1); opacity: 1; }
   25%  { transform: scaleX(1.05); opacity: 0.8; }
@@ -902,9 +904,17 @@ async function handleSubmit() {
   50%      { transform: translateX(8px); opacity: 0.4; }
 }
 
-@keyframes idleGlow {
-  0%, 100% { opacity: 0; transform: translate(-50%,-50%) scale(0.95); }
-  50%      { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+@keyframes auroraRotate {
+  0%   { transform: translate(-50%,-50%) rotate(0deg)   scale(1);    }
+  33%  { transform: translate(-50%,-50%) rotate(3deg)   scale(1.06); }
+  66%  { transform: translate(-50%,-50%) rotate(-2deg)  scale(0.97); }
+  100% { transform: translate(-50%,-50%) rotate(0deg)   scale(1);    }
+}
+
+@keyframes shimmerDrift {
+  0%   { transform: translateX(-10%); }
+  50%  { transform: translateX(10%);  }
+  100% { transform: translateX(-10%); }
 }
 
 /* ── Exit State ── */
@@ -926,6 +936,16 @@ async function handleSubmit() {
 .hero-exiting .circuit-line {
   animation: heroCircuitExit 0.35s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
   animation-delay: 0.02s;
+}
+.hero-exiting::before {
+  opacity: 0;
+}
+.hero-exiting .hero-glow {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+}
+.hero-exiting .hero-glow::after {
+  opacity: 0;
 }
 
 /* ── Enter State ── */
@@ -949,29 +969,30 @@ async function handleSubmit() {
   animation: heroCircuitEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   animation-delay: 0.1s;
 }
+.hero-entering::before {
+  opacity: 1;
+  transition: opacity 0.5s ease 0.1s;
+}
+.hero-entering .hero-glow {
+  opacity: 0.6;
+  transform: translate(-50%, -50%) scale(1);
+  transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s;
+}
 
 /* ── Idle State ── */
 
-.hero-idle .hero-badge {
-  animation: idleBadgeBreathe 4s ease-in-out infinite;
+.hero-idle::before {
+  opacity: 1;
 }
-.hero-idle .hero-title {
-  background: linear-gradient(
-    90deg,
-    #1C1917 0%, #1C1917 40%,
-    rgba(192,57,43,0.15) 50%,
-    #1C1917 60%, #1C1917 100%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: idleTitleShimmer 6s ease-in-out infinite;
-  animation-delay: 1s;
-}
-.hero-idle .hero-subtitle {
-  animation: idleSubtitleFloat 5s ease-in-out infinite;
+.hero-idle .hero-glow {
+  opacity: 1;
+  animation: auroraRotate 8s ease-in-out infinite;
   animation-delay: 0.5s;
+}
+.hero-idle .hero-glow::after {
+  opacity: 1;
+  animation: shimmerDrift 10s ease-in-out infinite;
+  animation-delay: 1s;
 }
 .hero-idle .circuit-line-left {
   animation: idleCircuitPulse 5s ease-in-out infinite;
@@ -985,9 +1006,6 @@ async function handleSubmit() {
 .hero-idle .circuit-line-right::after {
   animation: idleCircuitDotTravel 5s ease-in-out infinite reverse;
 }
-.hero-idle .hero-glow {
-  animation: idleGlow 6s ease-in-out infinite;
-}
 
 /* ── Ambient Glow Element ── */
 
@@ -996,18 +1014,42 @@ async function handleSubmit() {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 200px;
-  height: 80px;
+  width: 480px;
+  height: 240px;
   background: radial-gradient(
     ellipse at center,
-    rgba(192,57,43,0.04) 0%,
-    rgba(212,160,106,0.02) 50%,
-    transparent 70%
+    rgba(192,57,43,0.06) 0%,
+    rgba(192,57,43,0.03) 25%,
+    rgba(212,160,106,0.04) 50%,
+    rgba(212,160,106,0.01) 70%,
+    transparent 85%
   );
   border-radius: 50%;
   pointer-events: none;
   z-index: -1;
   opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Secondary shimmer band */
+.hero-glow::after {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: -20%;
+  width: 140%;
+  height: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212,160,106,0.03) 30%,
+    rgba(192,57,43,0.02) 50%,
+    rgba(212,160,106,0.03) 70%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 /* ── Reduced Motion ── */
@@ -1039,19 +1081,18 @@ async function handleSubmit() {
     transition: opacity 0.15s ease;
   }
 
-  .hero-idle .hero-badge,
-  .hero-idle .hero-title,
-  .hero-idle .hero-subtitle,
+  .hero-idle .hero-glow,
+  .hero-idle .hero-glow::after {
+    animation: none !important;
+  }
+  .hero-idle .hero-glow {
+    opacity: 0.5 !important;
+  }
+
   .hero-idle .circuit-line,
   .hero-idle .circuit-line-left,
-  .hero-idle .circuit-line-right,
-  .hero-idle .hero-glow {
+  .hero-idle .circuit-line-right {
     animation: none !important;
-    transform: none !important;
-    background: none !important;
-    -webkit-text-fill-color: #1C1917 !important;
-    color: #1C1917 !important;
-    opacity: 1 !important;
   }
 }
 </style>
