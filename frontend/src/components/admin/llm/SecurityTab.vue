@@ -1,23 +1,16 @@
 <script setup lang="ts">
 import { Check, Info, Loader2 } from 'lucide-vue-next'
+import type { SecuritySettingItem } from '@/composables/useSecuritySettings'
 
 defineProps<{
-  securitySettings: Array<{
-    key: string
-    value: number
-    description: string
-    label: string
-    min: number
-    max: number
-    unit: string
-  }>
+  securitySettings: SecuritySettingItem[]
   securityLoading: boolean
   securitySaving: boolean
   securityHasChanges: boolean
 }>()
 
 const emit = defineEmits<{
-  'clamp-value': [item: { value: number; min: number; max: number }]
+  'clamp-value': [item: SecuritySettingItem]
   'save': []
 }>()
 </script>

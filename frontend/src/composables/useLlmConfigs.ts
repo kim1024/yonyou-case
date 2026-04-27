@@ -1,6 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
 import { adminApi } from '@/api/admin'
-import { quotaExceededEvent } from '@/api/http'
 import type {
   LlmConfig, LlmConfigCreate, LlmConfigUpdate,
   QuotaStatus, ChainData,

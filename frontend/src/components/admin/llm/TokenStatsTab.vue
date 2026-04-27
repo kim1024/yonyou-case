@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Gauge } from 'lucide-vue-next'
+import { Gauge } from 'lucide-vue-next'
 import SvgTooltip from '@/components/shared/SvgTooltip.vue'
 import ModelConsumptionChart from '@/components/admin/ModelConsumptionChart.vue'
 import { formatMonthDay } from '@/utils/date'
