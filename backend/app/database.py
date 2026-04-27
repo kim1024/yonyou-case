@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 import logging
 from datetime import datetime
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
@@ -20,8 +20,15 @@ engine = create_engine(
     max_overflow=20,
     pool_timeout=30,
     pool_pre_ping=True,
-    connect_args={"options": "-c timezone=UTC"},
 )
+
+
+@event.listens_for(engine, "connect")
+def _set_timezone(dbapi_conn, connection_record):
+    """Force every DB connection to use UTC timezone."""
+    cursor = dbapi_conn.cursor()
+    cursor.execute("SET timezone = 'UTC'")
+    cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
