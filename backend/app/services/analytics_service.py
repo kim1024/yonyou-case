@@ -40,7 +40,7 @@ def get_visit_trends(db: Session, days: int = 30):
 
     # 补全缺失日期（填 0）
     date_map = {str(r.date): (r.pv, r.uv) for r in results}
-    end_date = date.today()
+    end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days)
     trend = []
     for i in range(days + 1):

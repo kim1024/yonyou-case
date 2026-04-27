@@ -19,7 +19,7 @@ export function formatDateTime(iso: string | null | undefined): string {
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '-'
   // Handle both full ISO datetime and plain YYYY-MM-DD
-  const d = iso.includes('T') ? new Date(iso) : new Date(iso + 'T00:00:00Z')
+  const d = iso.includes('T') ? new Date(iso) : new Date(iso + 'T00:00:00')
   if (isNaN(d.getTime())) return '-'
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -30,7 +30,7 @@ export function formatDate(iso: string | null | undefined): string {
 export function formatMonthDay(dateStr: string | null | undefined): string {
   if (!dateStr) return ''
   // Handle both full ISO datetime and plain YYYY-MM-DD
-  const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00Z')
+  const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
   if (isNaN(d.getTime())) return ''
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
