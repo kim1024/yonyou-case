@@ -7,6 +7,7 @@
 - [3. 本地开发](#3-本地开发)
 - [4. 配置说明](#4-配置说明)
 - [5. 生产部署](#5-生产部署)
+  - [5.0 CentOS 7 环境准备](#50-centos-7-环境准备)
   - [5.1 后端部署](#51-后端部署)
   - [5.2 前端构建与 Nginx 部署](#52-前端构建与-nginx-部署)
   - [5.3 systemd 服务管理](#53-systemd-服务管理)
@@ -41,8 +42,10 @@
 - npm
 
 **生产部署（额外）：**
-- Nginx 1.18+
-- systemd（Linux）
+- CentOS 7+
+- Nginx 1.18+（yum 安装）
+- systemd
+- PostgreSQL 14+
 
 ---
 
@@ -153,6 +156,34 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 ## 5. 生产部署
 
+### 5.0 CentOS 7 环境准备
+
+```bash
+# 1. 安装 EPEL 源（Nginx 依赖）
+sudo yum install -y epel-release
+
+# 2. 安装 Nginx
+sudo yum install -y nginx
+
+# 3. 安装 Node.js 18+（CentOS 7 自带版本过低）
+curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+sudo yum install -y nodejs
+
+# 4. 安装 PostgreSQL（如未安装）
+sudo yum install -y postgresql-server postgresql-contrib
+sudo postgresql-setup initdb
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# 5. 配置防火墙放行 80 端口
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --reload
+
+# 6. 启动 Nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
 ### 5.1 后端部署
 
 ```bash
@@ -172,15 +203,17 @@ cd /opt/yonyou-case
 cp config.yaml.example config.yaml
 vim config.yaml   # 修改 admin.password、admin.jwt_secret、server.cors_origins、database.url 等
 
-# 5. 安装 PostgreSQL（如未安装）
-sudo apt install postgresql postgresql-contrib
-
-# 6. 创建数据库和用户
+# 5. 创建数据库和用户
 sudo -u postgres psql
 CREATE USER yonyou WITH PASSWORD 'your_password';
 CREATE DATABASE yonyou_case OWNER yonyou;
 GRANT ALL PRIVILEGES ON DATABASE yonyou_case TO yonyou;
 \q
+
+# 6. 配置 PostgreSQL 允许本地密码登录（CentOS 7 默认仅 peer 认证）
+sudo vim /var/lib/pgsql/data/pg_hba.conf
+# 将 local/all/all 和 host/all/all 的 peer/ident 改为 md5
+sudo systemctl restart postgresql
 
 # 7. 初始化数据库
 cd /opt/yonyou-case/backend
@@ -205,15 +238,61 @@ npm run build
 # 构建产物在 frontend/dist/ 目录
 ```
 
-#### Nginx 配置
+#### Nginx 配置（HTTPS）
 
-创建 Nginx 配置文件 `/etc/nginx/sites-available/yonyou-case`：
+生产环境启用 HTTPS，需要：SSL 证书 + Nginx 443 监听 + HTTP→HTTPS 重定向。
+
+##### 1. 申请 SSL 证书（Let's Encrypt 免费证书）
+
+```bash
+# 安装 certbot
+sudo yum install -y epel-release
+sudo yum install -y certbot python2-certbot-nginx
+
+# 申请证书（自动验证域名所有权）
+sudo certbot certonly --nginx -d yonyou-caseedu.hongyaa.com.cn
+
+# 证书文件位置：
+#   /etc/letsencrypt/live/yonyou-caseedu.hongyaa.com.cn/fullchain.pem  （证书链）
+#   /etc/letsencrypt/live/yonyou-caseedu.hongyaa.com.cn/privkey.pem    （私钥）
+```
+
+> **注意**：certbot 申请时需要 80 端口可访问（用于域名验证）。如果服务器防火墙未开放 80 端口，需先临时开放。
+
+##### 2. 配置 Nginx
+
+创建 Nginx 配置文件 `/etc/nginx/conf.d/yonyou-case.conf`（CentOS 7 使用 conf.d 目录，无需 sites-available）：
 
 ```nginx
-# 主站（端口 80）
+# HTTP → HTTPS 强制跳转
 server {
     listen 80;
     server_name yonyou-caseedu.hongyaa.com.cn;
+    return 301 https://$host$request_uri;
+}
+
+# 旧端口 5000 → 重定向到 HTTPS 主站
+server {
+    listen 5000;
+    server_name yonyou-caseedu.hongyaa.com.cn;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS 主站（端口 443）
+server {
+    listen 443 ssl;
+    server_name yonyou-caseedu.hongyaa.com.cn;
+
+    # SSL 证书
+    ssl_certificate     /etc/letsencrypt/live/yonyou-caseedu.hongyaa.com.cn/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yonyou-caseedu.hongyaa.com.cn/privkey.pem;
+
+    # SSL 安全参数
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
 
     # 前端静态文件
     root /opt/yonyou-case/frontend/dist;
@@ -235,34 +314,71 @@ server {
         # 生成接口可能耗时较长
         proxy_read_timeout 120s;
         proxy_send_timeout 120s;
+        client_max_body_size 50m;
     }
 
-    # 静态资源缓存
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+    # 静态资源缓存（Vite 构建带 hash，可长期缓存）
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$ {
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
-}
 
-# 旧端口 5000 → 重定向到主站（端口 80）
-server {
-    listen 5000;
-    server_name yonyou-caseedu.hongyaa.com.cn;
-    return 301 http://yonyou-caseedu.hongyaa.com.cn$request_uri;
+    # gzip 压缩
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript image/svg+xml;
+    gzip_min_length 1024;
 }
 ```
 
-启用站点并重启 Nginx：
+##### 3. 设置 SELinux 上下文
+
+CentOS 7 默认开启 SELinux，nginx 无法直接访问 /opt/ 下的文件：
 
 ```bash
-# 创建软链接
-sudo ln -s /etc/nginx/sites-available/yonyou-case /etc/nginx/sites-enabled/
+sudo semanage fcontext -a -t httpd_sys_content_t "/opt/yonyou-case/frontend/dist(/.*)?"
+sudo restorecon -Rv /opt/yonyou-case/frontend/dist
+```
 
+如果 SELinux 阻止 nginx 发起网络连接（proxy_pass），还需执行：
+
+```bash
+sudo setsebool -P httpd_can_network_connect 1
+```
+
+##### 4. 检查并重启 Nginx
+
+```bash
 # 检查配置语法
 sudo nginx -t
 
 # 重载 Nginx
 sudo systemctl reload nginx
+```
+
+##### 5. 设置证书自动续期
+
+Let's Encrypt 证书有效期 90 天，certbot 提供自动续期：
+
+```bash
+# 测试续期是否正常
+sudo certbot renew --dry-run
+
+# 添加定时任务（每天凌晨 3 点检查续期）
+echo "0 3 * * * root certbot renew --quiet --post-hook 'systemctl reload nginx'" | sudo tee /etc/cron.d/certbot-renew
+```
+
+##### 6. 验证 HTTPS 是否生效
+
+```bash
+# 检查 443 端口是否监听
+sudo ss -tlnp | grep 443
+
+# 测试 HTTPS 访问
+curl -I https://yonyou-caseedu.hongyaa.com.cn
+
+# 测试 HTTP 是否自动跳转
+curl -I http://yonyou-caseedu.hongyaa.com.cn
+# 应返回 301 → https://...
 ```
 
 ### 5.3 systemd 服务管理
@@ -276,11 +392,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+User=nginx
+Group=nginx
 WorkingDirectory=/opt/yonyou-case/backend
-Environment="PATH=/home/www-data/miniforge3/envs/yonyou-case/bin"
-ExecStart=/home/www-data/miniforge3/envs/yonyou-case/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+Environment="PATH=/root/miniconda3/envs/yonyou-case/bin"
+ExecStart=/root/miniconda3/envs/yonyou-case/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
 Restart=always
 RestartSec=5
 
@@ -288,6 +404,11 @@ RestartSec=5
 NoNewPrivileges=true
 ProtectSystem=strict
 ReadWritePaths=/opt/yonyou-case/backend/data /opt/yonyou-case/backend/logs
+
+# 如果使用 SELinux，还需设置上下文
+# semanage fcontext -a -t httpd_sys_rw_content_t "/opt/yonyou-case/backend/data(/.*)?"
+# semanage fcontext -a -t httpd_sys_rw_content_t "/opt/yonyou-case/backend/logs(/.*)?"
+# restorecon -Rv /opt/yonyou-case/backend/data /opt/yonyou-case/backend/logs
 
 StandardOutput=journal
 StandardError=journal
@@ -475,3 +596,6 @@ sudo systemctl reload nginx
 | 导入 Excel 失败 | 确认文件为 `.xlsx` 格式，表头需包含：客户名称、省份、城市、行业、公司简介、用友相关内容 |
 | PostgreSQL 连接失败 | 检查 PostgreSQL 服务状态 `sudo systemctl status postgresql`，确认连接串正确，检查 `pg_hba.conf` 允许的客户端地址 |
 | `npm run build` 类型检查失败 | 运行 `npx vue-tsc --noEmit` 查看具体 TypeScript 错误 |
+| Nginx 返回 403 Forbidden | SELinux 阻止访问，运行 `sudo setenforce 0` 临时关闭测试，确认后按 5.2 节设置 SELinux 上下文 |
+| Nginx 无法启动，端口被占用 | 检查 `sudo ss -tlnp | grep :80`，停止占用端口的进程 |
+| CentOS 7 Node.js 版本过低 | 按 5.0 节安装 NodeSource 仓库获取 Node.js 18+ |
