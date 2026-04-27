@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, isNavigationFailure } from 'vue-router'
 import { Sparkles, Loader2 } from 'lucide-vue-next'
 import { useWizard } from '@/composables/useWizard'
@@ -43,6 +43,14 @@ const {
 let timerInterval: ReturnType<typeof setInterval> | null = null
 let isRestorePolling = false
 let hasRetriedGeneration = false
+
+// ── Hero scroll animation refs ──
+const heroRef = ref<HTMLElement | null>(null)
+let heroObserver: IntersectionObserver | null = null
+let idleTimeout: ReturnType<typeof setTimeout> | null = null
+let scrollTicking = false
+let exitTimeout: ReturnType<typeof setTimeout> | null = null
+let enterTimeout: ReturnType<typeof setTimeout> | null = null
 
 async function pollStatus() {
   const requestId = currentRequestId.value
@@ -160,6 +168,63 @@ onMounted(async () => {
   init()
   window.addEventListener('beforeunload', handleBeforeUnload)
 
+  // ── Hero scroll animation: IntersectionObserver ──
+  if (heroRef.value) {
+    const hero = heroRef.value
+
+    heroObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            hero.classList.remove('hero-exiting')
+            hero.classList.add('hero-entering')
+            if (enterTimeout) clearTimeout(enterTimeout)
+            enterTimeout = setTimeout(() => {
+              hero.classList.remove('hero-entering')
+            }, 500)
+          } else {
+            hero.classList.remove('hero-entering', 'hero-idle')
+            hero.classList.add('hero-exiting')
+            if (exitTimeout) clearTimeout(exitTimeout)
+            exitTimeout = setTimeout(() => {
+              hero.classList.remove('hero-exiting')
+            }, 400)
+          }
+        })
+      },
+      {
+        root: null,
+        rootMargin: '-20px 0px 0px 0px',
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      }
+    )
+    heroObserver.observe(hero)
+
+    // ── Hero scroll animation: idle detection with rAF throttle ──
+    const onScroll = () => {
+      if (!scrollTicking) {
+        requestAnimationFrame(() => {
+          hero.classList.remove('hero-idle')
+          if (idleTimeout) clearTimeout(idleTimeout)
+          idleTimeout = setTimeout(() => {
+            if (!hero.classList.contains('hero-exiting')) {
+              hero.classList.add('hero-idle')
+            }
+          }, 800)
+          scrollTicking = false
+        })
+        scrollTicking = true
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+
+    // Store cleanup references on the element for unmount
+    ;(hero as any).__scrollCleanup = () => {
+      window.removeEventListener('scroll', onScroll)
+      if (idleTimeout) clearTimeout(idleTimeout)
+    }
+  }
+
   const result = await restoreGeneration()
   if (result && 'status' in result && result.status === 'pending') {
     startTimer(true)
@@ -189,6 +254,17 @@ onMounted(async () => {
 onUnmounted(() => {
   stopTimer()
   window.removeEventListener('beforeunload', handleBeforeUnload)
+
+  // ── Hero scroll animation cleanup ──
+  if (heroObserver) {
+    heroObserver.disconnect()
+    heroObserver = null
+  }
+  if (exitTimeout) clearTimeout(exitTimeout)
+  if (enterTimeout) clearTimeout(enterTimeout)
+  if (heroRef.value && (heroRef.value as any).__scrollCleanup) {
+    ;(heroRef.value as any).__scrollCleanup()
+  }
 })
 
 async function handleSubmit() {
@@ -231,11 +307,14 @@ async function handleSubmit() {
     <div class="ai-orb-secondary" aria-hidden="true"></div>
 
     <!-- Hero title section -->
-    <section class="ai-hero">
+    <section ref="heroRef" class="ai-hero hero-visible">
       <div class="ai-hero-inner">
         <!-- Decorative circuit lines -->
         <div class="circuit-line circuit-line-left" aria-hidden="true"></div>
         <div class="circuit-line circuit-line-right" aria-hidden="true"></div>
+
+        <!-- Ambient glow (idle animation target) -->
+        <div class="hero-glow" aria-hidden="true"></div>
 
         <!-- Badge -->
         <div class="hero-badge">
@@ -733,5 +812,246 @@ async function handleSubmit() {
   background: #E7E5E4;
   color: #A8A29E;
   cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Hero Scroll Animation — Three States
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Keyframes: Exit ── */
+
+@keyframes heroExit {
+  from { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+  to   { opacity: 0; transform: translateY(-12px) scale(0.97); filter: blur(2px); }
+}
+
+@keyframes heroBadgeExit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes heroTitleExit {
+  from { opacity: 1; transform: translateY(0) scaleX(1); }
+  to   { opacity: 0; transform: translateY(-6px) scaleX(0.98); }
+}
+
+@keyframes heroSubtitleExit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes heroCircuitExit {
+  from { opacity: 1; transform: scaleX(1); }
+  to   { opacity: 0; transform: scaleX(0.3); }
+}
+
+/* ── Keyframes: Enter ── */
+
+@keyframes heroEnter {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+}
+
+@keyframes heroBadgeEnter {
+  from { opacity: 0; transform: translateY(-12px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes heroTitleEnter {
+  from { opacity: 0; transform: translateY(10px) scaleX(0.98); }
+  to   { opacity: 1; transform: translateY(0) scaleX(1); }
+}
+
+@keyframes heroSubtitleEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroCircuitEnter {
+  from { opacity: 0; transform: scaleX(0.3); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* ── Keyframes: Idle ── */
+
+@keyframes idleBadgeBreathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(192,57,43,0); }
+  50%      { transform: scale(1.02); box-shadow: 0 0 12px 0 rgba(192,57,43,0.06); }
+}
+
+@keyframes idleTitleShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes idleSubtitleFloat {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50%      { transform: translateY(-1px); opacity: 0.85; }
+}
+
+@keyframes idleCircuitPulse {
+  0%   { transform: scaleX(1); opacity: 1; }
+  25%  { transform: scaleX(1.05); opacity: 0.8; }
+  50%  { transform: scaleX(1); opacity: 1; }
+  75%  { transform: scaleX(0.95); opacity: 0.8; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes idleCircuitDotTravel {
+  0%, 100% { transform: translateX(0); opacity: 0.15; }
+  50%      { transform: translateX(8px); opacity: 0.4; }
+}
+
+@keyframes idleGlow {
+  0%, 100% { opacity: 0; transform: translate(-50%,-50%) scale(0.95); }
+  50%      { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+}
+
+/* ── Exit State ── */
+
+.hero-exiting {
+  animation: heroExit 0.4s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
+}
+.hero-exiting .hero-badge {
+  animation: heroBadgeExit 0.3s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
+}
+.hero-exiting .hero-title {
+  animation: heroTitleExit 0.35s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
+  animation-delay: 0.04s;
+}
+.hero-exiting .hero-subtitle {
+  animation: heroSubtitleExit 0.3s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
+  animation-delay: 0.08s;
+}
+.hero-exiting .circuit-line {
+  animation: heroCircuitExit 0.35s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
+  animation-delay: 0.02s;
+}
+
+/* ── Enter State ── */
+
+.hero-entering {
+  animation: heroEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.hero-entering .hero-badge {
+  animation: heroBadgeEnter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.06s;
+}
+.hero-entering .hero-title {
+  animation: heroTitleEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.12s;
+}
+.hero-entering .hero-subtitle {
+  animation: heroSubtitleEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.18s;
+}
+.hero-entering .circuit-line {
+  animation: heroCircuitEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.1s;
+}
+
+/* ── Idle State ── */
+
+.hero-idle .hero-badge {
+  animation: idleBadgeBreathe 4s ease-in-out infinite;
+}
+.hero-idle .hero-title {
+  background: linear-gradient(
+    90deg,
+    #1C1917 0%, #1C1917 40%,
+    rgba(192,57,43,0.15) 50%,
+    #1C1917 60%, #1C1917 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: idleTitleShimmer 6s ease-in-out infinite;
+  animation-delay: 1s;
+}
+.hero-idle .hero-subtitle {
+  animation: idleSubtitleFloat 5s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+.hero-idle .circuit-line-left {
+  animation: idleCircuitPulse 5s ease-in-out infinite;
+}
+.hero-idle .circuit-line-left::after {
+  animation: idleCircuitDotTravel 5s ease-in-out infinite;
+}
+.hero-idle .circuit-line-right {
+  animation: idleCircuitPulse 5s ease-in-out infinite reverse;
+}
+.hero-idle .circuit-line-right::after {
+  animation: idleCircuitDotTravel 5s ease-in-out infinite reverse;
+}
+.hero-idle .hero-glow {
+  animation: idleGlow 6s ease-in-out infinite;
+}
+
+/* ── Ambient Glow Element ── */
+
+.hero-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 80px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(192,57,43,0.04) 0%,
+    rgba(212,160,106,0.02) 50%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+}
+
+/* ── Reduced Motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-exiting,
+  .hero-exiting .hero-badge,
+  .hero-exiting .hero-title,
+  .hero-exiting .hero-subtitle,
+  .hero-exiting .circuit-line {
+    animation: none !important;
+  }
+  .hero-exiting {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .hero-entering,
+  .hero-entering .hero-badge,
+  .hero-entering .hero-title,
+  .hero-entering .hero-subtitle,
+  .hero-entering .circuit-line {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .hero-entering {
+    opacity: 1;
+    transition: opacity 0.15s ease;
+  }
+
+  .hero-idle .hero-badge,
+  .hero-idle .hero-title,
+  .hero-idle .hero-subtitle,
+  .hero-idle .circuit-line,
+  .hero-idle .circuit-line-left,
+  .hero-idle .circuit-line-right,
+  .hero-idle .hero-glow {
+    animation: none !important;
+    transform: none !important;
+    background: none !important;
+    -webkit-text-fill-color: #1C1917 !important;
+    color: #1C1917 !important;
+    opacity: 1 !important;
+  }
 }
 </style>
