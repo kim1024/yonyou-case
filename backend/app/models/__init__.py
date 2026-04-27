@@ -12,6 +12,7 @@ from app.models.plan_theme import PlanTheme
 from app.models.plan_theme_version import PlanThemeVersion
 from app.models.security_setting import SecuritySetting
 from app.models.model_fallback_setting import ModelFallbackSetting
+from app.models.chain_runtime_state import ChainRuntimeState
 
 __all__ = [
     "Enterprise", "AdminUser", "VisitLog",
@@ -19,5 +20,5 @@ __all__ = [
     "LLMConfig", "TokenUsageLog", "PromptTemplate", "PromptVersion",
     "Province", "City", "GeneratedPlan",
     "PlanTheme", "PlanThemeVersion", "SecuritySetting",
-    "ModelFallbackSetting",
+    "ModelFallbackSetting", "ChainRuntimeState",
 ]

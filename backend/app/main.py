@@ -57,6 +57,7 @@ from app.models import Province, City  # noqa: F401
 from app.models import GeneratedPlan  # noqa: F401
 from app.models import PlanTheme, PlanThemeVersion  # noqa: F401
 from app.models.security_setting import SecuritySetting  # noqa: F401
+from app.models.chain_runtime_state import ChainRuntimeState  # noqa: F401
 from app.routers import admin_security
 
 app = FastAPI(title="用友案例定制系统 API")

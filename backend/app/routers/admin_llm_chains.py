@@ -388,7 +388,7 @@ def update_chain(
 
     if data.fallback_config_ids is not None and primary.fallback_group_id:
         from app.services.llm_chain_manager import get_chain_manager
-        get_chain_manager().reset_chain(primary.fallback_group_id)
+        get_chain_manager().reset_chain(db, primary.fallback_group_id)
 
     db.refresh(setting)
 
@@ -444,7 +444,7 @@ def delete_chain(
     # Reset chain manager runtime state
     if group_id:
         from app.services.llm_chain_manager import get_chain_manager
-        get_chain_manager().reset_chain(group_id)
+        get_chain_manager().reset_chain(db, group_id)
 
     return {"message": "降级链已解散"}
 
@@ -542,7 +542,7 @@ def remove_fallback(
         db.delete(setting)
         db.commit()
         from app.services.llm_chain_manager import get_chain_manager
-        get_chain_manager().reset_chain(group_id)
+        get_chain_manager().reset_chain(db, group_id)
         return {"message": "最后一个备用模型已移除，降级链已自动解散"}
 
     if was_active:
@@ -556,7 +556,7 @@ def remove_fallback(
 
     db.commit()
     from app.services.llm_chain_manager import get_chain_manager
-    get_chain_manager().reset_chain(group_id)
+    get_chain_manager().reset_chain(db, group_id)
     return {"message": "已移除备用模型"}
 
 

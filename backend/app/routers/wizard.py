@@ -664,7 +664,7 @@ def generate(request: dict, db: Session = Depends(get_db)):
                             raise
                         # Chain: record success and reset
                         if use_chain:
-                            chain_manager.record_success(chain_group_id)
+                            chain_manager.record_success(db, chain_group_id)
                         result = {"data": plan_json, "source": "ai"}
                         if client_request_id:
                             result["client_request_id"] = client_request_id

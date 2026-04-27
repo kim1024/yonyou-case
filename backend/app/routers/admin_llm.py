@@ -227,7 +227,7 @@ def delete_config(config_id: int, db: Session = Depends(get_db), current_user: d
             s.fallback_group_id = None
         if setting:
             db.delete(setting)
-        get_chain_manager().reset_chain(group_id)
+        get_chain_manager().reset_chain(db, group_id)
 
     elif config.role == "fallback" and config.fallback_group_id:
         # Remove from chain, renumber remaining
@@ -257,7 +257,7 @@ def delete_config(config_id: int, db: Session = Depends(get_db), current_user: d
                 primary.is_active = was_active
             if setting:
                 db.delete(setting)
-            get_chain_manager().reset_chain(group_id)
+            get_chain_manager().reset_chain(db, group_id)
         else:
             if was_active:
                 primary = db.query(LLMConfig).filter(
