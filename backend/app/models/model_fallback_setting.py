@@ -13,8 +13,8 @@ class ModelFallbackSetting(Base):
     failure_threshold = Column(Integer, default=3)      # 连续失败次数阈值
     timeout_seconds = Column(Integer, default=5)        # 单次请求超时阈值（秒）
     cooldown_seconds = Column(Integer, default=300)     # 降级冷却时间（秒），之后重新尝试 primary
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     @property
     def timeout_threshold(self) -> int:

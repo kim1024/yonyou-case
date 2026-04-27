@@ -15,7 +15,7 @@ class PromptVersion(Base):
     variables = Column(Text)                                   # 变量占位符说明（JSON 字符串）
     remark = Column(Text)                                      # 版本备注
     created_by = Column(String(100))                           # 创建人
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         Index("idx_prompt_versions_template_id", "template_id"),

@@ -15,4 +15,4 @@ class ChainRuntimeState(Base):
     failure_count = Column(Integer, nullable=False, default=0)
     timeout_count = Column(Integer, nullable=False, default=0)
     cooling_until = Column(Float, nullable=False, default=0.0)  # epoch timestamp
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

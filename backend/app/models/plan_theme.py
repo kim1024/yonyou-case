@@ -22,5 +22,5 @@ class PlanTheme(Base):
     description = Column(Text)                                     # 主题描述
     is_active = Column(Boolean, default=False)                     # 是否激活（同一时间仅一个为 True）
     current_version_id = Column(Integer)                           # 当前使用的版本 ID
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

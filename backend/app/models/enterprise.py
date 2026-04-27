@@ -12,8 +12,8 @@ class Enterprise(Base):
     industry = Column(String, nullable=False)             # 标准行业
     company_intro = Column(Text)                          # 企业简介
     yonyou_content = Column(Text)                         # 用友建设内容
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
         Index("idx_enterprises_industry", "industry"),

@@ -14,7 +14,7 @@ class TokenUsageLog(Base):
     prompt_tokens = Column(Integer, default=0)                # 输入 token 数
     completion_tokens = Column(Integer, default=0)            # 输出 token 数
     total_tokens = Column(Integer, default=0)                 # 总 token 数
-    request_timestamp = Column(DateTime, server_default=func.now())  # 请求时间
+    request_timestamp = Column(DateTime(timezone=True), server_default=func.now())  # 请求时间
 
     __table_args__ = (
         Index("idx_token_usage_logs_timestamp", "request_timestamp"),

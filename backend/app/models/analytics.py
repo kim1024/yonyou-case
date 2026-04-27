@@ -15,7 +15,7 @@ class VisitLog(Base):
     enterprise = Column(String)
     major = Column(String)
     hour = Column(String)
-    request_timestamp = Column(DateTime, server_default=func.now())
+    request_timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         Index("idx_visit_logs_timestamp", "request_timestamp"),

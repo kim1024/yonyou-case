@@ -10,4 +10,4 @@ class SecuritySetting(Base):
     key = Column(String(100), unique=True, nullable=False, index=True)
     value = Column(String(500), nullable=False)
     description = Column(String(200), default="")
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

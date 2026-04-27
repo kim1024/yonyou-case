@@ -16,8 +16,8 @@ class Major(Base):
     icon = Column(String(50))  # 图标名称（lucide图标名）
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class Industry(Base):
@@ -28,8 +28,8 @@ class Industry(Base):
     name = Column(String(100), nullable=False)  # 行业名称
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class MajorIndustry(Base):
@@ -53,7 +53,7 @@ class Region(Base):
     name = Column(String(50), unique=True, nullable=False)  # 省份名称
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Hour(Base):
@@ -66,4 +66,4 @@ class Hour(Base):
     unit_price = Column(Integer, default=2000)  # 课时单价（元）
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

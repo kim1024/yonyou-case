@@ -14,7 +14,7 @@ class PlanThemeVersion(Base):
     style_config = Column(Text, nullable=False)                                 # 样式配置 JSON
     remark = Column(Text)                                                       # 版本备注
     created_by = Column(String(100))                                            # 创建人
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         Index("idx_plan_theme_versions_theme_id", "theme_id"),

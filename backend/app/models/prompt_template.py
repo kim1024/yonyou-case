@@ -14,5 +14,5 @@ class PromptTemplate(Base):
     scene = Column(String(100))                               # 关联场景（如"课程方案生成"）
     current_version_id = Column(Integer)                      # 当前活跃版本 ID
     is_active = Column(Boolean, default=True)                 # 是否启用
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
