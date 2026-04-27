@@ -407,12 +407,12 @@ async function handleSubmit() {
               class="w-5 h-5 animate-spin"
               :stroke-width="2"
             />
-            <span>{{ loading.generating ? '正在生成课程方案...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
             <Sparkles
               v-if="!loading.generating"
               class="w-5 h-5 opacity-90"
               :stroke-width="1.5"
             />
+            <span>{{ loading.generating ? '正在生成课程方案...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
           </button>
         </div>
       </div>
@@ -481,12 +481,12 @@ async function handleSubmit() {
           class="w-5 h-5 animate-spin"
           :stroke-width="2"
         />
-        <span>{{ loading.generating ? '生成中...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
         <Sparkles
           v-if="!loading.generating"
           class="w-5 h-5 opacity-90"
           :stroke-width="1.5"
         />
+        <span>{{ loading.generating ? '生成中...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
       </button>
     </div>
   </div>
