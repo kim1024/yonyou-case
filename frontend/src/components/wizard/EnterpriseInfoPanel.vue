@@ -44,8 +44,8 @@ defineProps<{
   >
     <!-- 头部：紧凑单行 -->
     <div class="flex items-center gap-3 mb-3 pb-3 border-b border-neutral-100">
-      <div class="shrink-0 w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
-        <Building2 class="w-4 h-4 text-primary-500" />
+      <div class="shrink-0 w-8 h-8 rounded-lg bg-[rgba(192,57,43,0.06)] flex items-center justify-center">
+        <Building2 class="w-4 h-4 text-[#C0392B]" />
       </div>
       <div class="flex-1 min-w-0">
         <h3 class="text-sm font-bold text-neutral-900 truncate">{{ info.customer_name }}</h3>
@@ -54,7 +54,7 @@ defineProps<{
             <MapPin class="w-3 h-3" :stroke-width="1.5" />
             {{ info.province }} · {{ info.city }}
           </span>
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[rgba(192,57,43,0.06)] text-[#991B1B]">
             {{ info.industry }}
           </span>
         </div>
@@ -67,7 +67,7 @@ defineProps<{
         <BookOpen class="w-3 h-3 text-neutral-400" :stroke-width="1.5" />
         关于该企业
       </h4>
-      <p class="text-xs text-neutral-500 leading-relaxed bg-neutral-50 rounded-lg p-3">{{ info.company_intro }}</p>
+      <p class="text-xs text-neutral-500 leading-relaxed bg-[rgba(246,248,251,0.8)] rounded-lg p-3">{{ info.company_intro }}</p>
     </div>
 
     <!-- 用友可提供的内容（突出显示） -->
@@ -81,8 +81,8 @@ defineProps<{
         style="background: linear-gradient(to bottom, #C0392B, #D4A06A);"
       />
 
-      <h4 class="text-xs font-bold uppercase tracking-wider text-primary-600 flex items-center gap-1.5 mb-1.5 pl-1">
-        <Sparkles class="w-3.5 h-3.5 text-primary-500" :stroke-width="1.5" />
+      <h4 class="text-xs font-bold uppercase tracking-wider text-[#C0392B] flex items-center gap-1.5 mb-1.5 pl-1">
+        <Sparkles class="w-3.5 h-3.5 text-[#C0392B]" :stroke-width="1.5" />
         用友可提供的内容
       </h4>
       <p class="text-sm text-neutral-700 font-medium leading-relaxed pl-1">{{ info.yonyou_content }}</p>

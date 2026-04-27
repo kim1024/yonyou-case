@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { useRouter, isNavigationFailure } from 'vue-router'
-import { ArrowRight, RotateCcw, Loader2 } from 'lucide-vue-next'
+import { Sparkles, Loader2 } from 'lucide-vue-next'
 import { useWizard } from '@/composables/useWizard'
 import { wizardApi } from '@/api/wizard'
 import SummaryBar from '@/components/wizard/SummaryBar.vue'
@@ -230,26 +230,6 @@ async function handleSubmit() {
     <!-- AI ambient orb (secondary) -->
     <div class="ai-orb-secondary" aria-hidden="true"></div>
 
-    <!-- 顶部栏 -->
-    <header class="ai-header">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-        <!-- AI icon + title cluster -->
-        <div class="flex items-center gap-2.5 flex-1 justify-center">
-          <div class="header-ai-badge">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-          </div>
-          <h1 class="header-title">用友产业案例教学项目课程定制系统</h1>
-        </div>
-        <!-- Reset button -->
-        <button class="header-reset-btn" @click="reset">
-          <RotateCcw class="w-4 h-4" :stroke-width="1.5" />
-        </button>
-      </div>
-    </header>
-
     <!-- Hero title section -->
     <section class="ai-hero">
       <div class="ai-hero-inner">
@@ -264,12 +244,12 @@ async function handleSubmit() {
             <path d="M2 17l10 5 10-5"/>
             <path d="M2 12l10 5 10-5"/>
           </svg>
-          <span>AI 课程定制引擎</span>
+          <span>课程定制引擎</span>
         </div>
 
         <!-- Title -->
         <h2 class="hero-title">用友产业案例教学项目<br class="sm:hidden" />课程定制系统</h2>
-        <p class="hero-subtitle">基于智能体技术，为您定制专属的产业案例教学方案</p>
+        <p class="hero-subtitle">为您定制专属的产业案例教学方案</p>
       </div>
     </section>
 
@@ -428,10 +408,10 @@ async function handleSubmit() {
               :stroke-width="2"
             />
             <span>{{ loading.generating ? '正在生成课程方案...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
-            <ArrowRight
+            <Sparkles
               v-if="!loading.generating"
-              class="w-5 h-5"
-              :stroke-width="2"
+              class="w-5 h-5 opacity-90"
+              :stroke-width="1.5"
             />
           </button>
         </div>
@@ -502,10 +482,10 @@ async function handleSubmit() {
           :stroke-width="2"
         />
         <span>{{ loading.generating ? '生成中...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
-        <ArrowRight
+        <Sparkles
           v-if="!loading.generating"
-          class="w-5 h-5"
-          :stroke-width="2"
+          class="w-5 h-5 opacity-90"
+          :stroke-width="1.5"
         />
       </button>
     </div>
@@ -575,90 +555,6 @@ async function handleSubmit() {
   pointer-events: none;
   z-index: 0;
   animation: orbDrift 25s ease-in-out infinite reverse;
-}
-
-/* ── AI Header ── */
-.ai-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: rgba(246, 248, 251, 0.82);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border-bottom: 1px solid transparent;
-}
-
-/* Flowing data-stream gradient border */
-.ai-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(192,57,43,0.10) 15%,
-    rgba(212,160,106,0.18) 35%,
-    rgba(192,57,43,0.12) 50%,
-    rgba(212,160,106,0.18) 65%,
-    rgba(192,57,43,0.10) 85%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: streamFlow 6s linear infinite;
-}
-
-@keyframes streamFlow {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-.header-ai-badge {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(192,57,43,0.08), rgba(212,160,106,0.10));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #C0392B;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #292524;
-  letter-spacing: -0.01em;
-  margin: 0;
-}
-
-.header-reset-btn {
-  flex-shrink: 0;
-  margin-left: 12px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #A8A29E;
-  background: transparent;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-.header-reset-btn:hover {
-  color: #C0392B;
-  background: rgba(192,57,43,0.06);
-  border-color: rgba(192,57,43,0.10);
-}
-
-/* On desktop, hide header title (hero section shows it) */
-@media (min-width: 640px) {
-  .header-title { display: none; }
 }
 
 /* ── Hero Title Section ── */
