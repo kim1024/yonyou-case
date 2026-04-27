@@ -77,12 +77,9 @@ function handleSelect(major: WizardMajor) {
         v-for="major in majors"
         :key="major.id"
         :class="[
-          'flex items-center gap-3 p-3 rounded-xl cursor-pointer',
-          'bg-white border transition-all duration-200',
-          'hover:border-neutral-300 hover:shadow-lifted hover:-translate-y-0.5',
           selectedMajor === major.name
-            ? 'bg-primary-50/60 border-primary-400 shadow-lifted'
-            : 'border-neutral-200',
+            ? 'relative flex items-center gap-3 p-3.5 rounded-xl cursor-pointer bg-gradient-to-br from-[rgba(192,57,43,0.04)] to-[rgba(212,160,106,0.04)] border border-[rgba(192,57,43,0.18)] shadow-[0_0_20px_rgba(192,57,43,0.06),0_4px_16px_rgba(192,57,43,0.04)] transition-all duration-300'
+            : 'flex items-center gap-3 p-3.5 rounded-xl cursor-pointer bg-white/60 border border-neutral-200/60 backdrop-blur-sm transition-all duration-300 hover:border-[rgba(192,57,43,0.15)] hover:shadow-[0_4px_20px_rgba(192,57,43,0.06)] hover:-translate-y-0.5',
           poppedKey === major.name ? 'animate-select-pop' : '',
         ]"
         @click="handleSelect(major)"
@@ -91,14 +88,14 @@ function handleSelect(major: WizardMajor) {
         <div
           :class="[
             'shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-200',
-            selectedMajor === major.name ? 'bg-primary-100' : 'bg-neutral-100',
+            selectedMajor === major.name ? 'bg-gradient-to-br from-[rgba(192,57,43,0.10)] to-[rgba(212,160,106,0.08)]' : 'bg-neutral-100',
           ]"
         >
           <component
             :is="resolveIcon(major.icon)"
             :class="[
               'w-5 h-5 transition-colors duration-200',
-              selectedMajor === major.name ? 'text-primary-600' : 'text-neutral-400',
+              selectedMajor === major.name ? 'text-[#C0392B]' : 'text-neutral-400',
             ]"
             :stroke-width="1.5"
           />
@@ -109,7 +106,7 @@ function handleSelect(major: WizardMajor) {
           <div
             :class="[
               'text-sm font-semibold transition-colors duration-200',
-              selectedMajor === major.name ? 'text-primary-700' : 'text-neutral-900',
+              selectedMajor === major.name ? 'text-[#991B1B]' : 'text-neutral-900',
             ]"
           >
             {{ major.name }}
@@ -118,6 +115,13 @@ function handleSelect(major: WizardMajor) {
             {{ major.description }}
           </p>
         </div>
+
+        <!-- Selection accent bar -->
+        <div
+          v-if="selectedMajor === major.name"
+          class="absolute bottom-0 left-3 right-3 h-[2px] rounded-full"
+          style="background: linear-gradient(90deg, transparent, #C0392B, #D4A06A, transparent);"
+        />
       </button>
     </div>
   </div>

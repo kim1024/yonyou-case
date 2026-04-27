@@ -12,7 +12,7 @@ defineProps<{
   <!-- 未选中时（占位态） -->
   <div
     v-if="!info && !loading"
-    class="bg-white border border-neutral-200 rounded-xl p-6 flex flex-col items-center justify-center min-h-[140px]"
+    class="bg-white/60 backdrop-blur-sm border border-neutral-200/40 rounded-xl p-6 flex flex-col items-center justify-center min-h-[140px]"
   >
     <Building2 class="w-10 h-10 text-neutral-200 mb-3" :stroke-width="1" />
     <p class="text-neutral-400 text-center text-sm">请从上方选择一家企业<br />查看详细信息</p>
@@ -21,7 +21,7 @@ defineProps<{
   <!-- 加载中状态 -->
   <div
     v-else-if="loading"
-    class="bg-white border border-neutral-200 rounded-xl p-4 min-h-[140px]"
+    class="bg-white/60 backdrop-blur-sm border border-neutral-200/40 rounded-xl p-4 min-h-[140px]"
   >
     <div class="flex items-center gap-3 mb-3 pb-3 border-b border-neutral-100">
       <div class="skeleton w-8 h-8 rounded-lg" />
@@ -40,7 +40,7 @@ defineProps<{
   <!-- 已选中时（展示详情） -->
   <div
     v-else-if="info"
-    class="bg-white border border-neutral-200 rounded-xl p-4 transition-border-color duration-200 hover:border-neutral-300"
+    class="bg-white/70 backdrop-blur-sm border border-neutral-200/40 rounded-xl p-4 transition-border-color duration-200 hover:border-[rgba(192,57,43,0.12)]"
   >
     <!-- 头部：紧凑单行 -->
     <div class="flex items-center gap-3 mb-3 pb-3 border-b border-neutral-100">
@@ -73,10 +73,13 @@ defineProps<{
     <!-- 用友可提供的内容（突出显示） -->
     <div
       v-if="info.yonyou_content"
-      class="bg-gradient-to-r from-primary-50 to-info-light border border-primary-200/50 rounded-xl p-3.5 relative overflow-hidden"
+      class="bg-gradient-to-r from-[rgba(192,57,43,0.04)] to-[rgba(212,160,106,0.04)] border border-[rgba(192,57,43,0.10)] rounded-xl p-3.5 relative overflow-hidden"
     >
       <!-- 左侧蓝色竖条 -->
-      <div class="absolute left-0 top-3 bottom-3 w-[3px] bg-primary-500 rounded-full" />
+      <div
+        class="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
+        style="background: linear-gradient(to bottom, #C0392B, #D4A06A);"
+      />
 
       <h4 class="text-xs font-bold uppercase tracking-wider text-primary-600 flex items-center gap-1.5 mb-1.5 pl-1">
         <Sparkles class="w-3.5 h-3.5 text-primary-500" :stroke-width="1.5" />

@@ -26,31 +26,32 @@ const emit = defineEmits<{ select: [hour: number] }>()
       <button
         v-for="hour in hours"
         :key="hour.value"
-        class="group relative h-20 md:h-24 rounded-xl text-center transition-all duration-150 cursor-pointer border"
+        class="group relative h-20 md:h-24 rounded-xl text-center transition-all duration-300 cursor-pointer border"
         :class="
           selectedHour == hour.value
-            ? 'bg-primary-50 border-primary-400'
-            : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+            ? 'bg-gradient-to-br from-[rgba(192,57,43,0.04)] to-[rgba(212,160,106,0.04)] border-[rgba(192,57,43,0.18)] shadow-[0_0_24px_rgba(192,57,43,0.06)]'
+            : 'bg-white/60 backdrop-blur-sm border-neutral-200/60 hover:border-neutral-300 hover:bg-white/80'
         "
         @click="emit('select', hour.value)"
       >
         <!-- 选中态底部指示条 -->
         <span
           v-if="selectedHour == hour.value"
-          class="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-primary-500"
+          class="absolute bottom-0 left-3 right-3 h-[2px] rounded-full"
+          style="background: linear-gradient(90deg, transparent, #C0392B, #D4A06A, transparent);"
         />
 
         <!-- 图标 -->
         <Clock
           class="w-4 h-4 mx-auto mt-2 mb-0.5 md:mt-3 md:mb-1"
-          :class="selectedHour == hour.value ? 'text-primary-500' : 'text-neutral-300 group-hover:text-neutral-400'"
+          :class="selectedHour == hour.value ? 'text-[#C0392B]' : 'text-neutral-300 group-hover:text-neutral-400'"
           :stroke-width="1.5"
         />
 
         <!-- 数字 -->
         <div
           class="text-lg md:text-xl font-bold tracking-tight leading-none"
-          :class="selectedHour == hour.value ? 'text-primary-600' : 'text-neutral-500 group-hover:text-neutral-600'"
+          :class="selectedHour == hour.value ? 'text-[#C0392B]' : 'text-neutral-500 group-hover:text-neutral-600'"
         >
           {{ hour.value }}
         </div>
@@ -58,7 +59,7 @@ const emit = defineEmits<{ select: [hour: number] }>()
         <!-- 单位 -->
         <div
           class="text-[10px] md:text-[11px] font-medium mt-0.5 md:mt-1"
-          :class="selectedHour == hour.value ? 'text-primary-500' : 'text-neutral-400'"
+          :class="selectedHour == hour.value ? 'text-[#C0392B]' : 'text-neutral-400'"
         >
           课时
         </div>

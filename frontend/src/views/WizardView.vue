@@ -226,23 +226,52 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-neutral-50">
+  <div class="min-h-screen wizard-page">
+    <!-- AI ambient orb (secondary) -->
+    <div class="ai-orb-secondary" aria-hidden="true"></div>
+
     <!-- 顶部栏 -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-neutral-200">
+    <header class="ai-header">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-        <h1 class="text-lg font-bold text-neutral-900 tracking-tight">
-          <span class="md:hidden">课程定制</span>
-          <span class="hidden md:inline">用友产业案例教学项目课程定制系统</span>
-        </h1>
-        <button
-          class="btn-ghost text-sm"
-          @click="reset"
-        >
+        <!-- AI icon + title cluster -->
+        <div class="flex items-center gap-2.5 flex-1 justify-center">
+          <div class="header-ai-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </div>
+          <h1 class="header-title">用友产业案例教学项目课程定制系统</h1>
+        </div>
+        <!-- Reset button -->
+        <button class="header-reset-btn" @click="reset">
           <RotateCcw class="w-4 h-4" :stroke-width="1.5" />
-          重新开始
         </button>
       </div>
     </header>
+
+    <!-- Hero title section -->
+    <section class="ai-hero">
+      <div class="ai-hero-inner">
+        <!-- Decorative circuit lines -->
+        <div class="circuit-line circuit-line-left" aria-hidden="true"></div>
+        <div class="circuit-line circuit-line-right" aria-hidden="true"></div>
+
+        <!-- Badge -->
+        <div class="hero-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+          <span>AI 课程定制引擎</span>
+        </div>
+
+        <!-- Title -->
+        <h2 class="hero-title">用友产业案例教学项目<br class="sm:hidden" />课程定制系统</h2>
+        <p class="hero-subtitle">基于智能体技术，为您定制专属的产业案例教学方案</p>
+      </div>
+    </section>
 
     <!-- 摘要栏 -->
     <SummaryBar
@@ -255,7 +284,7 @@ async function handleSubmit() {
     />
 
     <!-- 主体内容 -->
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-6">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-6 relative z-10">
       <!-- Section 01: 专业方向（始终激活） -->
       <WizardSection
         number="01"
@@ -346,7 +375,7 @@ async function handleSubmit() {
             v-if="rateLimited"
             class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4"
           >
-            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-50 border-amber-200 text-amber-800">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-50/80 backdrop-blur-sm border-amber-200/60 text-amber-800">
               <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
@@ -363,7 +392,7 @@ async function handleSubmit() {
         <!-- Error banner -->
         <Transition name="cooldown">
           <div v-if="error" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-red-50 border-red-200 text-red-800">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-red-50/80 backdrop-blur-sm border-red-200/60 text-red-800">
               <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
@@ -386,11 +415,10 @@ async function handleSubmit() {
           <button
             :disabled="!canSubmit || loading.generating || rateLimited"
             :class="[
-              'inline-flex items-center gap-2.5 px-10 py-3.5 rounded-xl font-semibold text-base',
-              'transition-all duration-300 cursor-pointer',
+              'ai-cta-button',
               canSubmit && !loading.generating && !rateLimited
-                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25 hover:bg-primary-600 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
-                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed',
+                ? 'ai-cta-active'
+                : 'ai-cta-disabled',
             ]"
             @click="handleSubmit"
           >
@@ -399,7 +427,7 @@ async function handleSubmit() {
               class="w-5 h-5 animate-spin"
               :stroke-width="2"
             />
-            <span>{{ loading.generating ? '正在生成课程方案...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '生成课程方案' }}</span>
+            <span>{{ loading.generating ? '正在生成课程方案...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
             <ArrowRight
               v-if="!loading.generating"
               class="w-5 h-5"
@@ -418,11 +446,11 @@ async function handleSubmit() {
     />
 
     <!-- 移动端固定底部 CTA -->
-    <div class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/90 backdrop-blur-md border-t border-neutral-200 p-4 z-30">
+    <div class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/85 backdrop-blur-xl border-t border-neutral-200/40 p-4 z-30">
       <!-- Mobile rate limit cooldown banner -->
       <Transition name="cooldown">
         <div v-if="rateLimited" class="mb-3">
-          <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-50 border-amber-200 text-amber-800">
+          <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-50/80 backdrop-blur-sm border-amber-200/60 text-amber-800">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
@@ -439,7 +467,7 @@ async function handleSubmit() {
       <!-- Mobile error banner -->
       <Transition name="cooldown">
         <div v-if="error" class="mb-3">
-          <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-red-50 border-red-200 text-red-800">
+          <div class="flex items-center gap-3 px-4 py-3 rounded-xl border bg-red-50/80 backdrop-blur-sm border-red-200/60 text-red-800">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
@@ -461,11 +489,10 @@ async function handleSubmit() {
       <button
         :disabled="!canSubmit || loading.generating || rateLimited"
         :class="[
-          'w-full inline-flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-semibold text-base',
-          'transition-all duration-300 cursor-pointer',
+          'w-full inline-flex items-center justify-center gap-2.5 ai-cta-button',
           canSubmit && !loading.generating && !rateLimited
-            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25 active:translate-y-0'
-            : 'bg-neutral-200 text-neutral-400 cursor-not-allowed',
+            ? 'ai-cta-active'
+            : 'ai-cta-disabled',
         ]"
         @click="handleSubmit"
       >
@@ -474,7 +501,7 @@ async function handleSubmit() {
           class="w-5 h-5 animate-spin"
           :stroke-width="2"
         />
-        <span>{{ loading.generating ? '生成中...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '生成课程方案' }}</span>
+        <span>{{ loading.generating ? '生成中...' : rateLimited ? `请等待 ${cooldownRemaining} 秒...` : '查看课程方案' }}</span>
         <ArrowRight
           v-if="!loading.generating"
           class="w-5 h-5"
@@ -495,5 +522,320 @@ async function handleSubmit() {
 .cooldown-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+/* ── Page background ── */
+.wizard-page {
+  background-color: #F6F8FB;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Layer 1: Neural node dot grid */
+.wizard-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(192,57,43,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Layer 2: Floating gradient orb (top-right) */
+.wizard-page::after {
+  content: '';
+  position: fixed;
+  top: -120px;
+  right: -80px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(192,57,43,0.04) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  animation: orbDrift 20s ease-in-out infinite;
+}
+
+@keyframes orbDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(30px, -20px) scale(1.05); }
+  66%      { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+/* Secondary orb (bottom-left) */
+.ai-orb-secondary {
+  position: fixed;
+  bottom: -100px;
+  left: -60px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(212,160,106,0.05) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  animation: orbDrift 25s ease-in-out infinite reverse;
+}
+
+/* ── AI Header ── */
+.ai-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(246, 248, 251, 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+}
+
+/* Flowing data-stream gradient border */
+.ai-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(192,57,43,0.10) 15%,
+    rgba(212,160,106,0.18) 35%,
+    rgba(192,57,43,0.12) 50%,
+    rgba(212,160,106,0.18) 65%,
+    rgba(192,57,43,0.10) 85%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: streamFlow 6s linear infinite;
+}
+
+@keyframes streamFlow {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.header-ai-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(192,57,43,0.08), rgba(212,160,106,0.10));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #C0392B;
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #292524;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.header-reset-btn {
+  flex-shrink: 0;
+  margin-left: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #A8A29E;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.header-reset-btn:hover {
+  color: #C0392B;
+  background: rgba(192,57,43,0.06);
+  border-color: rgba(192,57,43,0.10);
+}
+
+/* On desktop, hide header title (hero section shows it) */
+@media (min-width: 640px) {
+  .header-title { display: none; }
+}
+
+/* ── Hero Title Section ── */
+.ai-hero {
+  position: relative;
+  z-index: 1;
+  padding: 32px 16px 24px;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .ai-hero { padding: 40px 24px 28px; }
+}
+
+.ai-hero-inner {
+  position: relative;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* Circuit decoration lines (desktop only) */
+.circuit-line {
+  position: absolute;
+  top: 50%;
+  width: 80px;
+  height: 1px;
+  pointer-events: none;
+  display: none;
+}
+@media (min-width: 1024px) {
+  .circuit-line { display: block; }
+}
+
+.circuit-line-left {
+  right: 100%;
+  margin-right: 16px;
+  background: linear-gradient(90deg, transparent, rgba(192,57,43,0.12));
+}
+.circuit-line-left::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(192,57,43,0.15);
+}
+
+.circuit-line-right {
+  left: 100%;
+  margin-left: 16px;
+  background: linear-gradient(90deg, rgba(212,160,106,0.12), transparent);
+}
+.circuit-line-right::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(212,160,106,0.15);
+}
+
+/* Badge above title */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, rgba(192,57,43,0.06), rgba(212,160,106,0.08));
+  border: 1px solid rgba(192,57,43,0.08);
+  color: #C0392B;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 14px;
+}
+
+/* Main title */
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: #1C1917;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin: 0;
+}
+@media (min-width: 640px) {
+  .hero-title { font-size: 28px; }
+}
+
+/* Subtitle */
+.hero-subtitle {
+  font-size: 14px;
+  color: #78716C;
+  margin-top: 8px;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* ── CTA Button ── */
+.ai-cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 40px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border: none;
+}
+
+.ai-cta-active {
+  background: linear-gradient(135deg, #C0392B 0%, #B83227 50%, #C0392B 100%);
+  color: #fff;
+  box-shadow:
+    0 4px 20px rgba(192,57,43,0.25),
+    0 0 0 1px rgba(212,160,106,0.15) inset;
+}
+
+.ai-cta-active:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 32px rgba(192,57,43,0.30),
+    0 0 0 1px rgba(212,160,106,0.20) inset;
+}
+
+/* Flowing shimmer sweep on hover */
+.ai-cta-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212,160,106,0.15) 30%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(212,160,106,0.15) 70%,
+    transparent 100%
+  );
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+.ai-cta-active:hover::before {
+  left: 100%;
+}
+
+/* Glowing border ring on hover */
+.ai-cta-active::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(192,57,43,0.2), rgba(212,160,106,0.2));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.ai-cta-active:hover::after {
+  opacity: 1;
+}
+
+.ai-cta-disabled {
+  background: #E7E5E4;
+  color: #A8A29E;
+  cursor: not-allowed;
 }
 </style>

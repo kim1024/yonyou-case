@@ -117,16 +117,16 @@ onUnmounted(() => {
     <button
       v-else
       type="button"
-      class="flex items-center gap-2.5 h-10 w-full md:w-80 pl-3.5 pr-4 bg-white border rounded-lg text-sm text-left transition-all duration-150 ease-out cursor-pointer"
+      class="flex items-center gap-2.5 h-10 w-full md:w-80 pl-3.5 pr-4 bg-white/70 backdrop-blur-sm border rounded-lg text-sm text-left transition-all duration-200 cursor-pointer"
       :class="[
         isOpen
-          ? 'border-primary-500 ring-[3px] ring-primary-500/15'
+          ? 'border-[#C0392B] ring-[3px] ring-[rgba(192,57,43,0.08)] shadow-[0_0_16px_rgba(192,57,43,0.06)]'
           : 'border-neutral-200 hover:border-neutral-300',
         selectedRegion ? 'text-neutral-700' : 'text-neutral-400',
       ]"
       @click="toggle"
     >
-      <MapPin class="w-4 h-4 shrink-0" :class="selectedRegion ? 'text-primary-500' : 'text-neutral-400'" :stroke-width="1.5" />
+      <MapPin class="w-4 h-4 shrink-0" :class="selectedRegion ? 'text-[#C0392B]' : 'text-neutral-400'" :stroke-width="1.5" />
       <span class="flex-1 truncate">{{ displayText }}</span>
       <X
         v-if="selectedRegion"
@@ -143,7 +143,7 @@ onUnmounted(() => {
     <Transition name="dropdown">
       <div
         v-if="isOpen"
-        class="absolute left-0 right-0 z-50 mt-1.5 bg-white border border-neutral-200 rounded-xl shadow-elevated max-h-[280px] flex-col overflow-hidden hidden md:flex md:w-80"
+        class="absolute left-0 right-0 z-50 mt-2 bg-white/85 backdrop-blur-xl border border-neutral-200/40 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] max-h-[280px] flex-col overflow-hidden hidden md:flex md:w-80"
       >
         <!-- 搜索框 -->
         <div class="p-2 pb-1.5">
@@ -154,7 +154,7 @@ onUnmounted(() => {
               v-model="searchQuery"
               type="text"
               placeholder="搜索地区..."
-              class="h-8 w-full pl-8 pr-8 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-primary-500 focus:ring-[2px] focus:ring-primary-500/15 transition-all"
+              class="h-8 w-full pl-8 pr-8 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-[#C0392B] focus:ring-[2px] focus:ring-[rgba(192,57,43,0.08)] focus:shadow-[0_0_12px_rgba(192,57,43,0.04)] transition-all"
               @keydown="onKeyDown"
             />
             <X
@@ -178,23 +178,24 @@ onUnmounted(() => {
             class="flex items-center gap-2.5 h-9 mx-1.5 px-2.5 rounded-lg text-sm cursor-pointer transition-colors duration-100 w-[calc(100%-12px)] text-left border-0"
             :class="[
               selectedRegion === region
-                ? 'bg-primary-50 text-primary-700 font-medium border-l-[3px] border-primary-500 pl-[7px]'
+                ? 'text-[#991B1B] font-medium pl-[7px]'
                 : highlightedIndex === index
                   ? 'bg-neutral-50 text-neutral-700'
                   : 'text-neutral-700 hover:bg-neutral-50',
             ]"
+            :style="selectedRegion === region ? 'background: linear-gradient(90deg, rgba(192,57,43,0.06), transparent 40%); border-left: 2px solid; border-image: linear-gradient(to bottom, #C0392B, #D4A06A) 1;' : ''"
             @click="selectItem(region)"
             @mouseenter="highlightedIndex = index"
           >
             <MapPin
               class="w-3.5 h-3.5 shrink-0"
-              :class="selectedRegion === region ? 'text-primary-500' : 'text-neutral-400'"
+              :class="selectedRegion === region ? 'text-[#C0392B]' : 'text-neutral-400'"
               :stroke-width="1.5"
             />
             <span class="flex-1 truncate">{{ region }}</span>
             <Check
               v-if="selectedRegion === region"
-              class="w-3.5 h-3.5 text-primary-500 shrink-0"
+              class="w-3.5 h-3.5 text-[#C0392B] shrink-0"
             />
           </button>
 
@@ -228,7 +229,7 @@ onUnmounted(() => {
     <Transition name="sheet">
       <div
         v-if="isOpen"
-        class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-overlay max-h-[60vh] flex flex-col md:hidden"
+        class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl rounded-t-2xl shadow-overlay max-h-[60vh] flex flex-col md:hidden"
       >
         <!-- 拖拽指示条 -->
         <div class="flex justify-center py-2">
@@ -243,7 +244,7 @@ onUnmounted(() => {
               v-model="searchQuery"
               type="text"
               placeholder="搜索地区..."
-              class="h-10 w-full pl-10 pr-10 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-primary-500 focus:ring-[2px] focus:ring-primary-500/15 transition-all"
+              class="h-10 w-full pl-10 pr-10 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-[#C0392B] focus:ring-[2px] focus:ring-[#C0392B]/15 transition-all"
             />
             <X
               v-if="searchQuery"
@@ -262,20 +263,20 @@ onUnmounted(() => {
             class="flex items-center gap-3 h-12 mx-2 px-3 rounded-lg text-sm cursor-pointer transition-colors duration-100 w-[calc(100%-16px)] text-left border-0"
             :class="[
               selectedRegion === region
-                ? 'bg-primary-50 text-primary-700 font-medium border-l-[3px] border-primary-500 pl-[9px]'
+                ? 'bg-[#FEF2F2] text-[#991B1B] font-medium border-l-[3px] border-[#C0392B] pl-[9px]'
                 : 'text-neutral-700 active:bg-neutral-100',
             ]"
             @click="selectItem(region)"
           >
             <MapPin
               class="w-4 h-4 shrink-0"
-              :class="selectedRegion === region ? 'text-primary-500' : 'text-neutral-400'"
+              :class="selectedRegion === region ? 'text-[#C0392B]' : 'text-neutral-400'"
               :stroke-width="1.5"
             />
             <span class="flex-1">{{ region }}</span>
             <Check
               v-if="selectedRegion === region"
-              class="w-4 h-4 text-primary-500 shrink-0"
+              class="w-4 h-4 text-[#C0392B] shrink-0"
             />
           </button>
 

@@ -71,12 +71,9 @@ function handleSelect(industry: string) {
         v-for="industry in industries"
         :key="industry"
         :class="[
-          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium',
-          'transition-all duration-200 cursor-pointer',
-          'border',
           selectedIndustry === industry
-            ? 'bg-primary-500 text-white border-primary-500 shadow-md shadow-primary-500/25 -translate-y-0.5'
-            : 'bg-white text-neutral-600 border-neutral-200 hover:border-primary-300 hover:text-primary-600 hover:-translate-y-0.5',
+            ? 'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer border bg-gradient-to-r from-[#C0392B] to-[#D4A06A] text-white border-transparent shadow-[0_2px_16px_rgba(192,57,43,0.25)] -translate-y-0.5'
+            : 'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer border bg-white/70 text-neutral-600 border-neutral-200/60 hover:border-[rgba(192,57,43,0.15)] hover:text-[#C0392B] hover:-translate-y-0.5 hover:shadow-[0_2px_12px_rgba(192,57,43,0.06)]',
           poppedKey === industry ? 'animate-select-pop' : '',
         ]"
         @click="handleSelect(industry)"
