@@ -1,7 +1,7 @@
 """Token daily quota service: tracks and enforces per-model and per-chain daily token limits."""
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
@@ -9,30 +9,28 @@ from sqlalchemy.orm import Session
 
 from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
+from app.utils.datetime import SERVER_TIMEZONE
 
 _logger = logging.getLogger(__name__)
 
-# UTC+8 timezone for daily reset at midnight Beijing time
-_CN_TZ = timezone(timedelta(hours=8))
+
+def _today_start() -> datetime:
+    """Return today's midnight in server timezone, expressed as a UTC-aware datetime."""
+    now_local = datetime.now(SERVER_TIMEZONE)
+    midnight_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    return midnight_local.astimezone(timezone.utc)
 
 
-def _today_start_utc8() -> datetime:
-    """Return today's midnight in UTC+8, expressed as a UTC-aware datetime."""
-    now_cn = datetime.now(_CN_TZ)
-    midnight_cn = now_cn.replace(hour=0, minute=0, second=0, microsecond=0)
-    return midnight_cn.astimezone(timezone.utc)
-
-
-def _next_reset_utc8() -> str:
-    """Return the next reset time (tomorrow midnight UTC+8) as ISO string."""
-    now_cn = datetime.now(_CN_TZ)
-    tomorrow_midnight = (now_cn + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+def _next_reset() -> str:
+    """Return the next reset time (tomorrow midnight in server timezone) as ISO string."""
+    now_local = datetime.now(SERVER_TIMEZONE)
+    tomorrow_midnight = (now_local + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     return tomorrow_midnight.isoformat()
 
 
 def get_daily_usage_by_config(db: Session, config_id: int) -> int:
     """查询单个 config 当日 token 用量。"""
-    today_start = _today_start_utc8()
+    today_start = _today_start()
     row = (
         db.query(func.coalesce(func.sum(TokenUsageLog.total_tokens), 0))
         .filter(
@@ -50,7 +48,7 @@ def get_daily_usage_by_chain(db: Session, fallback_group_id: str) -> int:
     链路模式下 token 统一记录到主模型的 config_id，因此主要按主模型查询。
     同时兼容旧数据：也查询当前链路内其他 config 的历史用量。
     """
-    today_start = _today_start_utc8()
+    today_start = _today_start()
 
     primary = get_primary_config(db, fallback_group_id)
     if not primary:
@@ -144,7 +142,7 @@ def enforce_quota(db: Session, config_id: int) -> None:
                     "limit": quota["limit"],
                     "used": quota["used"],
                     "remaining": 0,
-                    "reset_at": _next_reset_utc8(),
+                    "reset_at": _next_reset(),
                 },
             },
         )

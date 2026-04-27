@@ -1,40 +1,35 @@
 /**
  * Date formatting utilities.
- * All functions expect UTC ISO 8601 strings from the API
- * and convert to the browser's local timezone for display.
+ * All functions expect API strings already normalized to server timezone.
+ * Prefer direct string formatting to avoid browser-local timezone shifts.
  */
+
+function extractDateTimeParts(value: string): { date: string; time?: string } | null {
+  const normalized = value.trim().replace(' ', 'T')
+  const match = normalized.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/)
+  if (!match) return null
+  return { date: match[1], time: match[2] }
+}
 
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '-'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return '-'
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day} ${h}:${min}`
+  const parts = extractDateTimeParts(iso)
+  if (parts?.time) return `${parts.date} ${parts.time}`
+  if (parts?.date) return `${parts.date} 00:00`
+  return '-'
 }
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '-'
-  // Handle both full ISO datetime and plain YYYY-MM-DD
-  const d = iso.includes('T') ? new Date(iso) : new Date(iso + 'T00:00:00')
-  if (isNaN(d.getTime())) return '-'
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const parts = extractDateTimeParts(iso)
+  return parts?.date ?? '-'
 }
 
 export function formatMonthDay(dateStr: string | null | undefined): string {
   if (!dateStr) return ''
-  // Handle both full ISO datetime and plain YYYY-MM-DD
-  const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
-  if (isNaN(d.getTime())) return ''
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${m}-${day}`
+  const parts = extractDateTimeParts(dateStr)
+  if (!parts?.date) return ''
+  return parts.date.slice(5)
 }
 
 export function formatDateForInput(date: Date): string {

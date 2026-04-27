@@ -1,19 +1,25 @@
-from datetime import datetime, timedelta, timezone, date
-from sqlalchemy import cast, Date, func
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models.analytics import VisitLog
 from app.models.enterprise import Enterprise
+from app.utils.datetime import SERVER_TIMEZONE, server_today_start_utc, ensure_utc
 
 
 def get_summary(db: Session):
     total_visits = db.query(VisitLog).count()
     total_enterprises = db.query(Enterprise).count()
 
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    today_visits = db.query(VisitLog).filter(VisitLog.request_timestamp >= today).count()
+    today_start_utc = server_today_start_utc()
+    today_visits = db.query(VisitLog).filter(VisitLog.request_timestamp >= today_start_utc).count()
 
-    week_ago = today - timedelta(days=today.weekday())  # 本周一
-    week_visits = db.query(VisitLog).filter(VisitLog.request_timestamp >= week_ago).count()
+    local_now = datetime.now(timezone.utc).astimezone(SERVER_TIMEZONE)
+    week_start_local = (local_now - timedelta(days=local_now.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    week_start_utc = week_start_local.astimezone(timezone.utc)
+    week_visits = db.query(VisitLog).filter(VisitLog.request_timestamp >= week_start_utc).count()
 
     return {
         "total_visits": total_visits,
@@ -25,34 +31,39 @@ def get_summary(db: Session):
 
 def get_visit_trends(db: Session, days: int = 30):
     """按天统计访问量趋势（PV / UV）"""
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    start = today - timedelta(days=days)
+    end_local = datetime.now(timezone.utc).astimezone(SERVER_TIMEZONE).date()
+    start_local = end_local - timedelta(days=days)
+    start_utc = datetime.combine(start_local, datetime.min.time(), tzinfo=SERVER_TIMEZONE).astimezone(timezone.utc)
 
-    results = db.query(
-        cast(VisitLog.request_timestamp, Date).label("date"),
-        func.count(VisitLog.id).label("pv"),
-        func.count(VisitLog.ip_address.distinct()).label("uv")
-    ).filter(
-        VisitLog.request_timestamp >= start
-    ).group_by(
-        cast(VisitLog.request_timestamp, Date)
-    ).order_by("date").all()
+    rows = (
+        db.query(VisitLog.request_timestamp, VisitLog.ip_address)
+        .filter(VisitLog.request_timestamp >= start_utc)
+        .all()
+    )
+
+    pv_map: dict[str, int] = defaultdict(int)
+    uv_map: dict[str, set[str]] = defaultdict(set)
+    for ts, ip in rows:
+        utc_ts = ensure_utc(ts)
+        if utc_ts is None:
+            continue
+        day_key = utc_ts.astimezone(SERVER_TIMEZONE).date().isoformat()
+        pv_map[day_key] += 1
+        if ip:
+            uv_map[day_key].add(ip)
 
     # 补全缺失日期（填 0）
-    date_map = {str(r.date): (r.pv, r.uv) for r in results}
-    end_date = datetime.now(timezone.utc).date()
-    start_date = end_date - timedelta(days=days)
     trend = []
     for i in range(days + 1):
-        d = (start_date + timedelta(days=i)).isoformat()
-        pv, uv = date_map.get(d, (0, 0))
+        d = (start_local + timedelta(days=i)).isoformat()
+        pv = pv_map.get(d, 0)
+        uv = len(uv_map.get(d, set()))
         trend.append({"date": d, "pv": pv, "uv": uv})
     return trend
 
 
 def get_province_distribution(db: Session, days: int = 30):
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    start = today - timedelta(days=days)
+    start = server_today_start_utc() - timedelta(days=days)
 
     results = db.query(
         VisitLog.region,
@@ -67,8 +78,7 @@ def get_province_distribution(db: Session, days: int = 30):
 
 
 def get_case_frequency(db: Session, days: int = 30):
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    start = today - timedelta(days=days)
+    start = server_today_start_utc() - timedelta(days=days)
 
     results = db.query(
         VisitLog.enterprise,
@@ -86,8 +96,7 @@ def get_case_frequency(db: Session, days: int = 30):
 
 
 def get_industry_distribution(db: Session, days: int = 30):
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    start = today - timedelta(days=days)
+    start = server_today_start_utc() - timedelta(days=days)
 
     results = db.query(
         VisitLog.industry,

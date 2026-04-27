@@ -1,11 +1,12 @@
 import httpx
+from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case, cast, Date
+from sqlalchemy import func, case
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timedelta, timezone, date
-from app.utils.datetime import utc_isoformat
+from datetime import datetime, timedelta, timezone
+from app.utils.datetime import utc_isoformat, SERVER_TIMEZONE, server_today_start_utc, ensure_utc
 from app.database import get_db
 from app.models.llm_config import LLMConfig
 from app.models.token_usage_log import TokenUsageLog
@@ -307,8 +308,8 @@ def get_token_stats(
 ):
     """Token 消耗统计面板。返回近 N 天的汇总数据。"""
     now = datetime.now(timezone.utc)
-    start_date = now - timedelta(days=days)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = server_today_start_utc(now)
+    start_date = today_start - timedelta(days=days)
 
     # 基础查询条件
     base_filter = TokenUsageLog.request_timestamp >= start_date
@@ -359,28 +360,29 @@ def get_token_stats(
 
     # 每日趋势
     daily_rows = (
-        db.query(
-            cast(TokenUsageLog.request_timestamp, Date).label("date"),
-            func.coalesce(func.sum(TokenUsageLog.total_tokens), 0).label("tokens"),
-            func.count().label("calls"),
-        )
+        db.query(TokenUsageLog.request_timestamp, TokenUsageLog.total_tokens)
         .filter(base_filter)
-        .group_by(cast(TokenUsageLog.request_timestamp, Date))
-        .order_by(cast(TokenUsageLog.request_timestamp, Date))
         .all()
     )
+    trend_map: dict[str, dict] = defaultdict(lambda: {"tokens": 0, "calls": 0})
+    for ts, total_tokens_row in daily_rows:
+        utc_ts = ensure_utc(ts)
+        if utc_ts is None:
+            continue
+        day_key = utc_ts.astimezone(SERVER_TIMEZONE).date().isoformat()
+        trend_map[day_key]["tokens"] += int(total_tokens_row or 0)
+        trend_map[day_key]["calls"] += 1
+
     # 补全缺失日期（填 0）
-    date_map = {str(row.date): row for row in daily_rows}
-    end_date = datetime.now(timezone.utc).date()
+    end_date = now.astimezone(SERVER_TIMEZONE).date()
     start_date = end_date - timedelta(days=days)
     daily_trend = []
     for i in range(days + 1):
         d = (start_date + timedelta(days=i)).isoformat()
-        row = date_map.get(d)
         daily_trend.append({
             "date": d,
-            "tokens": int(row.tokens) if row else 0,
-            "calls": int(row.calls) if row else 0,
+            "tokens": trend_map[d]["tokens"],
+            "calls": trend_map[d]["calls"],
         })
 
     # 限额状态：收集所有有限额的模型/链路

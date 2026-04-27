@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.generated_plan import GeneratedPlan
-from app.utils.datetime import utc_isoformat
+from app.utils.datetime import utc_isoformat, day_range_utc_by_server_tz
 
 router = APIRouter(prefix="/api/admin/plans", tags=["admin-plans"])
 
@@ -89,20 +88,14 @@ def list_plans(
 
     if date_from:
         try:
-            dt_from = datetime.fromisoformat(date_from)
-            if dt_from.tzinfo is None:
-                dt_from = dt_from.replace(tzinfo=timezone.utc)
+            dt_from, _ = day_range_utc_by_server_tz(date_from)
             query = query.filter(GeneratedPlan.created_at >= dt_from)
         except (ValueError, TypeError):
             pass
 
     if date_to:
         try:
-            dt_to = datetime.fromisoformat(date_to)
-            if dt_to.tzinfo is None:
-                dt_to = dt_to.replace(tzinfo=timezone.utc)
-            # 包含 date_to 当天：小于 date_to 的下一天
-            dt_to_end = dt_to + timedelta(days=1)
+            _, dt_to_end = day_range_utc_by_server_tz(date_to)
             query = query.filter(GeneratedPlan.created_at < dt_to_end)
         except (ValueError, TypeError):
             pass
