@@ -18,7 +18,7 @@ _logger = logging.getLogger(__name__)
 import yaml
 from openpyxl import load_workbook
 
-from app.database import SessionLocal
+from app.database import SessionLocal, engine, Base
 from app.models.enterprise import Enterprise
 from app.models.admin import AdminUser
 from app.models.major import Major, Industry, MajorIndustry, Region, Hour
@@ -29,6 +29,13 @@ from app.models.province_city import Province, City
 from app.models.plan_theme import PlanTheme
 from app.models.plan_theme_version import PlanThemeVersion
 from app.services.auth_service import get_password_hash
+
+# 导入所有模型以确保 Base.metadata.create_all 能发现它们
+from app.models import VisitLog  # noqa: F401
+from app.models import TokenUsageLog  # noqa: F401
+from app.models import GeneratedPlan  # noqa: F401
+from app.models.security_setting import SecuritySetting  # noqa: F401
+from app.models.chain_runtime_state import ChainRuntimeState  # noqa: F401
 
 # ---------- 路径 ----------
 PROJECT_ROOT = BACKEND_DIR.parent
@@ -539,4 +546,5 @@ def seed_prompt_templates(db):
 
 
 if __name__ == "__main__":
+    Base.metadata.create_all(bind=engine)
     seed_database()

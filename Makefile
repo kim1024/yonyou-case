@@ -2,11 +2,6 @@
 # 用友产业案例教学课程定制系统 — 服务管理 Makefile
 # ============================================================
 # 用法:
-#   make dev-start     开发模式启动（带热重载）
-#   make dev-stop      停止开发模式进程
-#   make dev-restart   重启开发模式
-#   make dev-status    查看开发模式进程状态
-#
 #   make deploy        一键部署（构建前端 + 重启后端 + 重载 Nginx）
 #   make start         生产模式启动（通过 systemd）
 #   make stop          生产模式停止（通过 systemd）
@@ -25,7 +20,6 @@ PROJECT_ROOT   := $(shell pwd)
 BACKEND_DIR    := $(PROJECT_ROOT)/backend
 FRONTEND_DIR   := $(PROJECT_ROOT)/frontend
 LOG_DIR        := $(BACKEND_DIR)/logs
-PID_FILE       := $(BACKEND_DIR)/uvicorn.pid
 
 # conda 环境配置（线上 Miniforge3）
 CONDA_DIR      ?= $(HOME)/miniforge3
@@ -50,55 +44,6 @@ C_GREEN  := \033[32m
 C_YELLOW := \033[33m
 C_CYAN   := \033[36m
 C_RED    := \033[31m
-
-# ============================================================
-# 开发模式（本地进程，无 systemd）
-# ============================================================
-
-.PHONY: dev-start dev-stop dev-restart dev-status
-
-## 启动开发服务器（单进程 + 热重载）
-dev-start:
-	@mkdir -p $(LOG_DIR)
-	@if [ -f $(PID_FILE) ] && kill -0 $$(cat $(PID_FILE)) 2>/dev/null; then \
-		echo "$(C_YELLOW)[!] 开发服务器已在运行 (PID: $$(cat $(PID_FILE)))$(C_RESET)"; \
-		exit 1; \
-	fi
-	@echo "$(C_GREEN)[>] 启动开发服务器（单进程热重载）...$(C_RESET)"
-	cd $(BACKEND_DIR) && $(PYTHON) -m uvicorn app.main:app \
-		--host $(HOST) --port $(PORT) --reload &
-	@echo $$! > $(PID_FILE)
-	@echo "$(C_GREEN)[OK] 开发服务器已启动 (PID: $$!, 端口: $(PORT))$(C_RESET)"
-
-## 停止开发服务器
-dev-stop:
-	@if [ -f $(PID_FILE) ]; then \
-		PID=$$(cat $(PID_FILE)); \
-		if kill -0 $$PID 2>/dev/null; then \
-			echo "$(C_YELLOW)[>] 停止开发服务器 (PID: $$PID)...$(C_RESET)"; \
-			kill $$PID; \
-			rm -f $(PID_FILE); \
-			echo "$(C_GREEN)[OK] 已停止$(C_RESET)"; \
-		else \
-			echo "$(C_YELLOW)[!] 进程 $$PID 已不存在，清理 PID 文件$(C_RESET)"; \
-			rm -f $(PID_FILE); \
-		fi; \
-	else \
-		echo "$(C_YELLOW)[!] 未找到 PID 文件$(C_RESET)"; \
-	fi
-
-## 重启开发服务器
-dev-restart: dev-stop
-	@sleep 1
-	@$(MAKE) dev-start
-
-## 查看开发服务器状态
-dev-status:
-	@if [ -f $(PID_FILE) ] && kill -0 $$(cat $(PID_FILE)) 2>/dev/null; then \
-		echo "$(C_GREEN)[OK] 开发服务器运行中 (PID: $$(cat $(PID_FILE)), 端口: $(PORT))$(C_RESET)"; \
-	else \
-		echo "$(C_YELLOW)[-] 开发服务器未运行$(C_RESET)"; \
-	fi
 
 # ============================================================
 # 生产模式（systemd 管理，多 worker 高并发）
@@ -262,12 +207,6 @@ help:
 	@echo ""
 	@echo "  $(C_GREEN)首次安装:$(C_RESET)"
 	@echo "    make setup             创建 conda 环境、安装依赖、初始化数据库"
-	@echo ""
-	@echo "  $(C_GREEN)开发模式:$(C_RESET)"
-	@echo "    make dev-start         启动（单进程热重载，端口 $(PORT)）"
-	@echo "    make dev-stop          停止"
-	@echo "    make dev-restart       重启"
-	@echo "    make dev-status        状态"
 	@echo ""
 	@echo "  $(C_GREEN)生产模式:$(C_RESET)"
 	@echo "    make start             启动（systemd）"
