@@ -104,7 +104,7 @@ withDefaults(
   position: absolute;
   top: 12px;
   left: -8px;
-  color: #C0392B;
+  color: #DC2626;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.5s ease;
@@ -127,10 +127,10 @@ withDefaults(
 }
 
 .ai-number-badge-active {
-  background: linear-gradient(135deg, rgba(192,57,43,0.08), rgba(212,160,106,0.10));
-  color: #C0392B;
-  border: 1px solid rgba(192,57,43,0.12);
-  box-shadow: 0 0 16px rgba(192,57,43,0.06);
+  background: linear-gradient(135deg, rgba(220,38,38,0.08), rgba(239,68,68,0.10));
+  color: #DC2626;
+  border: 1px solid rgba(220,38,38,0.12);
+  box-shadow: 0 0 16px rgba(220,38,38,0.06);
 }
 
 .ai-number-badge-locked {
@@ -154,7 +154,7 @@ withDefaults(
   background: rgba(255,255,255,0.80);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(192,57,43,0.08);
+  border: 1px solid rgba(220,38,38,0.08);
   padding: 12px 24px;
   border-radius: 12px;
   display: flex;

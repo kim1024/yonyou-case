@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRouter, isNavigationFailure } from 'vue-router'
 import { Sparkles, Loader2 } from 'lucide-vue-next'
 import { useWizard } from '@/composables/useWizard'
@@ -43,14 +43,6 @@ const {
 let timerInterval: ReturnType<typeof setInterval> | null = null
 let isRestorePolling = false
 let hasRetriedGeneration = false
-
-// ── Hero scroll animation refs ──
-const heroRef = ref<HTMLElement | null>(null)
-let heroObserver: IntersectionObserver | null = null
-let idleTimeout: ReturnType<typeof setTimeout> | null = null
-let scrollTicking = false
-let exitTimeout: ReturnType<typeof setTimeout> | null = null
-let enterTimeout: ReturnType<typeof setTimeout> | null = null
 
 async function pollStatus() {
   const requestId = currentRequestId.value
@@ -168,63 +160,6 @@ onMounted(async () => {
   init()
   window.addEventListener('beforeunload', handleBeforeUnload)
 
-  // ── Hero scroll animation: IntersectionObserver ──
-  if (heroRef.value) {
-    const hero = heroRef.value
-
-    heroObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            hero.classList.remove('hero-exiting')
-            hero.classList.add('hero-entering')
-            if (enterTimeout) clearTimeout(enterTimeout)
-            enterTimeout = setTimeout(() => {
-              hero.classList.remove('hero-entering')
-            }, 500)
-          } else {
-            hero.classList.remove('hero-entering', 'hero-idle')
-            hero.classList.add('hero-exiting')
-            if (exitTimeout) clearTimeout(exitTimeout)
-            exitTimeout = setTimeout(() => {
-              hero.classList.remove('hero-exiting')
-            }, 400)
-          }
-        })
-      },
-      {
-        root: null,
-        rootMargin: '-20px 0px 0px 0px',
-        threshold: [0, 0.25, 0.5, 0.75, 1],
-      }
-    )
-    heroObserver.observe(hero)
-
-    // ── Hero scroll animation: idle detection with rAF throttle ──
-    const onScroll = () => {
-      if (!scrollTicking) {
-        requestAnimationFrame(() => {
-          hero.classList.remove('hero-idle')
-          if (idleTimeout) clearTimeout(idleTimeout)
-          idleTimeout = setTimeout(() => {
-            if (!hero.classList.contains('hero-exiting')) {
-              hero.classList.add('hero-idle')
-            }
-          }, 800)
-          scrollTicking = false
-        })
-        scrollTicking = true
-      }
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-
-    // Store cleanup references on the element for unmount
-    ;(hero as any).__scrollCleanup = () => {
-      window.removeEventListener('scroll', onScroll)
-      if (idleTimeout) clearTimeout(idleTimeout)
-    }
-  }
-
   const result = await restoreGeneration()
   if (result && 'status' in result && result.status === 'pending') {
     startTimer(true)
@@ -254,17 +189,6 @@ onMounted(async () => {
 onUnmounted(() => {
   stopTimer()
   window.removeEventListener('beforeunload', handleBeforeUnload)
-
-  // ── Hero scroll animation cleanup ──
-  if (heroObserver) {
-    heroObserver.disconnect()
-    heroObserver = null
-  }
-  if (exitTimeout) clearTimeout(exitTimeout)
-  if (enterTimeout) clearTimeout(enterTimeout)
-  if (heroRef.value && (heroRef.value as any).__scrollCleanup) {
-    ;(heroRef.value as any).__scrollCleanup()
-  }
 })
 
 async function handleSubmit() {
@@ -307,7 +231,7 @@ async function handleSubmit() {
     <div class="ai-orb-secondary" aria-hidden="true"></div>
 
     <!-- Hero title section -->
-    <section ref="heroRef" class="ai-hero hero-visible">
+    <section class="ai-hero">
       <div class="ai-hero-inner">
         <!-- Decorative circuit lines -->
         <div class="circuit-line circuit-line-left" aria-hidden="true"></div>
@@ -595,7 +519,7 @@ async function handleSubmit() {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(160,140,155,0.07) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(220,38,38,0.06) 1px, transparent 1px);
   background-size: 28px 28px;
   pointer-events: none;
   z-index: 0;
@@ -609,7 +533,7 @@ async function handleSubmit() {
   right: -80px;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(175,130,125,0.05) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(220,38,38,0.05) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
@@ -629,7 +553,7 @@ async function handleSubmit() {
   left: -60px;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(155,145,165,0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(220,38,38,0.06) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
@@ -653,9 +577,9 @@ async function handleSubmit() {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(180,130,120,0.04) 30%,
-    rgba(160,140,160,0.05) 50%,
-    rgba(180,130,120,0.04) 70%,
+    rgba(220,38,38,0.04) 30%,
+    rgba(220,38,38,0.05) 50%,
+    rgba(220,38,38,0.04) 70%,
     transparent 100%
   );
   pointer-events: none;
@@ -689,7 +613,7 @@ async function handleSubmit() {
 .circuit-line-left {
   right: 100%;
   margin-right: 16px;
-  background: linear-gradient(90deg, transparent, rgba(160,140,155,0.10));
+  background: linear-gradient(90deg, transparent, rgba(220,38,38,0.10));
 }
 .circuit-line-left::after {
   content: '';
@@ -699,13 +623,13 @@ async function handleSubmit() {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(160,140,155,0.12);
+  background: rgba(220,38,38,0.12);
 }
 
 .circuit-line-right {
   left: 100%;
   margin-left: 16px;
-  background: linear-gradient(90deg, rgba(175,130,125,0.10), transparent);
+  background: linear-gradient(90deg, rgba(220,38,38,0.10), transparent);
 }
 .circuit-line-right::after {
   content: '';
@@ -715,7 +639,7 @@ async function handleSubmit() {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(175,130,125,0.12);
+  background: rgba(220,38,38,0.12);
 }
 
 /* Badge above title */
@@ -725,9 +649,9 @@ async function handleSubmit() {
   gap: 6px;
   padding: 5px 14px;
   border-radius: 100px;
-  background: linear-gradient(135deg, rgba(175,115,105,0.07), rgba(160,135,155,0.08));
-  border: 1px solid rgba(175,115,105,0.08);
-  color: #9B6B63;
+  background: linear-gradient(135deg, rgba(220,38,38,0.07), rgba(220,38,38,0.08));
+  border: 1px solid rgba(220,38,38,0.10);
+  color: #DC2626;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -775,18 +699,18 @@ async function handleSubmit() {
 }
 
 .ai-cta-active {
-  background: linear-gradient(135deg, #C0392B 0%, #B83227 50%, #C0392B 100%);
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 50%, #DC2626 100%);
   color: #fff;
   box-shadow:
-    0 4px 20px rgba(192,57,43,0.25),
-    0 0 0 1px rgba(212,160,106,0.15) inset;
+    0 4px 20px rgba(220,38,38,0.25),
+    0 0 0 1px rgba(220,38,38,0.15) inset;
 }
 
 .ai-cta-active:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 8px 32px rgba(192,57,43,0.30),
-    0 0 0 1px rgba(212,160,106,0.20) inset;
+    0 8px 32px rgba(220,38,38,0.30),
+    0 0 0 1px rgba(220,38,38,0.20) inset;
 }
 
 /* Flowing shimmer sweep on hover */
@@ -800,9 +724,9 @@ async function handleSubmit() {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(212,160,106,0.15) 30%,
+    rgba(220,38,38,0.15) 30%,
     rgba(255,255,255,0.10) 50%,
-    rgba(212,160,106,0.15) 70%,
+    rgba(220,38,38,0.15) 70%,
     transparent 100%
   );
   transition: left 0.6s ease;
@@ -818,7 +742,7 @@ async function handleSubmit() {
   position: absolute;
   inset: -2px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(192,57,43,0.2), rgba(212,160,106,0.2));
+  background: linear-gradient(135deg, rgba(220,38,38,0.2), rgba(220,38,38,0.2));
   z-index: -1;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -833,179 +757,6 @@ async function handleSubmit() {
   cursor: not-allowed;
 }
 
-/* ═══════════════════════════════════════════════════════
-   Hero Scroll Animation — Three States
-   ═══════════════════════════════════════════════════════ */
-
-/* ── Keyframes: Exit ── */
-
-@keyframes heroExit {
-  from { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
-  to   { opacity: 0; transform: translateY(-12px) scale(0.97); filter: blur(2px); }
-}
-
-@keyframes heroBadgeExit {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(-8px); }
-}
-
-@keyframes heroTitleExit {
-  from { opacity: 1; transform: translateY(0) scaleX(1); }
-  to   { opacity: 0; transform: translateY(-6px) scaleX(0.98); }
-}
-
-@keyframes heroSubtitleExit {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(-4px); }
-}
-
-@keyframes heroCircuitExit {
-  from { opacity: 1; transform: scaleX(1); }
-  to   { opacity: 0; transform: scaleX(0.3); }
-}
-
-/* ── Keyframes: Enter ── */
-
-@keyframes heroEnter {
-  from { opacity: 0; transform: translateY(8px) scale(0.97); filter: blur(2px); }
-  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
-}
-
-@keyframes heroBadgeEnter {
-  from { opacity: 0; transform: translateY(-12px) scale(0.9); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes heroTitleEnter {
-  from { opacity: 0; transform: translateY(10px) scaleX(0.98); }
-  to   { opacity: 1; transform: translateY(0) scaleX(1); }
-}
-
-@keyframes heroSubtitleEnter {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes heroCircuitEnter {
-  from { opacity: 0; transform: scaleX(0.3); }
-  to   { opacity: 1; transform: scaleX(1); }
-}
-
-/* ── Keyframes: Idle ── */
-
-@keyframes idleCircuitPulse {
-  0%   { transform: scaleX(1); opacity: 1; }
-  25%  { transform: scaleX(1.05); opacity: 0.8; }
-  50%  { transform: scaleX(1); opacity: 1; }
-  75%  { transform: scaleX(0.95); opacity: 0.8; }
-  100% { transform: scaleX(1); opacity: 1; }
-}
-
-@keyframes idleCircuitDotTravel {
-  0%, 100% { transform: translateX(0); opacity: 0.15; }
-  50%      { transform: translateX(8px); opacity: 0.4; }
-}
-
-@keyframes ambientBreathe {
-  0%, 100% { opacity: 0.85; }
-  50%      { opacity: 1;    }
-}
-
-@keyframes accentBreathe {
-  0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
-  50%      { opacity: 1;   transform: translateX(-50%) scale(1.04); }
-}
-
-/* ── Exit State ── */
-
-.hero-exiting {
-  animation: heroExit 0.4s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
-}
-.hero-exiting .hero-badge {
-  animation: heroBadgeExit 0.3s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
-}
-.hero-exiting .hero-title {
-  animation: heroTitleExit 0.35s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
-  animation-delay: 0.04s;
-}
-.hero-exiting .hero-subtitle {
-  animation: heroSubtitleExit 0.3s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
-  animation-delay: 0.08s;
-}
-.hero-exiting .circuit-line {
-  animation: heroCircuitExit 0.35s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
-  animation-delay: 0.02s;
-}
-.hero-exiting::before {
-  opacity: 0;
-}
-.hero-exiting .hero-glow {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.9);
-}
-.hero-exiting .hero-glow::after {
-  opacity: 0;
-}
-
-/* ── Enter State ── */
-
-.hero-entering {
-  animation: heroEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.hero-entering .hero-badge {
-  animation: heroBadgeEnter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.06s;
-}
-.hero-entering .hero-title {
-  animation: heroTitleEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  animation-delay: 0.12s;
-}
-.hero-entering .hero-subtitle {
-  animation: heroSubtitleEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  animation-delay: 0.18s;
-}
-.hero-entering .circuit-line {
-  animation: heroCircuitEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  animation-delay: 0.1s;
-}
-.hero-entering::before {
-  opacity: 1;
-  transition: opacity 0.5s ease 0.1s;
-}
-.hero-entering .hero-glow {
-  opacity: 0.8;
-  transform: translate(-50%, -50%) scale(1);
-  transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s;
-}
-
-/* ── Idle State ── */
-
-.hero-idle::before {
-  opacity: 1;
-}
-.hero-idle .hero-glow {
-  opacity: 1;
-  animation: ambientBreathe 6s ease-in-out infinite;
-  animation-delay: 0.3s;
-}
-.hero-idle .hero-glow::after {
-  opacity: 1;
-  animation: accentBreathe 7s ease-in-out infinite;
-  animation-delay: 0.8s;
-}
-.hero-idle .circuit-line-left {
-  animation: idleCircuitPulse 5s ease-in-out infinite;
-}
-.hero-idle .circuit-line-left::after {
-  animation: idleCircuitDotTravel 5s ease-in-out infinite;
-}
-.hero-idle .circuit-line-right {
-  animation: idleCircuitPulse 5s ease-in-out infinite reverse;
-}
-.hero-idle .circuit-line-right::after {
-  animation: idleCircuitDotTravel 5s ease-in-out infinite reverse;
-}
-
 /* ── Ambient Glow: Horizontal Light Band ── */
 
 .hero-glow {
@@ -1017,9 +768,9 @@ async function handleSubmit() {
   height: 65%;
   background: radial-gradient(
     ellipse 60% 50% at 50% 50%,
-    rgba(180,120,115,0.10) 0%,
-    rgba(160,135,155,0.07) 30%,
-    rgba(150,145,165,0.05) 55%,
+    rgba(220,38,38,0.10) 0%,
+    rgba(220,38,38,0.07) 30%,
+    rgba(220,38,38,0.05) 55%,
     transparent 80%
   );
   pointer-events: none;
@@ -1039,59 +790,12 @@ async function handleSubmit() {
   height: 35%;
   background: radial-gradient(
     ellipse at center,
-    rgba(175,115,105,0.07) 0%,
-    rgba(170,130,120,0.04) 40%,
+    rgba(220,38,38,0.07) 0%,
+    rgba(220,38,38,0.04) 40%,
     transparent 75%
   );
   border-radius: 50%;
   opacity: 0;
   transition: opacity 0.5s ease;
-}
-
-/* ── Reduced Motion ── */
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-exiting,
-  .hero-exiting .hero-badge,
-  .hero-exiting .hero-title,
-  .hero-exiting .hero-subtitle,
-  .hero-exiting .circuit-line {
-    animation: none !important;
-  }
-  .hero-exiting {
-    opacity: 0;
-    transition: opacity 0.15s ease;
-  }
-
-  .hero-entering,
-  .hero-entering .hero-badge,
-  .hero-entering .hero-title,
-  .hero-entering .hero-subtitle,
-  .hero-entering .circuit-line {
-    animation: none !important;
-    transform: none !important;
-    filter: none !important;
-  }
-  .hero-entering {
-    opacity: 1;
-    transition: opacity 0.15s ease;
-  }
-
-  .hero-idle .hero-glow,
-  .hero-idle .hero-glow::after {
-    animation: none !important;
-  }
-  .hero-idle .hero-glow {
-    opacity: 0.6 !important;
-  }
-  .hero-idle .hero-glow::after {
-    opacity: 0.5 !important;
-  }
-
-  .hero-idle .circuit-line,
-  .hero-idle .circuit-line-left,
-  .hero-idle .circuit-line-right {
-    animation: none !important;
-  }
 }
 </style>

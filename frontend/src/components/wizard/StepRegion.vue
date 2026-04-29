@@ -120,13 +120,13 @@ onUnmounted(() => {
       class="flex items-center gap-2.5 h-10 w-full md:w-80 pl-3.5 pr-4 bg-white/70 backdrop-blur-sm border rounded-lg text-sm text-left transition-all duration-200 cursor-pointer"
       :class="[
         isOpen
-          ? 'border-[#C0392B] ring-[3px] ring-[rgba(192,57,43,0.08)] shadow-[0_0_16px_rgba(192,57,43,0.06)]'
+          ? 'border-[#DC2626] ring-[3px] ring-[rgba(220,38,38,0.08)] shadow-[0_0_16px_rgba(220,38,38,0.06)]'
           : 'border-neutral-200 hover:border-neutral-300',
         selectedRegion ? 'text-neutral-700' : 'text-neutral-400',
       ]"
       @click="toggle"
     >
-      <MapPin class="w-4 h-4 shrink-0" :class="selectedRegion ? 'text-[#C0392B]' : 'text-neutral-400'" :stroke-width="1.5" />
+      <MapPin class="w-4 h-4 shrink-0" :class="selectedRegion ? 'text-[#DC2626]' : 'text-neutral-400'" :stroke-width="1.5" />
       <span class="flex-1 truncate">{{ displayText }}</span>
       <X
         v-if="selectedRegion"
@@ -154,7 +154,7 @@ onUnmounted(() => {
               v-model="searchQuery"
               type="text"
               placeholder="搜索地区..."
-              class="h-8 w-full pl-8 pr-8 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-[#C0392B] focus:ring-[2px] focus:ring-[rgba(192,57,43,0.08)] focus:shadow-[0_0_12px_rgba(192,57,43,0.04)] transition-all"
+              class="h-8 w-full pl-8 pr-8 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-[#DC2626] focus:ring-[2px] focus:ring-[rgba(220,38,38,0.08)] focus:shadow-[0_0_12px_rgba(220,38,38,0.04)] transition-all"
               @keydown="onKeyDown"
             />
             <X
@@ -183,19 +183,19 @@ onUnmounted(() => {
                   ? 'bg-neutral-50 text-neutral-700'
                   : 'text-neutral-700 hover:bg-neutral-50',
             ]"
-            :style="selectedRegion === region ? 'background: linear-gradient(90deg, rgba(192,57,43,0.06), transparent 40%); border-left: 2px solid; border-image: linear-gradient(to bottom, #C0392B, #D4A06A) 1;' : ''"
+            :style="selectedRegion === region ? 'background: linear-gradient(90deg, rgba(220,38,38,0.06), transparent 40%); border-left: 2px solid; border-image: linear-gradient(to bottom, #DC2626, #EF4444) 1;' : ''"
             @click="selectItem(region)"
             @mouseenter="highlightedIndex = index"
           >
             <MapPin
               class="w-3.5 h-3.5 shrink-0"
-              :class="selectedRegion === region ? 'text-[#C0392B]' : 'text-neutral-400'"
+              :class="selectedRegion === region ? 'text-[#DC2626]' : 'text-neutral-400'"
               :stroke-width="1.5"
             />
             <span class="flex-1 truncate">{{ region }}</span>
             <Check
               v-if="selectedRegion === region"
-              class="w-3.5 h-3.5 text-[#C0392B] shrink-0"
+              class="w-3.5 h-3.5 text-[#DC2626] shrink-0"
             />
           </button>
 
@@ -216,84 +216,85 @@ onUnmounted(() => {
       </div>
     </Transition>
 
-    <!-- 移动端 Bottom Sheet 遮罩 -->
-    <Transition name="fade">
-      <div
-        v-if="isOpen"
-        class="fixed inset-0 bg-black/20 z-40 md:hidden"
-        @click="close"
-      />
-    </Transition>
-
     <!-- 移动端 Bottom Sheet -->
-    <Transition name="sheet">
-      <div
-        v-if="isOpen"
-        class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl rounded-t-2xl shadow-overlay max-h-[60vh] flex flex-col md:hidden"
-      >
-        <!-- 拖拽指示条 -->
-        <div class="flex justify-center py-2">
-          <div class="w-9 h-1 rounded-full bg-neutral-200" />
-        </div>
+      <!-- 遮罩 -->
+      <Transition name="fade">
+        <div
+          v-if="isOpen"
+          class="fixed inset-0 bg-black/20 z-40 md:hidden"
+          @click="close"
+        />
+      </Transition>
 
-        <!-- 搜索框 -->
-        <div class="px-4 pb-2">
-          <div class="relative">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="搜索地区..."
-              class="h-10 w-full pl-10 pr-10 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-[#C0392B] focus:ring-[2px] focus:ring-[#C0392B]/15 transition-all"
-            />
-            <X
-              v-if="searchQuery"
-              class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 hover:text-neutral-600 cursor-pointer"
-              @click="searchQuery = ''"
-            />
+      <!-- Bottom Sheet -->
+      <Transition name="sheet">
+        <div
+          v-if="isOpen"
+          class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl rounded-t-2xl shadow-overlay max-h-[60vh] flex flex-col md:hidden"
+        >
+          <!-- 拖拽指示条 -->
+          <div class="flex justify-center py-2">
+            <div class="w-9 h-1 rounded-full bg-neutral-200" />
+          </div>
+
+          <!-- 搜索框 -->
+          <div class="px-4 pb-2">
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="搜索地区..."
+                class="h-10 w-full pl-10 pr-10 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-[#DC2626] focus:ring-[2px] focus:ring-[#DC2626]/15 transition-all"
+              />
+              <X
+                v-if="searchQuery"
+                class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                @click="searchQuery = ''"
+              />
+            </div>
+          </div>
+
+          <!-- 选项列表 -->
+          <div class="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">
+            <button
+              v-for="region in filteredRegions"
+              :key="region"
+              type="button"
+              class="flex items-center gap-3 h-12 mx-2 px-3 rounded-lg text-sm cursor-pointer transition-colors duration-100 w-[calc(100%-16px)] text-left border-0"
+              :class="[
+                selectedRegion === region
+                  ? 'bg-[#FEF2F2] text-[#991B1B] font-medium border-l-[3px] border-[#DC2626] pl-[9px]'
+                  : 'text-neutral-700 active:bg-neutral-100',
+              ]"
+              @click="selectItem(region)"
+            >
+              <MapPin
+                class="w-4 h-4 shrink-0"
+                :class="selectedRegion === region ? 'text-[#DC2626]' : 'text-neutral-400'"
+                :stroke-width="1.5"
+              />
+              <span class="flex-1">{{ region }}</span>
+              <Check
+                v-if="selectedRegion === region"
+                class="w-4 h-4 text-[#DC2626] shrink-0"
+              />
+            </button>
+
+            <div
+              v-if="filteredRegions.length === 0"
+              class="text-center py-8 text-neutral-400 text-sm"
+            >
+              未找到匹配的地区
+            </div>
+          </div>
+
+          <!-- 底部统计 -->
+          <div class="px-4 py-3 border-t border-neutral-100 text-xs text-neutral-400 text-center">
+            共 {{ filteredRegions.length }} 个地区
           </div>
         </div>
-
-        <!-- 选项列表 -->
-        <div class="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">
-          <button
-            v-for="region in filteredRegions"
-            :key="region"
-            type="button"
-            class="flex items-center gap-3 h-12 mx-2 px-3 rounded-lg text-sm cursor-pointer transition-colors duration-100 w-[calc(100%-16px)] text-left border-0"
-            :class="[
-              selectedRegion === region
-                ? 'bg-[#FEF2F2] text-[#991B1B] font-medium border-l-[3px] border-[#C0392B] pl-[9px]'
-                : 'text-neutral-700 active:bg-neutral-100',
-            ]"
-            @click="selectItem(region)"
-          >
-            <MapPin
-              class="w-4 h-4 shrink-0"
-              :class="selectedRegion === region ? 'text-[#C0392B]' : 'text-neutral-400'"
-              :stroke-width="1.5"
-            />
-            <span class="flex-1">{{ region }}</span>
-            <Check
-              v-if="selectedRegion === region"
-              class="w-4 h-4 text-[#C0392B] shrink-0"
-            />
-          </button>
-
-          <div
-            v-if="filteredRegions.length === 0"
-            class="text-center py-8 text-neutral-400 text-sm"
-          >
-            未找到匹配的地区
-          </div>
-        </div>
-
-        <!-- 底部统计 -->
-        <div class="px-4 py-3 border-t border-neutral-100 text-xs text-neutral-400 text-center">
-          共 {{ filteredRegions.length }} 个地区
-        </div>
-      </div>
-    </Transition>
+      </Transition>
   </div>
 </template>
 

@@ -40,12 +40,12 @@ defineProps<{
   <!-- 已选中时（展示详情） -->
   <div
     v-else-if="info"
-    class="bg-white/70 backdrop-blur-sm border border-neutral-200/40 rounded-xl p-4 transition-border-color duration-200 hover:border-[rgba(192,57,43,0.12)]"
+    class="bg-white/70 backdrop-blur-sm border border-neutral-200/40 rounded-xl p-4 transition-border-color duration-200 hover:border-[rgba(220,38,38,0.12)]"
   >
     <!-- 头部：紧凑单行 -->
     <div class="flex items-center gap-3 mb-3 pb-3 border-b border-neutral-100">
-      <div class="shrink-0 w-8 h-8 rounded-lg bg-[rgba(192,57,43,0.06)] flex items-center justify-center">
-        <Building2 class="w-4 h-4 text-[#C0392B]" />
+      <div class="shrink-0 w-8 h-8 rounded-lg bg-[rgba(220,38,38,0.06)] flex items-center justify-center">
+        <Building2 class="w-4 h-4 text-[#DC2626]" />
       </div>
       <div class="flex-1 min-w-0">
         <h3 class="text-sm font-bold text-neutral-900 truncate">{{ info.customer_name }}</h3>
@@ -54,7 +54,7 @@ defineProps<{
             <MapPin class="w-3 h-3" :stroke-width="1.5" />
             {{ info.province }} · {{ info.city }}
           </span>
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[rgba(192,57,43,0.06)] text-[#991B1B]">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[rgba(220,38,38,0.06)] text-[#991B1B]">
             {{ info.industry }}
           </span>
         </div>
@@ -73,16 +73,16 @@ defineProps<{
     <!-- 用友可提供的内容（突出显示） -->
     <div
       v-if="info.yonyou_content"
-      class="bg-gradient-to-r from-[rgba(192,57,43,0.04)] to-[rgba(212,160,106,0.04)] border border-[rgba(192,57,43,0.10)] rounded-xl p-3.5 relative overflow-hidden"
+      class="bg-gradient-to-r from-[rgba(220,38,38,0.04)] to-[rgba(239,68,68,0.04)] border border-[rgba(220,38,38,0.10)] rounded-xl p-3.5 relative overflow-hidden"
     >
       <!-- 左侧蓝色竖条 -->
       <div
         class="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
-        style="background: linear-gradient(to bottom, #C0392B, #D4A06A);"
+        style="background: linear-gradient(to bottom, #DC2626, #EF4444);"
       />
 
-      <h4 class="text-xs font-bold uppercase tracking-wider text-[#C0392B] flex items-center gap-1.5 mb-1.5 pl-1">
-        <Sparkles class="w-3.5 h-3.5 text-[#C0392B]" :stroke-width="1.5" />
+      <h4 class="text-xs font-bold uppercase tracking-wider text-[#DC2626] flex items-center gap-1.5 mb-1.5 pl-1">
+        <Sparkles class="w-3.5 h-3.5 text-[#DC2626]" :stroke-width="1.5" />
         用友可提供的内容
       </h4>
       <p class="text-sm text-neutral-700 font-medium leading-relaxed pl-1">{{ info.yonyou_content }}</p>

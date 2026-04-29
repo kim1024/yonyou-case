@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, type Component } from 'vue'
+import { type Component } from 'vue'
 import {
   Factory,
   ShoppingBag,
@@ -19,8 +19,6 @@ const props = defineProps<{
   selectedIndustry: string | null
 }>()
 const emit = defineEmits<{ select: [industry: string] }>()
-
-const poppedKey = ref<string | null>(null)
 
 const iconMap: Array<[string, Component]> = [
   ['制造', Factory],
@@ -46,11 +44,7 @@ function getIndustryIcon(name: string): Component {
 }
 
 function handleSelect(industry: string) {
-  poppedKey.value = industry
-  setTimeout(() => {
-    emit('select', industry)
-    poppedKey.value = null
-  }, 250)
+  emit('select', industry)
 }
 </script>
 
@@ -72,9 +66,8 @@ function handleSelect(industry: string) {
         :key="industry"
         :class="[
           selectedIndustry === industry
-            ? 'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer border bg-gradient-to-r from-[#C0392B] to-[#D4A06A] text-white border-transparent shadow-[0_2px_16px_rgba(192,57,43,0.25)] -translate-y-0.5'
-            : 'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer border bg-white/70 text-neutral-600 border-neutral-200/60 hover:border-[rgba(192,57,43,0.15)] hover:text-[#C0392B] hover:-translate-y-0.5 hover:shadow-[0_2px_12px_rgba(192,57,43,0.06)]',
-          poppedKey === industry ? 'animate-select-pop' : '',
+            ? 'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer border bg-gradient-to-r from-[#DC2626] to-[#EF4444] text-white border-transparent shadow-[0_2px_16px_rgba(220,38,38,0.25)] -translate-y-0.5'
+            : 'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer border bg-white/70 text-neutral-600 border-neutral-200/60 hover:border-[rgba(220,38,38,0.15)] hover:text-[#DC2626] hover:-translate-y-0.5 hover:shadow-[0_2px_12px_rgba(220,38,38,0.06)]',
         ]"
         @click="handleSelect(industry)"
       >

@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  /* Primary — Indigo Dusk */
-  --color-primary-50: #EEF2FF;
-  --color-primary-100: #E0E7FF;
-  --color-primary-200: #C7D2FE;
-  --color-primary-400: #818CF8;
-  --color-primary-500: #6366F1;
-  --color-primary-600: #4F46E5;
-  --color-primary-700: #4338CA;
+  /* Primary — Chinese Red */
+  --color-primary-50: #FEF2F2;
+  --color-primary-100: #FECACA;
+  --color-primary-200: #FCA5A5;
+  --color-primary-400: #F87171;
+  --color-primary-500: #DC2626;
+  --color-primary-600: #B91C1C;
+  --color-primary-700: #991B1B;
+  --color-primary-800: #7F1D1D;
 
   /* Neutral — Warm Gray */
   --color-neutral-0: #FFFFFF;
@@ -62,7 +63,7 @@
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 64px;
   --sidebar-bg: rgba(245, 243, 240, 0.72);
-  --sidebar-active-bg: rgba(99, 102, 241, 0.10);
+  --sidebar-active-bg: rgba(220, 38, 38, 0.10);
   --sidebar-hover-bg: rgba(0, 0, 0, 0.04);
   --sidebar-border: rgba(0, 0, 0, 0.06);
 
@@ -70,7 +71,7 @@
   --sidebar-dark-bg: #0F0F1A;
   --sidebar-dark-bg-subtle: linear-gradient(180deg, #141425 0%, #0F0F1A 100%);
   --sidebar-dark-hover: rgba(255, 255, 255, 0.05);
-  --sidebar-dark-active: rgba(99, 102, 241, 0.18);
+  --sidebar-dark-active: rgba(220, 38, 38, 0.18);
   --sidebar-dark-text: rgba(255, 255, 255, 0.50);
   --sidebar-dark-text-active: rgba(255, 255, 255, 0.95);
   --sidebar-dark-border: rgba(255, 255, 255, 0.06);
@@ -243,7 +244,7 @@ body {
 
 .input-macos:focus {
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
 }
 
 select.input-macos {
@@ -260,20 +261,10 @@ select.input-macos {
 
 select.input-macos:focus {
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
 }
 
 /* ── Wizard Step Animations ── */
-
-@keyframes selectPop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-
-.animate-select-pop {
-  animation: selectPop 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -284,7 +275,7 @@ select.input-macos:focus {
   background: linear-gradient(
     90deg,
     rgba(245,243,240,0.8) 25%,
-    rgba(192,57,43,0.03) 50%,
+    rgba(220,38,38,0.03) 50%,
     rgba(245,243,240,0.8) 75%
   );
   background-size: 200% 100%;
@@ -312,7 +303,7 @@ select.input-macos:focus {
 /* ── Gradient Accent (button) ── */
 
 .gradient-accent {
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
   color: var(--color-neutral-0);
   border: none;
   border-radius: var(--radius-md);
@@ -325,13 +316,13 @@ select.input-macos:focus {
 }
 
 .gradient-accent:hover {
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
   transform: translateY(-1px);
 }
 
 .gradient-accent:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
 
 /* ── Page Header ── */

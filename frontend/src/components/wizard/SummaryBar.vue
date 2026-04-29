@@ -67,7 +67,7 @@ const items: SummaryItem[] = [
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(24px) saturate(1.5);
   -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  border-bottom: 1px solid rgba(192,57,43,0.06);
+  border-bottom: 1px solid rgba(220,38,38,0.06);
 }
 
 .ai-chip {
@@ -83,10 +83,10 @@ const items: SummaryItem[] = [
 }
 
 .ai-chip-active {
-  background: linear-gradient(135deg, rgba(192,57,43,0.07), rgba(212,160,106,0.06));
+  background: linear-gradient(135deg, rgba(220,38,38,0.07), rgba(239,68,68,0.06));
   color: #991B1B;
-  border: 1px solid rgba(192,57,43,0.12);
-  box-shadow: 0 0 12px rgba(192,57,43,0.04);
+  border: 1px solid rgba(220,38,38,0.12);
+  box-shadow: 0 0 12px rgba(220,38,38,0.04);
 }
 
 .ai-chip-empty {

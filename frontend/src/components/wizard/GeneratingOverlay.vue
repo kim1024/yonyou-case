@@ -95,7 +95,7 @@ const ringCircumference = 2 * Math.PI * 35
               v-if="stage === 3"
               cx="50" cy="50" r="35"
               fill="none"
-              stroke="rgba(192,57,43,0.3)"
+              stroke="rgba(220,38,38,0.3)"
               stroke-width="1.5"
               stroke-linecap="round"
               :stroke-dasharray="ringCircumference"
@@ -166,8 +166,8 @@ const ringCircumference = 2 * Math.PI * 35
   width: 64px;
   height: 64px;
   border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%;
-  background: radial-gradient(circle at 40% 40%, #C0392B, rgba(192, 57, 43, 0.3) 60%, transparent);
-  box-shadow: 0 0 40px rgba(192, 57, 43, 0.15);
+  background: radial-gradient(circle at 40% 40%, #DC2626, rgba(220, 38, 38, 0.3) 60%, transparent);
+  box-shadow: 0 0 40px rgba(220, 38, 38, 0.15);
   animation: orbMorph 8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite,
              orbFloat 4s cubic-bezier(0.37, 0, 0.63, 1) infinite;
   transition: width 0.8s, height 0.8s, background 0.8s;
@@ -180,17 +180,17 @@ const ringCircumference = 2 * Math.PI * 35
 .orb-stage-2 {
   width: 68px;
   height: 68px;
-  background: radial-gradient(circle at 40% 40%, #C0392B, #D94A3F 40%, rgba(231, 76, 60, 0.2) 70%, transparent);
+  background: radial-gradient(circle at 40% 40%, #DC2626, #EF4444 40%, rgba(248, 113, 113, 0.2) 70%, transparent);
   animation-duration: 6s, 3s;
-  box-shadow: 0 0 50px rgba(192, 57, 43, 0.18);
+  box-shadow: 0 0 50px rgba(220, 38, 38, 0.18);
 }
 
 .orb-stage-3 {
   width: 72px;
   height: 72px;
-  background: radial-gradient(circle at 40% 40%, #E74C3C, rgba(231, 76, 60, 0.3) 60%, transparent);
+  background: radial-gradient(circle at 40% 40%, #F87171, rgba(248, 113, 113, 0.3) 60%, transparent);
   animation-duration: 5s, 3s;
-  box-shadow: 0 0 60px rgba(231, 76, 60, 0.22);
+  box-shadow: 0 0 60px rgba(248, 113, 113, 0.22);
 }
 
 .orb-stage-4 {
@@ -208,7 +208,7 @@ const ringCircumference = 2 * Math.PI * 35
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(192, 57, 43, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.12) 0%, transparent 70%);
   animation: glowPulse 3s ease-in-out infinite;
   z-index: 0;
 }
@@ -251,7 +251,7 @@ const ringCircumference = 2 * Math.PI * 35
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #C0392B, #E74C3C);
+  background: linear-gradient(90deg, #DC2626, #F87171);
   border-radius: 1px;
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
