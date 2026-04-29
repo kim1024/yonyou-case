@@ -22,14 +22,6 @@ withDefaults(
       unlocked && !generating ? 'ai-section-active' : 'ai-section-locked',
     ]"
   >
-    <!-- Circuit trace decoration (top-left) -->
-    <div class="circuit-trace" aria-hidden="true">
-      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-        <path d="M0 20h16M20 0v16" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
-        <circle cx="20" cy="20" r="2" fill="currentColor" opacity="0.15"/>
-      </svg>
-    </div>
-
     <!-- Section header -->
     <div class="mb-3 flex items-start gap-3">
       <div
@@ -99,44 +91,37 @@ withDefaults(
   pointer-events: none;
 }
 
-/* Circuit trace decoration */
-.circuit-trace {
-  position: absolute;
-  top: 12px;
-  left: -8px;
-  color: #DC2626;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-.ai-section-active .circuit-trace { opacity: 1; }
-
 /* Number badge */
 .ai-number-badge {
   flex-shrink: 0;
   width: 30px;
   height: 30px;
-  border-radius: 10px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ai-number-badge-active {
-  background: linear-gradient(135deg, rgba(220,38,38,0.08), rgba(239,68,68,0.10));
-  color: #DC2626;
-  border: 1px solid rgba(220,38,38,0.12);
-  box-shadow: 0 0 16px rgba(220,38,38,0.06);
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  color: #FFFFFF;
+  border: none;
+  box-shadow:
+    0 1px 3px rgba(220, 38, 38, 0.30),
+    0 4px 12px rgba(220, 38, 38, 0.15),
+    0 0 0 3px rgba(220, 38, 38, 0.08);
 }
 
 .ai-number-badge-locked {
-  background: rgba(245,243,240,0.5);
+  background: linear-gradient(135deg, #F5F5F4 0%, #E7E5E4 100%);
   color: #A8A29E;
-  border: 1px solid rgba(168,162,158,0.15);
+  font-weight: 600;
+  border: 1px solid rgba(168, 162, 158, 0.20);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 /* Overlays */
