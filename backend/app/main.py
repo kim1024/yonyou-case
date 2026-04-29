@@ -110,6 +110,21 @@ def startup():
     try:
         normalize_runtime_state(db)
         rate_limit_config.load_from_db(db)
+
+        # 清理因服务重启而中断的僵尸 plan 记录
+        try:
+            from sqlalchemy import or_
+            zombie_count = (
+                db.query(GeneratedPlan)
+                .filter(or_(GeneratedPlan.status == "pending", GeneratedPlan.status == "processing"))
+                .update({"status": "failed", "error_message": "服务重启，任务中断"})
+            )
+            if zombie_count:
+                db.commit()
+                logging.info(f"已清理 {zombie_count} 条僵尸 plan 记录（pending/processing → failed）")
+        except Exception:
+            db.rollback()
+            logging.exception("清理僵尸 plan 记录失败，不影响启动")
     finally:
         db.close()
 

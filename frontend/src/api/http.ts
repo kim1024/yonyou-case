@@ -43,13 +43,22 @@ http.interceptors.response.use(
         }
       }
     }
-    // Service unavailable (also rate limit related)
+    // Service unavailable — distinguish concurrency limit vs rate limit
     if (error.response?.status === 503) {
       const data = error.response.data || {}
-      error.rateLimitInfo = {
-        detail: data.detail || '',
-        message: data.message || '请求过于频繁',
-        retryAfter: data.retry_after || 30,
+      const detail = data.detail || ''
+
+      // 并发限制（wizard.py 返回的 503），非限流，不触发冷却
+      if (typeof detail === 'string' && (detail.includes('系统繁忙') || detail.includes('并发'))) {
+        error.concurrencyError = true
+        error.message = detail
+      } else {
+        // 其他 503 按限流处理（理论上不应出现）
+        error.rateLimitInfo = {
+          detail,
+          message: data.message || '请求过于频繁',
+          retryAfter: data.retry_after || 30,
+        }
       }
     }
     return Promise.reject(error)

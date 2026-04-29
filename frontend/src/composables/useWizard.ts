@@ -299,6 +299,13 @@ export function useWizard() {
         // 请求被取消（用户点击重新开始），不报错
         return null
       }
+      // Concurrency limit (503 from wizard.py) — not a rate limit, no cooldown
+      if ((e as { concurrencyError?: boolean }).concurrencyError) {
+        error.value = (e as Error).message || '系统繁忙，请稍后重试'
+        loading.generating = false
+        clearGeneration()
+        return null
+      }
       // Rate limit detection
       if ((e as { rateLimitInfo?: unknown }).rateLimitInfo) {
         handleRateLimit((e as { rateLimitInfo: { detail: string; message: string; retryAfter: number } }).rateLimitInfo)
