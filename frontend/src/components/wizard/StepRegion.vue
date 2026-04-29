@@ -216,7 +216,8 @@ onUnmounted(() => {
       </div>
     </Transition>
 
-    <!-- 移动端 Bottom Sheet -->
+    <!-- 移动端 Bottom Sheet（Teleport 到 body 以逃离 <main> 的 z-index 层叠上下文） -->
+    <Teleport to="body">
       <!-- 遮罩 -->
       <Transition name="fade">
         <div
@@ -295,6 +296,7 @@ onUnmounted(() => {
           </div>
         </div>
       </Transition>
+    </Teleport>
   </div>
 </template>
 
