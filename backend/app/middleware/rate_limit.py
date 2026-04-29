@@ -122,9 +122,16 @@ class SlidingWindowRateLimiter:
                 retry_after = max(retry_after, 1)
                 return True, retry_after
 
+            # 不在这里记录时间戳，由调用方决定是否记录
+            return False, 0
+
+    def record_request(self, key: str):
+        """记录一次请求的时间戳（用于滑动窗口限流）。"""
+        now = time.time()
+        with self._lock:
+            timestamps = self._records.get(key, [])
             timestamps.append(now)
             self._records[key] = timestamps
-            return False, 0
 
     # ---- 内部辅助 ----
     def _maybe_cleanup(self, now: float):
@@ -249,7 +256,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # --- 执行请求 ---
         response = await call_next(request)
-        # 记录成功请求时间（用于冷却检查）
-        with self._cooldown_lock:
-            self._last_request[client_ip] = time.time()
+
+        # 记录滑动窗口时间戳（每次请求都记录，用于限制总请求次数）
+        self._limiter.record_request(client_ip)
+
+        # 只在请求失败时记录冷却时间（成功返回 202 不触发冷却）
+        if response.status_code >= 400:
+            with self._cooldown_lock:
+                self._last_request[client_ip] = time.time()
         return response
